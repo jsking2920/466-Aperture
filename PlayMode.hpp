@@ -3,6 +3,7 @@
 #include "Scene.hpp"
 #include "WalkMesh.hpp"
 #include "Sound.hpp"
+#include "TextRenderer.hpp"
 
 #include <glm/glm.hpp>
 
@@ -40,4 +41,8 @@ struct PlayMode : Mode {
 		// Camera is at player's head
 		Scene::Camera *camera = nullptr;
 	} player;
+
+	// Text Rendering
+	TextRenderer* ui_text = nullptr;
+	uint8_t ui_font_size = 34;
 };
