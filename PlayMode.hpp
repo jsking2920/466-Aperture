@@ -2,6 +2,7 @@
 
 #include "Scene.hpp"
 #include "WalkMesh.hpp"
+#include "Sound.hpp"
 
 #include <glm/glm.hpp>
 
@@ -12,28 +13,31 @@ struct PlayMode : Mode {
 	PlayMode();
 	virtual ~PlayMode();
 
-	//functions called by main loop:
+	// Functions called by main loop:
 	virtual bool handle_event(SDL_Event const &, glm::uvec2 const &window_size) override;
 	virtual void update(float elapsed) override;
 	virtual void draw(glm::uvec2 const &drawable_size) override;
 
-	//----- game state -----
+	//----- Game State -----
 
-	//input tracking:
+	// Input tracking
 	struct Button {
 		uint8_t downs = 0;
 		uint8_t pressed = 0;
 	} left, right, down, up;
 
-	//local copy of the game scene (so code can change it during gameplay):
+	// Local copy of the game scene
 	Scene scene;
 
-	//player info:
+	// Audio
+	std::shared_ptr< Sound::PlayingSample > music_loop;
+
+	// Player
 	struct Player {
 		WalkPoint at;
-		//transform is at player's feet and will be yawed by mouse left/right motion:
+		// Transform is at player's feet
 		Scene::Transform *transform = nullptr;
-		//camera is at player's head and will be pitched by mouse up/down motion:
+		// Camera is at player's head
 		Scene::Camera *camera = nullptr;
 	} player;
 };
