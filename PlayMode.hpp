@@ -4,6 +4,7 @@
 #include "WalkMesh.hpp"
 #include "Sound.hpp"
 #include "TextRenderer.hpp"
+#include "Player.hpp"
 
 #include <glm/glm.hpp>
 
@@ -26,6 +27,7 @@ struct PlayMode : Mode {
 		uint8_t downs = 0;
 		uint8_t pressed = 0;
 	} left, right, down, up;
+	glm::vec2 mouse_motion = glm::vec2(0, 0);
 
 	// Local copy of the game scene
 	Scene scene;
@@ -33,14 +35,7 @@ struct PlayMode : Mode {
 	// Audio
 	std::shared_ptr< Sound::PlayingSample > music_loop;
 
-	// Player
-	struct Player {
-		WalkPoint at;
-		// Transform is at player's feet
-		Scene::Transform *transform = nullptr;
-		// Camera is at player's head
-		Scene::Camera *camera = nullptr;
-	} player;
+	Player player;
 
 	// Text Rendering
 	TextRenderer* ui_text = nullptr;
