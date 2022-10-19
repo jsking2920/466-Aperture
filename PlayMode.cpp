@@ -38,7 +38,6 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 
 Load< WalkMeshes > main_walkmeshes(LoadTagDefault, []() -> WalkMeshes const * {
 	WalkMeshes *ret = new WalkMeshes(data_path("main.w"));
-	//walkmesh = &ret->lookup("WalkMesh");
 	return ret;
 });
 
@@ -164,17 +163,15 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 	scene.draw(*player.camera);
 
-	/* In case you are wondering if your walkmesh is lining up with your scene, try:
 	{
 		glDisable(GL_DEPTH_TEST);
 		DrawLines lines(player.camera->make_projection() * glm::mat4(player.camera->transform->make_world_to_local()));
-		for (auto const &tri : walkmesh->triangles) {
-			lines.draw(walkmesh->vertices[tri.x], walkmesh->vertices[tri.y], glm::u8vec4(0x88, 0x00, 0xff, 0xff));
-			lines.draw(walkmesh->vertices[tri.y], walkmesh->vertices[tri.z], glm::u8vec4(0x88, 0x00, 0xff, 0xff));
-			lines.draw(walkmesh->vertices[tri.z], walkmesh->vertices[tri.x], glm::u8vec4(0x88, 0x00, 0xff, 0xff));
+		for (auto const &tri : player.walk_mesh->triangles) {
+			lines.draw(player.walk_mesh->vertices[tri.x], player.walk_mesh->vertices[tri.y], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
+			lines.draw(player.walk_mesh->vertices[tri.y], player.walk_mesh->vertices[tri.z], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
+			lines.draw(player.walk_mesh->vertices[tri.z], player.walk_mesh->vertices[tri.x], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
 		}
 	}
-	*/
 
 	// UI
 	{
