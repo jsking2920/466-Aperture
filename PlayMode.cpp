@@ -163,6 +163,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 	scene.draw(*player.camera);
 
+	/* Debug code for visualizing walk mesh
 	{
 		glDisable(GL_DEPTH_TEST);
 		DrawLines lines(player.camera->make_projection() * glm::mat4(player.camera->transform->make_world_to_local()));
@@ -172,6 +173,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			lines.draw(player.walk_mesh->vertices[tri.z], player.walk_mesh->vertices[tri.x], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
 		}
 	}
+	*/
 
 	// UI
 	{
