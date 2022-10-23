@@ -44,6 +44,7 @@ Load< LitColorTextureProgram > lit_color_texture_program(LoadTagEarly, []() -> L
 });
 
 LitColorTextureProgram::LitColorTextureProgram() {
+	//TODO: add texture samling and rendering to the shader:
 	//Compile vertex and fragment shaders using the convenient 'gl_compile_program' helper function:
 	program = gl_compile_program(
 		//vertex shader:

@@ -137,6 +137,7 @@ void Scene::draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_lig
 		//set any requested custom uniforms:
 		if (pipeline.set_uniforms) pipeline.set_uniforms();
 
+		//TODO: what does this do?
 		//set up textures:
 		for (uint32_t i = 0; i < Drawable::Pipeline::TextureCount; ++i) {
 			if (pipeline.textures[i].texture != 0) {
