@@ -4,13 +4,16 @@
 #include "Scene.hpp"
 
 #include <glm/glm.hpp>
+#include <memory>
 
 // Cameras for taking pictures (has a ref to a Scene::Camera to use for actually drawing view)
 struct PlayerCamera {
 
-	PlayerCamera(Scene::Camera* camera);//_) : scene_camera(camera_) { assert(scene_camera); }
-	~PlayerCamera();// { delete scene_camera; };
-	Scene::Camera* scene_camera = nullptr; // should be parented to player.camera
+	// newly created transform for this camera, transform of parent (should be player.camera)
+	PlayerCamera(Scene::Transform* scene_transform, Scene::Transform* parent_transform);  
+	~PlayerCamera();
+
+	std::unique_ptr<Scene::Camera> scene_camera;
 };
 
 struct Player {
@@ -25,7 +28,7 @@ struct Player {
 	// Camera in scene, at head of player; will be pitched by mouse up/down motion ("Eyes" of player)
 	Scene::Camera* camera = nullptr;
 	// Camera in player's hands that they take picures with parented to camera
-	PlayerCamera* player_camera = nullptr;
+	std::unique_ptr<PlayerCamera> player_camera = nullptr;
 	// false = view from "eyes"/camera, true = view from PlayerCamera "viewport" (picture taking mode)
 	bool in_cam_view = false;
 

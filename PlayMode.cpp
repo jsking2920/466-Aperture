@@ -67,17 +67,8 @@ PlayMode::PlayMode() : scene(*main_scene) {
 		player.camera->transform->parent = player.transform;
 
 		// Create default PlayerCamera for taking pictures
-		scene.transforms.emplace_back();
-		scene.cameras.emplace_back(&scene.transforms.back()); // TODO: This camera being on this list feels like it might cause problems
-		PlayerCamera player_camera = PlayerCamera(&scene.cameras.back());
-		player.player_camera = &player_camera;
-
-		// Default camera settings
-		player.player_camera->scene_camera->fovy = glm::radians(60.0f);
-		player.player_camera->scene_camera->near = 0.01f;
-
-		// Player's camera shares same position/rotation/etc as their scene camera ("eyes")
-		player.player_camera->scene_camera->transform->parent = player.camera->transform;
+		scene.transforms.emplace_back(); // Create new transform, will be parented to player.transform
+		player.player_camera = std::make_unique<PlayerCamera>(&scene.transforms.back(), player.camera->transform); 
 	}
 
 	// Setup walk mesh

@@ -2,8 +2,16 @@
 
 #include <iostream>
 
-PlayerCamera::PlayerCamera(Scene::Camera* camera) {
-	scene_camera = camera;
+PlayerCamera::PlayerCamera(Scene::Transform* scene_transform, Scene::Transform* parent_transform) {
+
+	scene_camera = std::make_unique<Scene::Camera>(scene_transform);
+
+	// Player's camera shares same position/rotation/etc as their scene camera ("eyes")
+	scene_camera->transform->parent = parent_transform; // parent_transform should be player.transform
+
+	// Set default camera settings
+	scene_camera->fovy = glm::radians(60.0f);
+	scene_camera->near = 0.01f;
 }
 
 PlayerCamera::~PlayerCamera() {
