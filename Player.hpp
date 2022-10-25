@@ -14,6 +14,8 @@ struct PlayerCamera {
 	~PlayerCamera();
 
 	std::unique_ptr<Scene::Camera> scene_camera; // used for actually drawing view of scene
+
+	void TakePicture();
 };
 
 struct Player {

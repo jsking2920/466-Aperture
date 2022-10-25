@@ -17,6 +17,10 @@ PlayerCamera::PlayerCamera(Scene::Transform* scene_transform, Scene::Transform* 
 PlayerCamera::~PlayerCamera() {
 }
 
+void PlayerCamera::TakePicture() {
+	std::cout << "*Snap*" << std::endl;
+}
+
 void Player::OnMouseMotion(glm::vec2 mouse_motion) {
 
 	// Player rotation locked to z-axis rotation

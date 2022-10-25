@@ -178,6 +178,10 @@ void PlayMode::update(float elapsed) {
 		if (rmb.downs == 1) {
 			player.in_cam_view = !player.in_cam_view;
 		}
+		// Snap a pic on left click, if in camera view
+		if (player.in_cam_view && lmb.downs == 1) {
+			player.player_camera->TakePicture();
+		}
 	}
 
 	//reset button press counters:
