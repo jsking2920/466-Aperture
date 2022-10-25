@@ -23,21 +23,54 @@ Load< LitColorTexturePlusIDProgram > lit_color_texture_plus_id_program(LoadTagEa
 	lit_color_texture_plus_id_program_pipeline.LIGHT_CUTOFF_float = ret->LIGHT_CUTOFF_float;
 	*/
 
-	//make a 1-pixel white texture to bind by default:
-	GLuint tex;
-	glGenTextures(1, &tex);
 
-	glBindTexture(GL_TEXTURE_2D, tex);
-	std::vector< glm::u8vec4 > tex_data(1, glm::u8vec4(0xff));
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex_data.data());
+	// ------- Texture for albedo (make a 1-pixel white texture to bind by default) -------
+	GLuint color_tex;
+	glGenTextures(1, &color_tex);
+
+	glBindTexture(GL_TEXTURE_2D, color_tex);
+	std::vector< glm::u8vec4 > color_tex_data(1, glm::u8vec4(0xff));
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, color_tex_data.data());
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	lit_color_texture_plus_id_program_pipeline.textures[0].texture = tex;
+
+	// ------- Texture for IDs (make a 1-pixel white texture to bind by default) -------
+	// Based on: https://github.com/textiles-lab/autoknit/blob/0021de31fbf0478668b898673c63c736c23216cb/Interface.cpp#L1124-L1130
+	GLuint id_tex;
+	glGenTextures(1, &id_tex);
+
+	glBindTexture(GL_TEXTURE_2D, id_tex);
+	std::vector< glm::u8vec4 > id_tex_data(1, glm::u8vec4(0xff)); // TODO: should this be defaulting to a 1-pixel white texture the same way the color tex does??
+	                                                              // TODO: if so how/when does that texture get resized and do we need to do anything to make the id_tex do the same?
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, id_tex_data.data()); // TODO: figure out how to author 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); // TODO: Look into what all these flags mean and how they affect our authoring process/pipeline for IDs
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+
+	// Set up frame buffer
+	GLuint color_id_fb; // (color_tex, id_tex)
+
+	glGenFramebuffers(1, &color_id_fb);
+	glBindFramebuffer(GL_FRAMEBUFFER, color_id_fb);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color_tex, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, id_tex, 0);
+	GLenum bufs[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+	glDrawBuffers(2, bufs);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	GL_ERRORS();
+
+	lit_color_texture_plus_id_program_pipeline.textures[0].texture = color_tex; // TODO: Should this be color_id_fb??? Something else???
 	lit_color_texture_plus_id_program_pipeline.textures[0].target = GL_TEXTURE_2D;
+
+	// TODO: How do we access this buffer with id values from the fragment shader???
 
 	return ret;
 });
@@ -54,16 +87,19 @@ LitColorTexturePlusIDProgram::LitColorTexturePlusIDProgram() {
 		"in vec3 Normal;\n"
 		"in vec4 Color;\n"
 		"in vec2 TexCoord;\n"
+		"in vec4 ID;\n"
 		"out vec3 position;\n"
 		"out vec3 normal;\n"
 		"out vec4 color;\n"
 		"out vec2 texCoord;\n"
+		"out vec4 id;\n"
 		"void main() {\n"
 		"	gl_Position = OBJECT_TO_CLIP * Position;\n"
 		"	position = OBJECT_TO_LIGHT * Position;\n"
 		"	normal = NORMAL_TO_LIGHT * Normal;\n"
 		"	color = Color;\n"
 		"	texCoord = TexCoord;\n"
+		"	id = ID;\n"
 		"}\n"
 		,
 		//fragment shader:
@@ -78,7 +114,9 @@ LitColorTexturePlusIDProgram::LitColorTexturePlusIDProgram() {
 		"in vec3 normal;\n"
 		"in vec4 color;\n"
 		"in vec2 texCoord;\n"
-		"out vec4 fragColor;\n"
+		"in vec4 id;\n"
+		"layout(location = 0) out vec4 fragColor;\n"
+		"layout(location = 1) out vec4 fragID;\n"
 		"void main() {\n"
 		"	vec3 n = normalize(normal);\n"
 		"	vec3 e;\n"
@@ -103,6 +141,7 @@ LitColorTexturePlusIDProgram::LitColorTexturePlusIDProgram() {
 		"	}\n"
 		"	vec4 albedo = texture(TEX, texCoord) * color;\n"
 		"	fragColor = vec4(e*albedo.rgb, albedo.a);\n"
+		"	fragID = id;\n"
 		"}\n"
 	);
 	//As you can see above, adjacent strings in C/C++ are concatenated.
