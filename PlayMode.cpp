@@ -232,7 +232,9 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 	// UI
 	{
-		ui_text->draw("place holder", 0.5f * float(drawable_size.x), 0.5f * float(drawable_size.y), 0.5f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		if (player.in_cam_view) {
+			ui_text->draw("place holder", 0.1f * float(drawable_size.x), 0.1f * float(drawable_size.y), 0.5f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		}
 	}
 	GL_ERRORS();
 }
