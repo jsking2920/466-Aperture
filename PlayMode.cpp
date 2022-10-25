@@ -59,14 +59,33 @@ PlayMode::PlayMode() : scene(*main_scene) {
 	}
 	if (player.transform == nullptr) throw std::runtime_error("Player transform not found.");
 
-	// Grab camera in scene for player
-	if (scene.cameras.size() != 1) throw std::runtime_error("Expecting scene to have exactly one camera, but it has " + std::to_string(scene.cameras.size()));
-	player.camera = &scene.cameras.back();
-	player.camera->transform->parent = player.transform;
+	// Set up cameras
+	{
+		// Grab camera in scene for player's eyes
+		if (scene.cameras.size() != 1) throw std::runtime_error("Expecting scene to have exactly one camera, specifically at the player's head, but it has " + std::to_string(scene.cameras.size()));
+		player.camera = &scene.cameras.back();
+		player.camera->transform->parent = player.transform;
 
-	// Set up player walk mesh
-	player.walk_mesh = &main_walkmeshes->lookup("WalkMesh");
-	player.at = player.walk_mesh->nearest_walk_point(player.transform->position);
+		// Create default PlayerCamera for taking pictures
+		scene.transforms.emplace_back();
+		scene.cameras.emplace_back(&scene.transforms.back()); // TODO: This camera being on this list feels like it might cause problems
+		PlayerCamera player_camera = PlayerCamera(&scene.cameras.back());
+		player.player_camera = &player_camera;
+
+		// Default camera settings
+		player.player_camera->scene_camera->fovy = glm::radians(60.0f);
+		player.player_camera->scene_camera->near = 0.01f;
+
+		// Player's camera shares same position/rotation/etc as their scene camera ("eyes")
+		player.player_camera->scene_camera->transform->parent = player.camera->transform;
+	}
+
+	// Setup walk mesh
+	{
+		player.walk_mesh = &main_walkmeshes->lookup("WalkMesh");
+		// Start player walking at nearest walk point
+		player.at = player.walk_mesh->nearest_walk_point(player.transform->position);
+	}
 
 	// Set up text renderer
 	ui_text = new TextRenderer(data_path("LibreBarcode39-Regular.ttf"), ui_font_size);
@@ -117,6 +136,27 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			SDL_SetRelativeMouseMode(SDL_TRUE);
 			return true;
 		}
+		else if (evt.button.button == SDL_BUTTON_LEFT) { // https://wiki.libsdl.org/SDL_Event and https://wiki.libsdl.org/SDL_MouseButtonEvent#:~:text=SDL_MouseButtonEvent%20is%20a%20member%20of,a%20button%20on%20a%20mouse.
+			lmb.downs += 1;
+			lmb.pressed = true;
+			return true;
+		}
+		else if (evt.button.button == SDL_BUTTON_RIGHT) {
+			rmb.downs += 1;
+			rmb.pressed = true;
+			return true;
+		}
+	} else if (evt.type == SDL_MOUSEBUTTONUP) {
+		if (SDL_GetRelativeMouseMode() == SDL_TRUE) {
+			if (evt.button.button == SDL_BUTTON_LEFT) {
+				lmb.pressed = false;
+				return true;
+			}
+			else if (evt.button.button == SDL_BUTTON_RIGHT) {
+				rmb.pressed = false;
+				return true;
+			}
+		}
 	} else if (evt.type == SDL_MOUSEMOTION) {
 		if (SDL_GetRelativeMouseMode() == SDL_TRUE) {
 			mouse_motion = glm::vec2(evt.motion.xrel / float(window_size.y), -evt.motion.yrel / float(window_size.y));
@@ -141,11 +181,21 @@ void PlayMode::update(float elapsed) {
 		if (move.x != 0.0f || move.y != 0.0f) player.Move(move, elapsed);
 	}
 
+	// Player camera logic 
+	{
+		// Toggle player view on right click
+		if (rmb.downs == 1) {
+			player.in_cam_view = !player.in_cam_view;
+		}
+	}
+
 	//reset button press counters:
 	left.downs = 0;
 	right.downs = 0;
 	up.downs = 0;
 	down.downs = 0;
+	lmb.downs = 0;
+	rmb.downs = 0;
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
@@ -167,7 +217,12 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS); //this is the default depth comparison function, but FYI you can change it.
 
-	scene.draw(*player.camera);
+	if (player.in_cam_view) {
+		scene.draw(*player.player_camera->scene_camera);
+	}
+	else {
+		scene.draw(*player.camera);
+	}
 
 	/* Debug code for visualizing walk mesh
 	{

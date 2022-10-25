@@ -2,6 +2,13 @@
 
 #include <iostream>
 
+PlayerCamera::PlayerCamera(Scene::Camera* camera) {
+	scene_camera = camera;
+}
+
+PlayerCamera::~PlayerCamera() {
+}
+
 void Player::OnMouseMotion(glm::vec2 mouse_motion) {
 
 	// Player rotation locked to z-axis rotation

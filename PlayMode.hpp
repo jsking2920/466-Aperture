@@ -26,7 +26,7 @@ struct PlayMode : Mode {
 	struct Button {
 		uint8_t downs = 0;
 		uint8_t pressed = 0;
-	} left, right, down, up;
+	} left, right, down, up, lmb, rmb;
 	glm::vec2 mouse_motion = glm::vec2(0, 0);
 
 	// Local copy of the game scene
