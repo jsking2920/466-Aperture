@@ -68,7 +68,7 @@ PlayMode::PlayMode() : scene(*main_scene) {
 
 		// Create default PlayerCamera for taking pictures
 		scene.transforms.emplace_back(); // Create new transform, will be parented to player.transform
-		player.player_camera = std::make_unique<PlayerCamera>(&scene.transforms.back(), player.camera->transform); 
+		player.player_camera = std::make_unique<PlayerCamera>(&scene.transforms.back(), player.camera->transform, player.camera->fovy); // fovy being set to the same between both cameras 
 	}
 
 	// Setup walk mesh

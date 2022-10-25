@@ -10,7 +10,7 @@
 struct PlayerCamera {
 
 	// Newly created transform for this camera, transform of parent (should be player.camera)
-	PlayerCamera(Scene::Transform* scene_transform, Scene::Transform* parent_transform);  
+	PlayerCamera(Scene::Transform* scene_transform, Scene::Transform* parent_transform, float fovy);
 	~PlayerCamera();
 
 	std::unique_ptr<Scene::Camera> scene_camera; // used for actually drawing view of scene

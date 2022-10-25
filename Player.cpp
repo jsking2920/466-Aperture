@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-PlayerCamera::PlayerCamera(Scene::Transform* scene_transform, Scene::Transform* parent_transform) {
+PlayerCamera::PlayerCamera(Scene::Transform* scene_transform, Scene::Transform* parent_transform, float fovy) {
 
 	scene_camera = std::make_unique<Scene::Camera>(scene_transform);
 
@@ -10,7 +10,7 @@ PlayerCamera::PlayerCamera(Scene::Transform* scene_transform, Scene::Transform* 
 	scene_camera->transform->parent = parent_transform; // parent_transform should be player.transform
 
 	// Set default camera settings
-	scene_camera->fovy = glm::radians(60.0f);
+	scene_camera->fovy = fovy;
 	scene_camera->near = 0.01f;
 }
 
