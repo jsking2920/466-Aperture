@@ -190,10 +190,12 @@ void PlayMode::update(float elapsed) {
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
-	//update camera aspect ratio for drawable:
-	player.camera->aspect = float(drawable_size.x) / float(drawable_size.y);
 
-	//set up light type and position for lit_color_texture_program:
+	// Update camera aspect ratios for drawable
+	player.camera->aspect = float(drawable_size.x) / float(drawable_size.y);
+	player.player_camera->scene_camera->aspect = float(drawable_size.x) / float(drawable_size.y);
+
+	// Set up light type and position for lit_color_texture_program:
 	// TODO: consider using the Light(s) in the scene to do this
 	glUseProgram(lit_color_texture_program->program);
 	glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 1);
@@ -208,6 +210,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS); //this is the default depth comparison function, but FYI you can change it.
 
+	// Draw scene based on active camera (Player's "eyes" or their PlayerCamera)
 	if (player.in_cam_view) {
 		scene.draw(*player.player_camera->scene_camera);
 	}

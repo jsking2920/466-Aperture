@@ -6,14 +6,14 @@
 #include <glm/glm.hpp>
 #include <memory>
 
-// Cameras for taking pictures (has a ref to a Scene::Camera to use for actually drawing view)
+// Cameras for taking pictures
 struct PlayerCamera {
 
-	// newly created transform for this camera, transform of parent (should be player.camera)
+	// Newly created transform for this camera, transform of parent (should be player.camera)
 	PlayerCamera(Scene::Transform* scene_transform, Scene::Transform* parent_transform);  
 	~PlayerCamera();
 
-	std::unique_ptr<Scene::Camera> scene_camera;
+	std::unique_ptr<Scene::Camera> scene_camera; // used for actually drawing view of scene
 };
 
 struct Player {
