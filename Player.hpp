@@ -15,7 +15,8 @@ struct PlayerCamera {
 
 	std::unique_ptr<Scene::Camera> scene_camera; // used for actually drawing view of scene
 
-	void TakePicture();
+	void TakePicture(Scene &scene);
+    void GeneratePicture(std::list<std::pair<Scene::Drawable &, GLuint>> frag_counts);
 };
 
 struct Player {

@@ -89,6 +89,7 @@ def set_visible(layer_collection):
 set_visible(bpy.context.view_layer.layer_collection)
 
 #data contains vertex, normal, color, and texture data from the meshes:
+#and ID!
 data = []
 
 #strings contains the mesh names:

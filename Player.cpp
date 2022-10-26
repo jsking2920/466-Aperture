@@ -17,8 +17,25 @@ PlayerCamera::PlayerCamera(Scene::Transform* scene_transform, Scene::Transform* 
 PlayerCamera::~PlayerCamera() {
 }
 
-void PlayerCamera::TakePicture() {
-	std::cout << "*Snap*" << std::endl;
+void PlayerCamera::TakePicture(Scene &scene) {
+    //get fragment counts for each drawable
+    std::list<std::pair<Scene::Drawable &, GLuint>> result;
+    scene.render_picture(*scene_camera, result);
+
+    GeneratePicture(result);
+
+}
+
+void PlayerCamera::GeneratePicture(std::list<std::pair<Scene::Drawable &, GLuint>> frag_counts) {
+    if(frag_counts.empty()) {
+        return;
+    }
+    auto sort_by_frag_count = [&](std::pair<Scene::Drawable &, GLuint> a, std::pair<Scene::Drawable &, GLuint> b) {
+        return a.second > b.second;
+    };
+    frag_counts.sort(sort_by_frag_count);
+
+    std::cout << "Most prominent object: " << frag_counts.front().first.transform->name << ", with a frag count of " << frag_counts.front().second << std::endl;
 }
 
 void Player::OnMouseMotion(glm::vec2 mouse_motion) {

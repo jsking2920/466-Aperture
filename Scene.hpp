@@ -128,6 +128,12 @@ struct Scene {
 	//..sometimes, you want to draw with a custom projection matrix and/or light space:
 	void draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light = glm::mat4x3(1.0f)) const;
 
+    //render picture, return reference to buffer and also fill in
+    GLuint render_picture(Camera const &camera, std::list<std::pair<Scene::Drawable &, GLuint>> &occlusion_results);
+
+    //extrapolated for use in render_picture
+    void render_drawable(Drawable const &drawable, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light) const;
+
 	//add transforms/objects/cameras from a scene file to this scene:
 	// the 'on_drawable' callback gives your code a chance to look up mesh data and make Drawables:
 	// throws on file format errors

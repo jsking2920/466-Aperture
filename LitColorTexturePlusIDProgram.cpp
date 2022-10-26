@@ -152,6 +152,7 @@ LitColorTexturePlusIDProgram::LitColorTexturePlusIDProgram() {
 	Normal_vec3 = glGetAttribLocation(program, "Normal");
 	Color_vec4 = glGetAttribLocation(program, "Color");
 	TexCoord_vec2 = glGetAttribLocation(program, "TexCoord");
+    ID_int = glGetAttribLocation(program, "ID");
 
 	//look up the locations of uniforms:
 	OBJECT_TO_CLIP_mat4 = glGetUniformLocation(program, "OBJECT_TO_CLIP");

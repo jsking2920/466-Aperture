@@ -180,7 +180,7 @@ void PlayMode::update(float elapsed) {
 		}
 		// Snap a pic on left click, if in camera view
 		if (player.in_cam_view && lmb.downs == 1) {
-			player.player_camera->TakePicture();
+			player.player_camera->TakePicture(scene);
 		}
 	}
 
