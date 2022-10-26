@@ -17,25 +17,47 @@ PlayerCamera::PlayerCamera(Scene::Transform* scene_transform, Scene::Transform* 
 PlayerCamera::~PlayerCamera() {
 }
 
-void PlayerCamera::TakePicture(Scene &scene) {
+void PlayerCamera::TakePicture(Scene &scene, std::list<Picture> &pictures) {
     //get fragment counts for each drawable
     std::list<std::pair<Scene::Drawable &, GLuint>> result;
     scene.render_picture(*scene_camera, result);
 
-    GeneratePicture(result);
-
+    Picture picture = GeneratePicture(result);
+    pictures.push_back(picture);
+    std::cout << picture.get_scoring_string() << std::endl;
 }
 
-void PlayerCamera::GeneratePicture(std::list<std::pair<Scene::Drawable &, GLuint>> frag_counts) {
+Picture PlayerCamera::GeneratePicture(std::list<std::pair<Scene::Drawable &, GLuint>> frag_counts) {
+    Picture picture = Picture();
     if(frag_counts.empty()) {
-        return;
+        picture.title = "Pure Emptiness";
+        picture.score_elements.emplace_back("Relatable", 500);
+        picture.score_elements.emplace_back("Deep", 500);
+        return picture;
     }
     auto sort_by_frag_count = [&](std::pair<Scene::Drawable &, GLuint> a, std::pair<Scene::Drawable &, GLuint> b) {
         return a.second > b.second;
     };
     frag_counts.sort(sort_by_frag_count);
 
-    std::cout << "Most prominent object: " << frag_counts.front().first.transform->name << ", with a frag count of " << frag_counts.front().second << std::endl;
+    //TODO: improve subject selection process
+    Scene::Drawable &subject = frag_counts.front().first;
+    unsigned int subject_frag_count = frag_counts.front().second;
+
+    //Add points for bigness
+    picture.score_elements.emplace_back("Bigness", subject_frag_count/1000);
+
+    //Add bonus points for additional subjects
+    std::for_each(std::next(frag_counts.begin()), frag_counts.end(), [&](std::pair<Scene::Drawable &, GLuint> creature) {
+        picture.score_elements.emplace_back("Bonus " + creature.first.transform->name, 100);
+    });
+
+    //Magnificence
+    picture.score_elements.emplace_back("Magnificence", 200);
+
+    picture.title = "Magnificent " + subject.transform->name;
+
+    return picture;
 }
 
 void Player::OnMouseMotion(glm::vec2 mouse_motion) {

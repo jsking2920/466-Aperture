@@ -5,6 +5,7 @@
 #include "Sound.hpp"
 #include "TextRenderer.hpp"
 #include "Player.hpp"
+#include "Picture.hpp"
 
 #include <glm/glm.hpp>
 
@@ -36,6 +37,7 @@ struct PlayMode : Mode {
 	std::shared_ptr< Sound::PlayingSample > music_loop;
 
 	Player player;
+    std::list<Picture> pictures;
 
 	// Text Rendering
 	TextRenderer* ui_text = nullptr;

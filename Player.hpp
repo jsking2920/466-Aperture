@@ -2,6 +2,7 @@
 
 #include "WalkMesh.hpp"
 #include "Scene.hpp"
+#include "Picture.hpp"
 
 #include <glm/glm.hpp>
 #include <memory>
@@ -15,8 +16,8 @@ struct PlayerCamera {
 
 	std::unique_ptr<Scene::Camera> scene_camera; // used for actually drawing view of scene
 
-	void TakePicture(Scene &scene);
-    void GeneratePicture(std::list<std::pair<Scene::Drawable &, GLuint>> frag_counts);
+	void TakePicture(Scene &scene, std::list<Picture> &pictures);
+    Picture GeneratePicture(std::list<std::pair<Scene::Drawable &, GLuint>> frag_counts);
 };
 
 struct Player {
@@ -34,7 +35,6 @@ struct Player {
 	std::unique_ptr<PlayerCamera> player_camera = nullptr;
 	// false = view from "eyes"/camera, true = view from PlayerCamera "viewport" (picture taking mode)
 	bool in_cam_view = false;
-
 	
 	void Move(glm::vec2 direction, float elapsed); // un-normalized, cardinal directions such as (-1.0f, 0.0f) -> left button only held, (1.0f, 1.0f) -> right and up buttons held, etc. 
 	void OnMouseMotion(glm::vec2 mouse_motion);

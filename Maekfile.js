@@ -161,7 +161,8 @@ const common_names = [
 	maek.CPP('Load.cpp'),
 	maek.CPP('TextRenderer.cpp'),
 	maek.CPP('Player.cpp'),
-	maek.CPP('WalkMesh.cpp')
+	maek.CPP('WalkMesh.cpp'),
+	maek.CPP('Picture.cpp')
 ];
 
 const show_meshes_names = [

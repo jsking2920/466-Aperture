@@ -128,7 +128,6 @@ GLuint Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Sc
 //        std::cout << drawable.transform->name << "finished: " << has_finished << std::endl;
 
         if(samples_passed > 0) {
-            std::cout << drawable.transform->name << " detected!" << std::endl;
             occlusion_results.emplace_back(drawable, samples_passed);
         }
 
@@ -143,8 +142,6 @@ GLuint Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Sc
     glBindVertexArray(0);
 
     GL_ERRORS();
-
-    std::cout << "done\n";
 
     return 0; //TODO: replace with GLuint pointer to buffer
 }
