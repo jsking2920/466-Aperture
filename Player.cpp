@@ -1,6 +1,7 @@
 #include "Player.hpp"
 
 #include <iostream>
+#include <algorithm>
 
 PlayerCamera::PlayerCamera(Scene::Transform* scene_transform, Scene::Transform* parent_transform, float fovy) {
 
