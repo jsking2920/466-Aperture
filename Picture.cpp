@@ -1,5 +1,7 @@
 #include "Picture.hpp"
 
+#include <algorithm>
+
 Picture::Picture() {
     //TODO: Pass in texture to constructor and save
 
