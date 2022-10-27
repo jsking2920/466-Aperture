@@ -135,3 +135,14 @@ void Player::Move(glm::vec2 direction, float elapsed) {
 	// Update player's position to respect walking
 	transform->position = walk_mesh->to_world_point(at);
 }
+
+void Player::ToggleCrouch() {
+
+	if (is_crouched) {
+		camera->transform->position.z += crouch_offset;
+	}
+	else {
+		camera->transform->position.z -= crouch_offset;
+	}
+	is_crouched = !is_crouched;
+}

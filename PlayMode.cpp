@@ -108,6 +108,10 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			down.pressed = true;
 			return true;
 		}
+		else if (evt.key.keysym.sym == SDLK_LCTRL) {
+			lctrl.downs += 1;
+			lctrl.pressed = true;
+		}
 	} else if (evt.type == SDL_KEYUP) {
 		if (evt.key.keysym.sym == SDLK_a) {
 			left.pressed = false;
@@ -121,6 +125,9 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 		} else if (evt.key.keysym.sym == SDLK_s) {
 			down.pressed = false;
 			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_LCTRL) {
+			lctrl.pressed = false;
 		}
 	} else if (evt.type == SDL_MOUSEBUTTONDOWN) {
 		if (SDL_GetRelativeMouseMode() == SDL_FALSE) {
@@ -150,6 +157,7 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 		}
 	} else if (evt.type == SDL_MOUSEMOTION) {
 		if (SDL_GetRelativeMouseMode() == SDL_TRUE) {
+			// Look around on mouse motion
 			mouse_motion = glm::vec2(evt.motion.xrel / float(window_size.y), -evt.motion.yrel / float(window_size.y));
 			player.OnMouseMotion(mouse_motion);
 			return true;
@@ -163,6 +171,7 @@ void PlayMode::update(float elapsed) {
 	
 	// Player movement
 	{
+		// WASD to move on walk mesh
 		glm::vec2 move = glm::vec2(0.0f);
 		if (left.pressed && !right.pressed) move.x = -1.0f;
 		if (!left.pressed && right.pressed) move.x = 1.0f;
@@ -170,6 +179,11 @@ void PlayMode::update(float elapsed) {
 		if (!down.pressed && up.pressed) move.y = 1.0f;
 
 		if (move.x != 0.0f || move.y != 0.0f) player.Move(move, elapsed);
+
+		// Hold lctrl to crouch
+		if (lctrl.pressed != player.is_crouched) {
+			player.ToggleCrouch();
+		}
 	}
 
 	// Player camera logic 
@@ -191,6 +205,7 @@ void PlayMode::update(float elapsed) {
 	down.downs = 0;
 	lmb.downs = 0;
 	rmb.downs = 0;
+	lctrl.downs = 0;
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
