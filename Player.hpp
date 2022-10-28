@@ -27,7 +27,10 @@ struct Player {
 
 	WalkMesh const* walk_mesh = nullptr;
 	WalkPoint at;
+
 	float speed = 6.0f;
+	float crouch_offset = 0.8f;
+	bool is_crouched = false;
 	
 	// Camera in scene, at head of player; will be pitched by mouse up/down motion ("Eyes" of player)
 	Scene::Camera* camera = nullptr;
@@ -36,6 +39,7 @@ struct Player {
 	// false = view from "eyes"/camera, true = view from PlayerCamera "viewport" (picture taking mode)
 	bool in_cam_view = false;
 	
+	void ToggleCrouch(); // Adjusts z pos of player's cameras so it looks like they crouched
 	void Move(glm::vec2 direction, float elapsed); // un-normalized, cardinal directions such as (-1.0f, 0.0f) -> left button only held, (1.0f, 1.0f) -> right and up buttons held, etc. 
 	void OnMouseMotion(glm::vec2 mouse_motion);
 };
