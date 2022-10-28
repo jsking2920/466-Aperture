@@ -1,6 +1,7 @@
 #include "Scene.hpp"
 
 #include "gl_errors.hpp"
+#include "gl_check_fb.hpp"
 #include "read_write_chunk.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
@@ -100,16 +101,41 @@ void Scene::draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_lig
 	GL_ERRORS();
 }
 
-GLuint Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scene::Drawable &, GLuint>> &occlusion_results) {
+void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scene::Drawable &, GLuint>> &occlusion_results, GLvoid *data) {
     assert(camera.transform);
     glm::mat4 world_to_clip = camera.make_projection() * glm::mat4(camera.transform->make_world_to_local());
     glm::mat4x3 world_to_light = glm::mat4x3(1.0f);
 
-    //
+    GLuint tex_buffer;
+    glGenTextures(1, &tex_buffer);
+
+    //block from Framebuffer lesson of CMU 15-466
+    //Allocate and bind texture to framebuffer's color attachments:
+    //allocate texture name:
+    glGenTextures(1, &tex_buffer);
+    glBindTexture(GL_TEXTURE_2D, tex_buffer);
+    //allocate texture memory:
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, camera.drawable_size.x, camera.drawable_size.y, 0, GL_RGB, GL_FLOAT, nullptr);
+    //set sampling parameters for texture:
+    //TODO: idk what these 4 lines do, we should probably check them out later
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    //bind framebuffer
+    GLuint framebuffer;
+    glGenFramebuffers(1, &framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex_buffer, 0);
+    gl_check_fb();
 
     //run query for each drawable
     //TODO: combine this render with the render of the picture to a texture
     //but for now we render solely for the purpose of the occlusion queries
+
+    glClear(GL_COLOR_BUFFER_BIT);
 
     for(auto &drawable : drawables) {
         //query syntax from https://www.reddit.com/r/opengl/comments/1pv8qe/how_do_occlusion_queries_work/
@@ -139,12 +165,15 @@ GLuint Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Sc
 //        std::cerr << "OpenGL error: " << err << std::endl;
 //    }
 
+    //getting texture bytes
+    glReadPixels(0, 0, camera.drawable_size.x, camera.drawable_size.y, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glUseProgram(0);
     glBindVertexArray(0);
 
     GL_ERRORS();
 
-    return 0; //TODO: replace with GLuint pointer to buffer
 }
 
 void Scene::render_drawable(Scene::Drawable const &drawable, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light) const {

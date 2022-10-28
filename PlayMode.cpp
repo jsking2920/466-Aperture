@@ -200,6 +200,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	// Update camera aspect ratios for drawable
 	player.camera->aspect = float(drawable_size.x) / float(drawable_size.y);
 	player.player_camera->scene_camera->aspect = float(drawable_size.x) / float(drawable_size.y);
+    player.camera->drawable_size = drawable_size;
+    player.player_camera->scene_camera->drawable_size = drawable_size;
 
 	// Set up light type and position for lit_color_texture_program:
 	// TODO: consider using the Light(s) in the scene to do this
@@ -224,18 +226,19 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		scene.draw(*player.camera);
 	}
 
-    std::list<std::pair<Scene::Drawable &, GLuint>> results;
-    if (player.in_cam_view) {
-        scene.render_picture(*player.player_camera->scene_camera, results);
-    }
-    else {
-        scene.render_picture(*player.camera, results);
-    }
-
-    for(auto &guy : results) {
-        std::cout << guy.first.transform->name <<std::endl;
-    }
-    std::cout << "\n" << std::endl;
+    //for debug, print all visible objects
+//    {
+//        std::list<std::pair<Scene::Drawable &, GLuint>> results;
+//        if (player.in_cam_view) {
+//            scene.render_picture(*player.player_camera->scene_camera, results);
+//        } else {
+//            scene.render_picture(*player.camera, results);
+//        }
+//        for (auto &guy: results) {
+//            std::cout << guy.first.transform->name << std::endl;
+//        }
+//        std::cout << "\n" << std::endl;
+//    }
 
 	/* Debug code for visualizing walk mesh
 	{
