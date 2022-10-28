@@ -132,7 +132,7 @@ struct Scene {
 	void draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light = glm::mat4x3(1.0f)) const;
 
     //render picture, return reference to buffer and also fill in results. tex_buffer should be an allocated texture buffer
-    void render_picture(Camera const &camera, std::list<std::pair<Scene::Drawable &, GLuint>> &occlusion_results, GLvoid *data);
+    void render_picture(Camera const &camera, std::list<std::pair<Scene::Drawable &, GLuint>> &occlusion_results, GLfloat *data);
 
     //extrapolated for use in render_picture
     void render_drawable(Drawable const &drawable, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light) const;

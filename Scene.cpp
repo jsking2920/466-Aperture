@@ -3,6 +3,7 @@
 #include "gl_errors.hpp"
 #include "gl_check_fb.hpp"
 #include "read_write_chunk.hpp"
+#include "Framebuffers.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
 
@@ -101,39 +102,33 @@ void Scene::draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_lig
 	GL_ERRORS();
 }
 
-void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scene::Drawable &, GLuint>> &occlusion_results, GLvoid *data) {
+void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scene::Drawable &, GLuint>> &occlusion_results, GLfloat *data) {
     assert(camera.transform);
     glm::mat4 world_to_clip = camera.make_projection() * glm::mat4(camera.transform->make_world_to_local());
     glm::mat4x3 world_to_light = glm::mat4x3(1.0f);
 
-    GLuint tex_buffer;
-    glGenTextures(1, &tex_buffer);
+    //TODO: This gets called BEFORE the frame is drawn. This means that there may be inaccuracies with the frame buffer,
+    //and it is possible (but very improbable) that creatures will be detected if they were visible the frame before
+    //the picture was taken but not the frame the picture was taken. We can fix this by running occlusion tests every frame
+    //as we would for occlusion culling and using that information instead. For now, I am saving the picture before
+    //occlusion queries are run, because if I did not, post-processing wouldn't be applied. I think. I dunno. It's midnight.
 
-    //block from Framebuffer lesson of CMU 15-466
-    //Allocate and bind texture to framebuffer's color attachments:
-    //allocate texture name:
-    glGenTextures(1, &tex_buffer);
-    glBindTexture(GL_TEXTURE_2D, tex_buffer);
-    //allocate texture memory:
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, camera.drawable_size.x, camera.drawable_size.y, 0, GL_RGB, GL_FLOAT, nullptr);
-    //set sampling parameters for texture:
-    //TODO: idk what these 4 lines do, we should probably check them out later
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    //transform rgb16f texture to rgba8ui texture for export
+    //going a little off the rails here 0.0 hdata is a half float type in glm
+    //code modeled after this snippet https://stackoverflow.com/questions/48938930/pixel-access-with-glgetteximage
+    glBindTexture(GL_TEXTURE_2D, framebuffers.hdr_color_tex);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_FLOAT, data);
     glBindTexture(GL_TEXTURE_2D, 0);
-
-    //bind framebuffer
-    GLuint framebuffer;
-    glGenFramebuffers(1, &framebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex_buffer, 0);
-    gl_check_fb();
 
     //run query for each drawable
     //TODO: combine this render with the render of the picture to a texture
     //but for now we render solely for the purpose of the occlusion queries
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
+    //bind renderbuffers for rendering
+    glBindRenderbuffer(GL_RENDERBUFFER, framebuffers.hdr_depth_rb);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.hdr_fb);
 
     glClear(GL_COLOR_BUFFER_BIT);
 
@@ -165,10 +160,13 @@ void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scen
 //        std::cerr << "OpenGL error: " << err << std::endl;
 //    }
 
-    //getting texture bytes
-    glReadPixels(0, 0, camera.drawable_size.x, camera.drawable_size.y, GL_RGBA, GL_UNSIGNED_BYTE, data);
+//    //getting texture bytes
+//    glReadPixels(0, 0, camera.drawable_size.x, camera.drawable_size.y, GL_RGBA, GL_UNSIGNED_BYTE, data);
 
+
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     glUseProgram(0);
     glBindVertexArray(0);
 

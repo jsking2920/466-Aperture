@@ -1,6 +1,7 @@
 #include "Player.hpp"
 #include "load_save_png.hpp"
 #include "data_path.hpp"
+#include "Framebuffers.hpp"
 
 #include <iostream>
 #include <algorithm>
@@ -24,17 +25,24 @@ void PlayerCamera::TakePicture(Scene &scene, std::list<Picture> &pictures) {
     //get fragment counts for each drawable
     std::list<std::pair<Scene::Drawable &, GLuint>> result;
 
-    unsigned int data_size = 4 * scene_camera->drawable_size.x * scene_camera->drawable_size.y;
-    GLubyte *data = (GLubyte *)(malloc(data_size));
+    GLfloat *data = new GLfloat[3 * scene_camera->drawable_size.x * scene_camera->drawable_size.y];
     scene.render_picture(*scene_camera, result, data);
-
 
     Picture picture = GeneratePicture(result);
     pictures.push_back(picture);
     std::cout << picture.get_scoring_string() << std::endl;
 
-    save_png(data_path("album/" + picture.title), scene_camera->drawable_size,
-             reinterpret_cast<const glm::u8vec4 *>(data), LowerLeftOrigin);
+
+    //convert pixel data to correct format for png export
+    uint8_t *png_data = new uint8_t [4 * scene_camera->drawable_size.x * scene_camera->drawable_size.y];
+    for(uint32_t i = 0; i < scene_camera->drawable_size.x * scene_camera->drawable_size.y; i++) {
+        png_data[i * 4    ] = (uint8_t)round(data[i * 3    ] * 255);
+        png_data[i * 4 + 1] = (uint8_t)round(data[i * 3 + 1] * 255);
+        png_data[i * 4 + 2] = (uint8_t)round(data[i * 3 + 2] * 255);
+        png_data[i * 4 + 3] = 255;
+    }
+    save_png(data_path("album/" + picture.title + ".png"), scene_camera->drawable_size,
+             reinterpret_cast<const glm::u8vec4 *>(png_data), LowerLeftOrigin);
 
     free(data);
 }

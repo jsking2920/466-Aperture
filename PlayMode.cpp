@@ -7,6 +7,7 @@
 #include "Load.hpp"
 #include "gl_errors.hpp"
 #include "data_path.hpp"
+#include "Framebuffers.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -196,6 +197,9 @@ void PlayMode::update(float elapsed) {
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
+    //code block from https://github.com/15-466/15-466-f20-framebuffer
+    //make sure framebuffers are the same size as the window:
+    framebuffers.realloc(drawable_size);
 
 	// Update camera aspect ratios for drawable
 	player.camera->aspect = float(drawable_size.x) / float(drawable_size.y);
@@ -211,12 +215,15 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(glm::vec3(1.0f, 1.0f, 0.95f)));
 	glUseProgram(0);
 
+    //draw to framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.hdr_fb);
+
 	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
 	glClearDepth(1.0f); //1.0 is actually the default value to clear the depth buffer to, but FYI you can change it.
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS); //this is the default depth comparison function, but FYI you can change it.
+	glDepthFunc(GL_LEQUAL);
 
 	// Draw scene based on active camera (Player's "eyes" or their PlayerCamera)
 	if (player.in_cam_view) {
@@ -251,6 +258,12 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		}
 	}
 	*/
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    //copy framebuffer to main window:
+    framebuffers.tone_map();
+
 
 	// UI
 	{

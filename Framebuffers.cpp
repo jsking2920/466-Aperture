@@ -104,13 +104,13 @@ struct ToneMapProgram {
                 "void main() {\n"
                 "	vec3 color = texelFetch(TEX, ivec2(gl_FragCoord.xy), 0).rgb;\n"
                 //exposure-correction-style range compression:
-                "		color = vec3(log(color.r + 1.0), log(color.g + 1.0), log(color.b + 1.0)) / log(2.0 + 1.0);\n"
+//                "		color = vec3(log(color.r + 1.0), log(color.g + 1.0), log(color.b + 1.0)) / log(2.0 + 1.0);\n"
                 //weird color effect:
                 //"		color = vec3(color.rg, gl_FragCoord.x/textureSize(TEX,0).x);\n"
                 //basic gamma-style range compression:
                 //"		color = vec3(pow(color.r, 0.45), pow(color.g, 0.45), pow(color.b, 0.45));\n"
                 //raw values:
-                //"		color = color;\n"
+                "		color = color;\n"
                 "	fragColor = vec4(color, 1.0);\n"
                 "}\n"
         );
