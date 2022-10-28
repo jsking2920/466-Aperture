@@ -13,6 +13,7 @@ dist/SDL2.dll
 dist/game
 dist/game.exe
 dist/freetype-test*
+dist/album/*
 scenes/show-meshes*
 scenes/show-scene*
 *.blend[0-9]
