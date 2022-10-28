@@ -52,6 +52,8 @@ Load< Sound::Sample > music_sample(LoadTagDefault, []() -> Sound::Sample const* 
 });
 
 PlayMode::PlayMode() : scene(*main_scene) {
+    //change depth buffer comparison function to be leq instead of less to correctly occlude in object detection
+    glDepthFunc(GL_LEQUAL);
 
 	// Find player mesh and transform
 	for (auto& transform : scene.transforms) {
@@ -221,6 +223,19 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	else {
 		scene.draw(*player.camera);
 	}
+
+    std::list<std::pair<Scene::Drawable &, GLuint>> results;
+    if (player.in_cam_view) {
+        scene.render_picture(*player.player_camera->scene_camera, results);
+    }
+    else {
+        scene.render_picture(*player.camera, results);
+    }
+
+    for(auto &guy : results) {
+        std::cout << guy.first.transform->name <<std::endl;
+    }
+    std::cout << "\n" << std::endl;
 
 	/* Debug code for visualizing walk mesh
 	{

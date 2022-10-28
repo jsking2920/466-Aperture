@@ -105,11 +105,12 @@ GLuint Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Sc
     glm::mat4 world_to_clip = camera.make_projection() * glm::mat4(camera.transform->make_world_to_local());
     glm::mat4x3 world_to_light = glm::mat4x3(1.0f);
 
-    glClear(GL_DEPTH_BUFFER_BIT);
+    //
 
     //run query for each drawable
     //TODO: combine this render with the render of the picture to a texture
     //but for now we render solely for the purpose of the occlusion queries
+
     for(auto &drawable : drawables) {
         //query syntax from https://www.reddit.com/r/opengl/comments/1pv8qe/how_do_occlusion_queries_work/
         GLuint query;
