@@ -16,16 +16,13 @@
 
 GLuint main_meshes_for_lit_color_texture_program = 0;
 Load< MeshBuffer > main_meshes(LoadTagDefault, []() -> MeshBuffer const * {
-	std::cout << "Loading main meshes..." << std::endl;
 	MeshBuffer const *ret = new MeshBuffer(data_path("proto-world.pnct"));
 	main_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
-	std::cout << "loaded meshes" << std::endl;
 	return ret;
 });
 
 Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 	return new Scene(data_path("proto-world.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){\
-		std::cout << "loading mesh: " << mesh_name << std::endl;
 		Mesh const &mesh = main_meshes->lookup(mesh_name);
 
 		scene.drawables.emplace_back(transform);
@@ -37,14 +34,11 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 		drawable.pipeline.type = mesh.type;
 		drawable.pipeline.start = mesh.start;
 		drawable.pipeline.count = mesh.count;
-		std::cout << "loaded scene" << std::endl;
 	});
 });
 
 Load< WalkMeshes > main_walkmeshes(LoadTagDefault, []() -> WalkMeshes const * {
-	std::cout << "Loading walkmeshes..." << std::endl;
 	WalkMeshes *ret = new WalkMeshes(data_path("proto-world.w"));
-	std::cout << "loaded walkmeshes" << std::endl;
 	return ret;
 });
 
@@ -83,6 +77,12 @@ PlayMode::PlayMode() : scene(*main_scene) {
 
 	// Set up text renderer
 	ui_text = new TextRenderer(data_path("LibreBarcode39-Regular.ttf"), ui_font_size);
+
+	//Load creatures
+	//test with floater
+	Creature *floater = new Creature("Floater", "FLO", 0, 0, glm::vec3(1.0f, 0.0f, 0.0f));
+	floater->init_transforms(scene);
+	creatures.push_back(floater);
 }
 
 PlayMode::~PlayMode() {

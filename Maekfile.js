@@ -163,7 +163,8 @@ const common_names = [
 	maek.CPP('Player.cpp'),
 	maek.CPP('WalkMesh.cpp'),
 	maek.CPP('Picture.cpp'),
-	maek.CPP('Framebuffers.cpp')
+	maek.CPP('Framebuffers.cpp'),
+	maek.CPP('GameObjects.cpp')
 ];
 
 const show_meshes_names = [
