@@ -6,6 +6,7 @@
 
 //For asset loading:
 #include "Load.hpp"
+#include "data_path.hpp"
 
 //For sound init:
 #include "Sound.hpp"
@@ -25,6 +26,9 @@
 #include <stdexcept>
 #include <memory>
 #include <algorithm>
+#include <vector>
+
+#include <glm/glm.hpp>
 
 #ifdef _WIN32
 extern "C" { uint32_t GetACP(); }
@@ -66,7 +70,7 @@ int main(int argc, char **argv) {
 
 	//create window:
 	SDL_Window *window = SDL_CreateWindow(
-		"gp22 game5: walking simulator", //TODO: remember to set a title for your game!
+		"gp22 final: Aperture",
 		SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 		1280, 720, //TODO: modify window size if you'd like
 		SDL_WINDOW_OPENGL
@@ -75,7 +79,38 @@ int main(int argc, char **argv) {
 	);
 
 	//prevent exceedingly tiny windows when resizing:
-	SDL_SetWindowMinimumSize(window,100,100);
+	SDL_SetWindowMinimumSize(window, 640, 360);
+
+	// set window icon (TODO: not working currently)
+	{
+		/*
+		// Based on: https://wiki.libsdl.org/SDL_CreateRGBSurfaceWithFormat and https://wiki.libsdl.org/SDL_SetWindowIcon and https://wiki.libsdl.org/SDL_Surface#remarks
+		std::vector<glm::u8vec4> icon_data;
+		std::vector<uint32_t> pixels;
+		glm::uvec2 size;
+
+		load_png(data_path("camera_icon.png"), &size, &icon_data, LowerLeftOrigin);
+
+		SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, size[0], size[1], 32, SDL_PIXELFORMAT_RGBA32);
+
+		for (auto i : icon_data) {
+			pixels.push_back( ((i[3] << 24) && 0xff000000) || ((i[2] << 16) && 0x00ff0000) || ((i[1] << 8) && 0x0000ff00) || (i[0] && 0x000000ff) );
+		}
+
+		surface->pixels = &pixels;
+
+		if (surface == NULL) {
+			std::cerr << "Error setting SDL icon: " << SDL_GetError() << std::endl;
+			return 1;
+		}
+
+		// The icon is attached to the window pointer
+		SDL_SetWindowIcon(window, surface);
+
+		// ...and the surface containing the icon pixel data is no longer required.
+		SDL_FreeSurface(surface);
+		*/
+	}
 
 	if (!window) {
 		std::cerr << "Error creating SDL window: " << SDL_GetError() << std::endl;

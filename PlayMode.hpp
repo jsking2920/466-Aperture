@@ -44,6 +44,8 @@ struct PlayMode : Mode {
     std::list<Picture> pictures;
 
 	// Text Rendering
-	TextRenderer* ui_text = nullptr;
-	uint8_t ui_font_size = 34;
+	TextRenderer* display_text = nullptr;
+	uint8_t display_font_size = 48;
+	TextRenderer* barcode_text = nullptr;
+	uint8_t barcode_font_size = 36;
 };

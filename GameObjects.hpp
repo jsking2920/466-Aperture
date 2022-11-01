@@ -1,27 +1,32 @@
+#pragma once
+
 #include "Mode.hpp"
 #include "Scene.hpp"
+
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
-
+#include <vector>
 
 /*
 33 characters and then a number
 and then also uh need the drawables
 */
-#include <vector>
 //idea: make a mast struct/class that's the creature
 struct Creature {
+
     //constructor
     Creature() = default;
     Creature(std::string name_, std::string code_, int ID_, int number_, glm::vec3 ideal_angle_)
         : name(name_), code(code_), ID(ID_), number(number_), ideal_angle(ideal_angle_) {}
     ~Creature();
+
     //Displaying information to the user --------------------------------------
     //TODO: best to simply this into a struct later
     /*
     std::string name = "Creature";
     std::string description = "looks great!";
     */
+
     //METADATA ----------------------------------------------------
     //name of the creature
     std::string name = "unnamed";
@@ -42,9 +47,9 @@ struct Creature {
     //std::vector< Scene::Transform > body_parts = {};
 
 
-
     //Function defs
     void init_transforms(Scene &scene);
+
     //some helper functions -------------------------------------------------
     glm::vec3 get_front_direction() {
         //front = positive X direction
@@ -52,6 +57,5 @@ struct Creature {
         glm::vec3 front_direction = transform->make_local_to_world() * f;
         return front_direction;
     };
-
 };
 

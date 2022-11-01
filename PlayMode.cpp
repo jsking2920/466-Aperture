@@ -16,13 +16,13 @@
 
 GLuint main_meshes_for_lit_color_texture_program = 0;
 Load< MeshBuffer > main_meshes(LoadTagDefault, []() -> MeshBuffer const * {
-	MeshBuffer const *ret = new MeshBuffer(data_path("proto-world.pnct"));
+	MeshBuffer const *ret = new MeshBuffer(data_path("assets/proto-world.pnct"));
 	main_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
 	return ret;
 });
 
 Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
-	return new Scene(data_path("proto-world.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){\
+	return new Scene(data_path("assets/proto-world.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){\
 		Mesh const &mesh = main_meshes->lookup(mesh_name);
 
 		scene.drawables.emplace_back(transform);
@@ -38,16 +38,17 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 });
 
 Load< WalkMeshes > main_walkmeshes(LoadTagDefault, []() -> WalkMeshes const * {
-	WalkMeshes *ret = new WalkMeshes(data_path("proto-world.w"));
+	WalkMeshes *ret = new WalkMeshes(data_path("assets/proto-world.w"));
 	return ret;
 });
 
 Load< Sound::Sample > music_sample(LoadTagDefault, []() -> Sound::Sample const* {
-	return new Sound::Sample(data_path("PlaceHolder.opus"));
+	return new Sound::Sample(data_path("assets/audio/PlaceHolder.opus"));
 });
 
 PlayMode::PlayMode() : scene(*main_scene) {
-    //change depth buffer comparison function to be leq instead of less to correctly occlude in object detection
+
+    // Change depth buffer comparison function to be leq instead of less to correctly occlude in object detection
     glDepthFunc(GL_LEQUAL);
 
 	// Find player mesh and transform
@@ -62,6 +63,7 @@ PlayMode::PlayMode() : scene(*main_scene) {
 		if (scene.cameras.size() != 1) throw std::runtime_error("Expecting scene to have exactly one camera, specifically at the player's head, but it has " + std::to_string(scene.cameras.size()));
 		player.camera = &scene.cameras.back();
 		player.camera->transform->parent = player.transform;
+		player.camera->fovy = float(M_PI) / 3.0f; // 60 degree vertical fov
 
 		// Create default PlayerCamera for taking pictures
 		scene.transforms.emplace_back(); // Create new transform, will be parented to player.transform
@@ -76,10 +78,10 @@ PlayMode::PlayMode() : scene(*main_scene) {
 	}
 
 	// Set up text renderer
-	ui_text = new TextRenderer(data_path("LibreBarcode39-Regular.ttf"), ui_font_size);
+	display_text = new TextRenderer(data_path("assets/fonts/Audiowide-Regular.ttf"), display_font_size);
+	barcode_text = new TextRenderer(data_path("assets/fonts/LibreBarcode128Text-Regular.ttf"), barcode_font_size);
 
-	//Load creatures
-	//test with floater
+	// Load creatures
 	Creature *floater = new Creature("Floater", "FLO", 0, 0, glm::vec3(1.0f, 0.0f, 0.0f));
 	floater->init_transforms(scene);
 	creatures.push_back(floater);
@@ -212,8 +214,9 @@ void PlayMode::update(float elapsed) {
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
-    //code block from https://github.com/15-466/15-466-f20-framebuffer
-    //make sure framebuffers are the same size as the window:
+
+    // Code block from https://github.com/15-466/15-466-f20-framebuffer
+    // Make sure framebuffers are the same size as the window:
     framebuffers.realloc(drawable_size);
 
 	// Update camera aspect ratios for drawable
@@ -230,11 +233,11 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(glm::vec3(1.0f, 1.0f, 0.95f)));
 	glUseProgram(0);
 
-    //draw to framebuffer
+    // Draw to framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.hdr_fb);
 
-	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
-	glClearDepth(1.0f); //1.0 is actually the default value to clear the depth buffer to, but FYI you can change it.
+	glClearColor(0.5f, 1.0f, 1.0f, 1.0f);
+	glClearDepth(1.0f); // 1.0 is actually the default value to clear the depth buffer to, but FYI you can change it.
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glEnable(GL_DEPTH_TEST);
@@ -248,19 +251,20 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		scene.draw(*player.camera);
 	}
 
-    //for debug, print all visible objects
-//    {
-//        std::list<std::pair<Scene::Drawable &, GLuint>> results;
-//        if (player.in_cam_view) {
-//            scene.render_picture(*player.player_camera->scene_camera, results);
-//        } else {
-//            scene.render_picture(*player.camera, results);
-//        }
-//        for (auto &guy: results) {
-//            std::cout << guy.first.transform->name << std::endl;
-//        }
-//        std::cout << "\n" << std::endl;
-//    }
+    /* Debug code for printint all visible objects
+    {
+		std::list<std::pair<Scene::Drawable &, GLuint>> results;
+        if (player.in_cam_view) {
+			scene.render_picture(*player.player_camera->scene_camera, results);
+        } else {
+			scene.render_picture(*player.camera, results);
+        }
+        for (auto &guy: results) {
+			std::cout << guy.first.transform->name << std::endl;
+        }
+        std::cout << "\n" << std::endl;
+    }
+	*/
 
 	/* Debug code for visualizing walk mesh
 	{
@@ -275,15 +279,13 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	*/
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    //copy framebuffer to main window:
+    // Copy framebuffer to main window:
     framebuffers.tone_map();
-
 
 	// UI
 	{
 		if (player.in_cam_view) {
-			ui_text->draw("place holder", 0.1f * float(drawable_size.x), 0.1f * float(drawable_size.y), 0.5f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+			display_text->draw("place holder", 0.5f * float(drawable_size.x), 0.5f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 		}
 	}
 	GL_ERRORS();

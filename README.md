@@ -1,4 +1,4 @@
-# (TODO: your game's title)
+# Aperture
 
 Authors: Scott King, Joyce Zheng, Will Ozeas
 
@@ -12,7 +12,11 @@ How To Play:
 
 (TODO: describe the controls and (if needed) goals/strategy.)
 
-Sources: (TODO: list a source URL for any assets you did not create yourself. Make sure you have a license for the asset.)
+## Sources
+- "Audiowide" by Astigmatic <br>
+	(https://fonts.google.com/specimen/Audiowide/tester?sort=popularity) is licensed under the Open Font License
+- "Libre Barcode 128 Text" by Lasse Fister <br>
+	(https://fonts.google.com/specimen/Libre+Barcode+128+Text/tester?category=Display&sort=popularity) is licensed under the Open Font License
 
 This game was built with [NEST](NEST.md) and forked from https://github.com/15-466/15-466-f22-base5
 
