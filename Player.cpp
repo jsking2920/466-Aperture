@@ -14,7 +14,7 @@ PlayerCamera::PlayerCamera(Scene::Transform* scene_transform) {
 	scene_camera = new Scene::Camera(scene_transform);
 
 	// Set default camera settings
-	scene_camera->fovy = 3.14159265358979323846f / 3.0f; // 60 degree vertical fov
+	scene_camera->fovy = default_fovy;
 	scene_camera->near = 0.01f;
 }
 
@@ -83,6 +83,17 @@ Picture PlayerCamera::GeneratePicture(std::list<std::pair<Scene::Drawable &, GLu
     picture.title = "Magnificent " + subject.transform->name;
 
     return picture;
+}
+
+void PlayerCamera::AdjustZoom(float diff) {
+
+	float new_zoom = cur_zoom + diff;
+	if (new_zoom < min_zoom - 0.001f || new_zoom > max_zoom + 0.001f) {
+		return;
+	}
+	cur_zoom = new_zoom;
+
+	scene_camera->fovy = default_fovy / cur_zoom;
 }
 
 // Player

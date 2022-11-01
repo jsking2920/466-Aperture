@@ -161,6 +161,15 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			player->OnMouseMotion(mouse_motion);
 			return true;
 		}
+	} else if (evt.type == SDL_MOUSEWHEEL && player->in_cam_view) {
+		if (evt.wheel.y > 0) // scroll up
+		{
+			player->player_camera->AdjustZoom(0.1f); // zoom in
+		}
+		else if (evt.wheel.y < 0) // scroll down
+		{
+			player->player_camera->AdjustZoom(-0.1f); // zoom out
+		}
 	}
 
 	return false;
@@ -298,7 +307,9 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			grid.draw(glm::vec3(-1.0f / 16.0f, 1.0f / 9.0f, 0), glm::vec3(-1.0f / 16.0f, -1.0f / 9.0f, 0), glm::u8vec4(0xff));
 			grid.draw(glm::vec3(1.0f / 16.0f, 1.0f / 9.0f, 0), glm::vec3(1.0f / 16.0f, -1.0f / 9.0f, 0), glm::u8vec4(0xff));
 
-			display_text->draw("place holder", 0.5f * float(drawable_size.x), 0.5f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+			// Zoom level readout
+			uint8_t zoom = (uint8_t)(std::round(player->player_camera->cur_zoom * 10.0f));
+			display_text->draw("x" + std::to_string(zoom / 10) + "." + std::to_string(zoom % 10), ((2.0f / 3.0f) - 0.04f) * float(drawable_size.x), ((1.0f / 3.0f) - 0.05f) * float(drawable_size.y), 0.5f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 		}
 	}
 	GL_ERRORS();

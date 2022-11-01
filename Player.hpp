@@ -19,8 +19,14 @@ struct PlayerCamera {
 	Player* player = nullptr; // initialized by Player contstructor
 	Scene::Camera* scene_camera; // used for actually drawing view of scene
 
+	float default_fovy = 3.14159265358979323846f / 3.0f; // 60 degree vertical fov
+	float cur_zoom = 1.0f;
+	float min_zoom = 0.5f;
+	float max_zoom = 3.0f; 
+
 	void TakePicture(Scene &scene); // Adds picture to player.pictures
     Picture GeneratePicture(std::list<std::pair<Scene::Drawable &, GLuint>> frag_counts);
+	void AdjustZoom(float diff);
 };
 
 struct Player {
