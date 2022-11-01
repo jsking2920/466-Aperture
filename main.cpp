@@ -76,6 +76,7 @@ int main(int argc, char **argv) {
 		SDL_WINDOW_OPENGL
 		| SDL_WINDOW_RESIZABLE //uncomment to allow resizing
 		| SDL_WINDOW_ALLOW_HIGHDPI //uncomment for full resolution on high-DPI screens
+		| SDL_WINDOW_MAXIMIZED // window opens maximized
 	);
 
 	//prevent exceedingly tiny windows when resizing:
