@@ -47,36 +47,29 @@ Load< Sound::Sample > music_sample(LoadTagDefault, []() -> Sound::Sample const* 
 });
 
 PlayMode::PlayMode() : scene(*main_scene) {
-
+	
     // Change depth buffer comparison function to be leq instead of less to correctly occlude in object detection
     glDepthFunc(GL_LEQUAL);
 
+	Scene::Transform *player_transform = nullptr;
+	
 	// Find player mesh and transform
 	for (auto& transform : scene.transforms) {
-		if (transform.name == "Player") player.transform = &transform;
+		if (transform.name == "Player") player_transform = &transform;
 	}
-	if (player.transform == nullptr) throw std::runtime_error("Player transform not found.");
-
-	// Set up cameras
+	if (player_transform == nullptr) throw std::runtime_error("Player transform not found.");
+	
+	// Set up player
 	{
-		// Grab camera in scene for player's eyes
+		// Check for camera in scene for player's eyes
 		if (scene.cameras.size() != 1) throw std::runtime_error("Expecting scene to have exactly one camera, specifically at the player's head, but it has " + std::to_string(scene.cameras.size()));
-		player.camera = &scene.cameras.back();
-		player.camera->transform->parent = player.transform;
-		player.camera->fovy = float(M_PI) / 3.0f; // 60 degree vertical fov
+		
+		// Create new transform for Player's PlayerCamera
+		scene.transforms.emplace_back();
 
-		// Create default PlayerCamera for taking pictures
-		scene.transforms.emplace_back(); // Create new transform, will be parented to player.transform
-		player.player_camera = std::make_unique<PlayerCamera>(&scene.transforms.back(), player.camera->transform, player.camera->fovy); // fovy being set to the same between both cameras 
+		player = new Player(player_transform, &main_walkmeshes->lookup("WalkMesh"), &scene.cameras.back(), &scene.transforms.back());
 	}
-
-	// Setup walk mesh
-	{
-		player.walk_mesh = &main_walkmeshes->lookup("WalkMesh");
-		// Start player walking at nearest walk point
-		player.at = player.walk_mesh->nearest_walk_point(player.transform->position);
-	}
-
+	
 	// Set up text renderer
 	display_text = new TextRenderer(data_path("assets/fonts/Audiowide-Regular.ttf"), display_font_size);
 	barcode_text = new TextRenderer(data_path("assets/fonts/LibreBarcode128Text-Regular.ttf"), barcode_font_size);
@@ -88,6 +81,7 @@ PlayMode::PlayMode() : scene(*main_scene) {
 }
 
 PlayMode::~PlayMode() {
+	delete player;
 }
 
 bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size) {
@@ -164,7 +158,7 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 		if (SDL_GetRelativeMouseMode() == SDL_TRUE) {
 			// Look around on mouse motion
 			mouse_motion = glm::vec2(evt.motion.xrel / float(window_size.y), -evt.motion.yrel / float(window_size.y));
-			player.OnMouseMotion(mouse_motion);
+			player->OnMouseMotion(mouse_motion);
 			return true;
 		}
 	}
@@ -183,26 +177,26 @@ void PlayMode::update(float elapsed) {
 		if (down.pressed && !up.pressed) move.y = -1.0f;
 		if (!down.pressed && up.pressed) move.y = 1.0f;
 
-		if (move.x != 0.0f || move.y != 0.0f) player.Move(move, elapsed);
+		if (move.x != 0.0f || move.y != 0.0f) player->Move(move, elapsed);
 
 		// Hold lctrl to crouch
-		if (lctrl.pressed != player.is_crouched) {
-			player.ToggleCrouch();
+		if (lctrl.pressed != player->is_crouched) {
+			player->ToggleCrouch();
 		}
 	}
-
+	
 	// Player camera logic 
 	{
 		// Toggle player view on right click
 		if (rmb.downs == 1) {
-			player.in_cam_view = !player.in_cam_view;
+			player->in_cam_view = !player->in_cam_view;
 		}
 		// Snap a pic on left click, if in camera view
-		if (player.in_cam_view && lmb.downs == 1) {
-			player.player_camera->TakePicture(scene, pictures);
+		if (player->in_cam_view && lmb.downs == 1) {
+			player->player_camera->TakePicture(scene);
 		}
 	}
-
+	
 	//reset button press counters:
 	left.downs = 0;
 	right.downs = 0;
@@ -218,12 +212,12 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
     // Code block from https://github.com/15-466/15-466-f20-framebuffer
     // Make sure framebuffers are the same size as the window:
     framebuffers.realloc(drawable_size);
-
+	
 	// Update camera aspect ratios for drawable
-	player.camera->aspect = float(drawable_size.x) / float(drawable_size.y);
-	player.player_camera->scene_camera->aspect = float(drawable_size.x) / float(drawable_size.y);
-    player.camera->drawable_size = drawable_size;
-    player.player_camera->scene_camera->drawable_size = drawable_size;
+	player->camera->aspect = float(drawable_size.x) / float(drawable_size.y);
+	player->player_camera->scene_camera->aspect = float(drawable_size.x) / float(drawable_size.y);
+    player->camera->drawable_size = drawable_size;
+    player->player_camera->scene_camera->drawable_size = drawable_size;
 
 	// Set up light type and position for lit_color_texture_program:
 	// TODO: consider using the Light(s) in the scene to do this
@@ -235,20 +229,20 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
     // Draw to framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.hdr_fb);
-
+	
 	glClearColor(0.5f, 1.0f, 1.0f, 1.0f);
 	glClearDepth(1.0f); // 1.0 is actually the default value to clear the depth buffer to, but FYI you can change it.
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
-
+	
 	// Draw scene based on active camera (Player's "eyes" or their PlayerCamera)
-	if (player.in_cam_view) {
-		scene.draw(*player.player_camera->scene_camera);
+	if (player->in_cam_view) {
+		scene.draw(*player->player_camera->scene_camera);
 	}
 	else {
-		scene.draw(*player.camera);
+		scene.draw(*player->camera);
 	}
 
     /* Debug code for printint all visible objects
@@ -281,10 +275,29 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     // Copy framebuffer to main window:
     framebuffers.tone_map();
-
+	
 	// UI
 	{
-		if (player.in_cam_view) {
+		if (player->in_cam_view) {
+			// Draw viewport grid
+			DrawLines grid(glm::mat4(
+				1.0f, 0.0f, 0.0f, 0.0f,
+				0.0f, 1.0f, 0.0f, 0.0f,
+				0.0f, 0.0f, 1.0f, 0.0f,
+				0.0f, 0.0f, 0.0f, 1.0f
+			));
+
+			// Viewport rule of thirds guidelines
+			grid.draw(glm::vec3(-1.0f / 3.0f, 1.0f / 3.0f, 0), glm::vec3(1.0f / 3.0f, 1.0f / 3.0f, 0), glm::u8vec4(0xff));
+			grid.draw(glm::vec3(-1.0f / 3.0f, -1.0f / 3.0f, 0), glm::vec3(1.0f / 3.0f, -1.0f / 3.0f, 0), glm::u8vec4(0xff));
+			grid.draw(glm::vec3(-1.0f / 3.0f, 1.0f / 3.0f, 0), glm::vec3(-1.0f / 3.0f, -1.0f / 3.0f, 0), glm::u8vec4(0xff));
+			grid.draw(glm::vec3(1.0f / 3.0f, 1.0f / 3.0f, 0), glm::vec3(1.0f / 3.0f, -1.0f / 3.0f, 0), glm::u8vec4(0xff));
+			// Viewport reticle (square if aspect ratio is 16x9)
+			grid.draw(glm::vec3(-1.0f / 16.0f, 1.0f / 9.0f, 0), glm::vec3(1.0f / 16.0f, 1.0f / 9.0f, 0), glm::u8vec4(0xff));
+			grid.draw(glm::vec3(-1.0f / 16.0f, -1.0f / 9.0f, 0), glm::vec3(1.0f / 16.0f, -1.0f / 9.0f, 0), glm::u8vec4(0xff));
+			grid.draw(glm::vec3(-1.0f / 16.0f, 1.0f / 9.0f, 0), glm::vec3(-1.0f / 16.0f, -1.0f / 9.0f, 0), glm::u8vec4(0xff));
+			grid.draw(glm::vec3(1.0f / 16.0f, 1.0f / 9.0f, 0), glm::vec3(1.0f / 16.0f, -1.0f / 9.0f, 0), glm::u8vec4(0xff));
+
 			display_text->draw("place holder", 0.5f * float(drawable_size.x), 0.5f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 		}
 	}

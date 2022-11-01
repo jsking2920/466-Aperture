@@ -40,8 +40,7 @@ struct PlayMode : Mode {
 	// Audio
 	std::shared_ptr< Sound::PlayingSample > music_loop;
 
-	Player player;
-    std::list<Picture> pictures;
+	Player* player = nullptr;
 
 	// Text Rendering
 	TextRenderer* display_text = nullptr;

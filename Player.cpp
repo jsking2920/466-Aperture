@@ -6,22 +6,24 @@
 #include <iostream>
 #include <algorithm>
 
-PlayerCamera::PlayerCamera(Scene::Transform* scene_transform, Scene::Transform* parent_transform, float fovy) {
+// PlayerCamera
+//========================================
 
-	scene_camera = std::make_unique<Scene::Camera>(scene_transform);
+PlayerCamera::PlayerCamera(Scene::Transform* scene_transform) {
 
-	// Player's camera shares same position/rotation/etc as their scene camera ("eyes")
-	scene_camera->transform->parent = parent_transform; // parent_transform should be player.transform
+	scene_camera = new Scene::Camera(scene_transform);
 
 	// Set default camera settings
-	scene_camera->fovy = fovy;
+	scene_camera->fovy = 3.14159265358979323846f / 3.0f; // 60 degree vertical fov
 	scene_camera->near = 0.01f;
 }
 
 PlayerCamera::~PlayerCamera() {
+	delete scene_camera;
 }
 
-void PlayerCamera::TakePicture(Scene &scene, std::list<Picture> &pictures) {
+void PlayerCamera::TakePicture(Scene &scene) {
+
     //get fragment counts for each drawable
     std::list<std::pair<Scene::Drawable &, GLuint>> result;
 
@@ -29,9 +31,8 @@ void PlayerCamera::TakePicture(Scene &scene, std::list<Picture> &pictures) {
     scene.render_picture(*scene_camera, result, data);
 
     Picture picture = GeneratePicture(result);
-    pictures.push_back(picture);
+    player->pictures->push_back(picture);
     std::cout << picture.get_scoring_string() << std::endl;
-
 
     //convert pixel data to correct format for png export
     uint8_t *png_data = new uint8_t [4 * scene_camera->drawable_size.x * scene_camera->drawable_size.y];
@@ -48,13 +49,16 @@ void PlayerCamera::TakePicture(Scene &scene, std::list<Picture> &pictures) {
 }
 
 Picture PlayerCamera::GeneratePicture(std::list<std::pair<Scene::Drawable &, GLuint>> frag_counts) {
+
     Picture picture = Picture();
-    if(frag_counts.empty()) {
+
+    if (frag_counts.empty()) {
         picture.title = "Pure Emptiness";
         picture.score_elements.emplace_back("Relatable", 500);
         picture.score_elements.emplace_back("Deep", 500);
         return picture;
     }
+
     auto sort_by_frag_count = [&](std::pair<Scene::Drawable &, GLuint> a, std::pair<Scene::Drawable &, GLuint> b) {
         return a.second > b.second;
     };
@@ -79,6 +83,36 @@ Picture PlayerCamera::GeneratePicture(std::list<std::pair<Scene::Drawable &, GLu
     picture.title = "Magnificent " + subject.transform->name;
 
     return picture;
+}
+
+// Player
+//========================================
+
+Player::Player(Scene::Transform* _transform, WalkMesh const* _walk_mesh, Scene::Camera* _camera, Scene::Transform* _player_camera_transform) {
+	
+	transform = _transform;
+	walk_mesh = _walk_mesh;
+	camera = _camera;
+	
+	camera->transform->parent = transform;
+	camera->fovy = 3.14159265358979323846f / 3.0f; // 60 degree vertical fov
+	camera->near = 0.01f;
+	
+	// Start player walking at nearest walk point
+	at = walk_mesh->nearest_walk_point(transform->position);
+	
+	player_camera = new PlayerCamera(_player_camera_transform);
+	player_camera->player = this;
+	// Player's camera shares same position/rotation/etc as their scene camera ("eyes")
+	player_camera->scene_camera->transform->parent = camera->transform;
+	player_camera->scene_camera->fovy = camera->fovy;
+	
+	pictures = new std::list<Picture>();
+}
+
+Player::~Player() {
+	delete player_camera;
+	delete pictures;
 }
 
 void Player::OnMouseMotion(glm::vec2 mouse_motion) {
