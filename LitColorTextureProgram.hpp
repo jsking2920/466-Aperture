@@ -11,8 +11,6 @@ struct LitColorTextureProgram {
 
 	GLuint program = 0;
 
-    GLuint program_vertex_color = 0;
-
 	//Attribute (per-vertex variable) locations:
 	GLuint Position_vec4 = -1U;
 	GLuint Normal_vec3 = -1U;
@@ -36,9 +34,6 @@ struct LitColorTextureProgram {
 };
 
 extern Load< LitColorTextureProgram > lit_color_texture_program;
-extern Load< LitColorTextureProgram > lit_color_program;
 
 //For convenient scene-graph setup, copy this object:
 extern Scene::Drawable::Pipeline lit_color_texture_program_pipeline;
-// this is the one that has a texture bound to 1-pixel white texture -- so it's okay to use with vertex-color-only meshes.
-extern Scene::Drawable::Pipeline lit_color_program_pipeline;

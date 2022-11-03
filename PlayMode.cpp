@@ -21,29 +21,28 @@ GLuint main_meshes_for_lit_color_program = 0;
 Load< MeshBuffer > main_meshes(LoadTagDefault, []() -> MeshBuffer const * {
 	MeshBuffer const *ret = new MeshBuffer(data_path("assets/proto-world.pnct"));
 	main_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
-    main_meshes_for_lit_color_program = ret->make_vao_for_program(lit_color_program->program);
 	return ret;
 });
 
 Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 	return new Scene(data_path("assets/proto-world.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
         Mesh const &mesh = main_meshes->lookup(mesh_name);
+        scene.drawables.emplace_back(transform);
+        Scene::Drawable &drawable = scene.drawables.back();
+
+        drawable.pipeline = lit_color_texture_program_pipeline;
+
+        drawable.pipeline.vao = main_meshes_for_lit_color_texture_program;
+        drawable.pipeline.type = mesh.type;
+        drawable.pipeline.start = mesh.start;
+        drawable.pipeline.count = mesh.count;
+
+        GLuint tex;
+        glGenTextures(1, &tex);
+
         // load texture, supports only 1 texture for now
         // file existence check from https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exists-using-standard-c-c11-14-17-c
         if(std::filesystem::exists(data_path("assets/textures/" + transform->name + ".png"))) {
-            scene.drawables.emplace_back(transform);
-            Scene::Drawable &drawable = scene.drawables.back();
-
-            drawable.pipeline = lit_color_texture_program_pipeline;
-
-            drawable.pipeline.vao = main_meshes_for_lit_color_texture_program;
-            drawable.pipeline.type = mesh.type;
-            drawable.pipeline.start = mesh.start;
-            drawable.pipeline.count = mesh.count;
-
-            GLuint tex;
-            glGenTextures(1, &tex);
-
             glBindTexture(GL_TEXTURE_2D, tex);
             glm::uvec2 size;
             std::vector< glm::u8vec4 > tex_data;
@@ -61,15 +60,7 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
             GL_ERRORS();
         } else {
             //no texture found, using vertex colors
-            scene.drawables.emplace_back(transform);
-            Scene::Drawable &drawable = scene.drawables.back();
 
-            drawable.pipeline = lit_color_program_pipeline;
-
-            drawable.pipeline.vao = main_meshes_for_lit_color_program;
-            drawable.pipeline.type = mesh.type;
-            drawable.pipeline.start = mesh.start;
-            drawable.pipeline.count = mesh.count;
         }
 
 	});
