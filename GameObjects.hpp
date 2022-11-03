@@ -6,20 +6,18 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include <vector>
-#include <map>
 
 /*
 33 characters and then a number
-and then also uh need the drawables
 */
 //idea: make a mast struct/class that's the creature
 struct Creature {
-    static std::map< std::string, Creature& > creature_map;
 
     //constructor
-    Creature();
-    Creature(std::string name_, std::string code_, int ID_, int number_, glm::vec3 ideal_angle_);
-    ~Creature();
+    Creature() = default;
+    Creature(std::string name_, std::string code_, int ID_, int number_, glm::vec3 ideal_angle_)
+            : name(name_), code(code_), ID(ID_), number(number_), ideal_angle(ideal_angle_) {}
+    ~Creature() = default;
 
     //Displaying information to the user --------------------------------------
     //TODO: best to simply this into a struct later, possibly populated from a struct
@@ -45,7 +43,7 @@ struct Creature {
     //have a drawable for rendering
     Scene::Drawable *drawable = nullptr;
     //have a list of objects to sample
-    //If we want to assign points/names to each focal point, make this into a list of drawables
+    //If we want to assign points/names to each focal point, make this into a list of focal point objects
     std::vector<Scene::Drawable *> focal_points = {};
     //have an array of body parts
     //std::vector< Scene::Transform > body_parts = {};

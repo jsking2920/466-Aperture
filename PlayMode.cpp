@@ -74,10 +74,14 @@ PlayMode::PlayMode() : scene(*main_scene) {
 	display_text = new TextRenderer(data_path("assets/fonts/Audiowide-Regular.ttf"), display_font_size);
 	barcode_text = new TextRenderer(data_path("assets/fonts/LibreBarcode128Text-Regular.ttf"), barcode_font_size);
 
-	// Load creatures
-	Creature *floater = new Creature("Floater", "FLO", 0, 0, glm::vec3(1.0f, 0.0f, 0.0f));
-	floater->init_transforms(scene);
-	creatures.push_back(floater);
+	// Load creatures, should eventually loop through codes and/or models
+    //using syntax from https://stackoverflow.com/questions/14075128/mapemplace-with-a-custom-value-type
+    //if we use things that need references in the future, change make_tuple to forward_as_tuple
+    std::string id_code = "FLO0";
+    creatures.emplace(std::piecewise_construct, std::make_tuple(id_code), std::make_tuple("Floater", "FLO", 0, 0, glm::vec3(1.0f, 0.0f, 0.0f)));
+    Creature &creature = creatures[id_code];
+    creature.init_transforms(scene);
+//	creatures[floater->]
 }
 
 PlayMode::~PlayMode() {

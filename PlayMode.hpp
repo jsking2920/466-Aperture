@@ -12,6 +12,7 @@
 
 #include <vector>
 #include <deque>
+#include <map>
 
 struct PlayMode : Mode {
 	PlayMode();
@@ -35,7 +36,7 @@ struct PlayMode : Mode {
 	Scene scene;
 
 	// Reference to the creature
-	std::vector< Creature* > creatures;
+	std::map< std::string, Creature > creatures;
 
 	// Audio
 	std::shared_ptr< Sound::PlayingSample > music_loop;
