@@ -35,9 +35,6 @@ struct PlayMode : Mode {
 	// Local copy of the game scene
 	Scene scene;
 
-	// Reference to the creature
-	std::map< std::string, Creature > creatures;
-
 	// Audio
 	std::shared_ptr< Sound::PlayingSample > music_loop;
 

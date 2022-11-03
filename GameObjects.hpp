@@ -6,12 +6,15 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include <vector>
+#include <map>
 
 /*
 33 characters and then a number
 */
 //idea: make a mast struct/class that's the creature
 struct Creature {
+    // Reference to the creatures
+    static std::map< std::string, Creature > creature_map;
 
     //constructor
     Creature() = default;

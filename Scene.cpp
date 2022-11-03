@@ -8,6 +8,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <fstream>
+#include <algorithm>
 
 //-------------------------
 
@@ -93,7 +94,9 @@ void Scene::draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_lig
 
 	//Iterate through all drawables, sending each one to OpenGL:
 	for (auto const &drawable : drawables) {
-        render_drawable(drawable, world_to_clip, world_to_light);
+        if(!drawable.invisible && !drawable.occluded) {
+            render_drawable(drawable, world_to_clip, world_to_light);
+        }
 	}
 
 	glUseProgram(0);
@@ -114,18 +117,13 @@ void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scen
     //occlusion queries are run, because if I did not, post-processing wouldn't be applied. I think. I dunno. It's midnight.
 
     //transform rgb16f texture to rgba8ui texture for export
-    //going a little off the rails here 0.0 hdata is a half float type in glm
     //code modeled after this snippet https://stackoverflow.com/questions/48938930/pixel-access-with-glgetteximage
     glBindTexture(GL_TEXTURE_2D, framebuffers.hdr_color_tex);
     glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_FLOAT, data);
     glBindTexture(GL_TEXTURE_2D, 0);
 
     //run query for each drawable
-    //TODO: combine this render with the render of the picture to a texture
-    //but for now we render solely for the purpose of the occlusion queries
-
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LEQUAL);
     //bind renderbuffers for rendering
     glBindRenderbuffer(GL_RENDERBUFFER, framebuffers.hdr_depth_rb);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.hdr_fb);
@@ -133,10 +131,14 @@ void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scen
     glClear(GL_COLOR_BUFFER_BIT);
 
     for(auto &drawable : drawables) {
+        GLuint query = drawable.query;
+        if(drawable.invisible || drawable.occluded) {
+            continue;
+        }
         //query syntax from https://www.reddit.com/r/opengl/comments/1pv8qe/how_do_occlusion_queries_work/
-        GLuint query;
-        glGenQueries(1, &query);
-
+        if(!glIsQuery(query)) {
+            glGenQueries(1, &query);
+        }
         glBeginQuery(GL_SAMPLES_PASSED, query);
         render_drawable(drawable, world_to_clip, world_to_light);
         glEndQuery(GL_SAMPLES_PASSED);
@@ -152,17 +154,7 @@ void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scen
         if(samples_passed > 0) {
             occlusion_results.emplace_back(drawable, samples_passed);
         }
-
-        glDeleteQueries(1, &query);
     }
-//    GLenum err;
-//    while ((err = glGetError()) != GL_NO_ERROR) {
-//        std::cerr << "OpenGL error: " << err << std::endl;
-//    }
-
-//    //getting texture bytes
-//    glReadPixels(0, 0, camera.drawable_size.x, camera.drawable_size.y, GL_RGBA, GL_UNSIGNED_BYTE, data);
-
 
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -242,6 +234,60 @@ void Scene::render_drawable(Scene::Drawable const &drawable, glm::mat4 const &wo
     }
     glActiveTexture(GL_TEXTURE0);
 
+}
+
+void Scene::test_focal_points(const Camera &camera, std::vector< Scene::Drawable *> &focal_points, std::vector< bool > &results) {
+    assert(camera.transform);
+    glm::mat4 world_to_clip = camera.make_projection() * glm::mat4(camera.transform->make_world_to_local());
+    glm::mat4x3 world_to_light = glm::mat4x3(1.0f);
+
+    results.resize(focal_points.size());
+
+    //bind renderbuffers for rendering
+    glBindRenderbuffer(GL_RENDERBUFFER, framebuffers.hdr_depth_rb);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.hdr_fb);
+
+    //disable writing color & depth
+    glDepthMask(GL_FALSE);
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+    for(size_t i = 0; i < focal_points.size(); i++) {
+        auto &drawable = focal_points.at(i);
+        GLuint query = drawable->query;
+        //query syntax from https://www.reddit.com/r/opengl/comments/1pv8qe/how_do_occlusion_queries_work/
+        if(!glIsQuery(query)) {
+            glGenQueries(1, &query);
+        }
+        glBeginQuery(GL_ANY_SAMPLES_PASSED, query);
+        render_drawable(*drawable, world_to_clip, world_to_light);
+        glEndQuery(GL_ANY_SAMPLES_PASSED);
+
+
+        GLuint passed = 0;
+        glGetQueryObjectuiv(query, GL_QUERY_RESULT, &passed);
+
+        if(passed) {
+            std::cout << "uwu" << std::endl;
+        }
+
+//        GLuint has_finished;
+//        glGetQueryObjectuiv(query, GL_QUERY_RESULT_AVAILABLE, &has_finished);
+//        std::cout << drawable.transform->name << "finished: " << has_finished << std::endl;
+
+        results.at(i) = passed;
+    }
+
+    //reenable writing color & depth
+    glDepthMask(GL_TRUE);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    glUseProgram(0);
+    glBindVertexArray(0);
+
+    GL_ERRORS();
 }
 
 

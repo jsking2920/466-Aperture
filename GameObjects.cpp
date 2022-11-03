@@ -1,6 +1,8 @@
 #include "GameObjects.hpp"
 #include "Scene.hpp"
 
+std::map< std::string, Creature > Creature::creature_map = std::map< std::string, Creature >();
+
 //add to constructor?
 void Creature::init_transforms (Scene &scene) {
 
@@ -12,10 +14,11 @@ void Creature::init_transforms (Scene &scene) {
                 drawable = &draw;
                 // std::cout << "transform set to be" << trans.name << std::endl;
             }
-            std::cout << trans.name << std::endl;
 
-            if (trans.name.substr(code.length() + std::to_string(ID).length() + 1, 3) == "foc") {
+            if (trans.name.substr(trans.name.find('_') + 1, 3) == "foc") {
+                std::cout << trans.name << std::endl;
                 focal_points.push_back(&draw);
+                draw.invisible = true;
             }         
         }
     }

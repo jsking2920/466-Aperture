@@ -54,6 +54,13 @@ struct Scene {
 		Drawable(Transform *transform_) : transform(transform_) { assert(transform); }
 		Transform * transform;
 
+        //for occlusion testing
+        GLuint query = 0;
+
+        //for focal point etc. drawing
+        bool invisible = false;
+        bool occluded = false; //for later use in object occlusion
+
 		//Contains all the data needed to run the OpenGL pipeline:
 		struct Pipeline {
 			GLuint program = 0; //shader program; passed to glUseProgram
@@ -122,7 +129,6 @@ struct Scene {
 	//Scenes, of course, may have many of the above objects:
 	std::list< Transform > transforms;
 	std::list< Drawable > drawables;
-    std::list< Drawable > focal_points;
 	std::list< Camera > cameras;
 	std::list< Light > lights;
 
@@ -137,6 +143,9 @@ struct Scene {
 
     //extrapolated for use in render_picture
     void render_drawable(Drawable const &drawable, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light) const;
+
+    //for checking focal points
+    void test_focal_points(const Scene::Camera &camera, std::vector< Scene::Drawable *> &focal_points, std::vector< bool > &results);
 
 	//add transforms/objects/cameras from a scene file to this scene:
 	// the 'on_drawable' callback gives your code a chance to look up mesh data and make Drawables:

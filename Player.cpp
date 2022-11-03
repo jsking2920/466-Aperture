@@ -2,9 +2,12 @@
 #include "load_save_png.hpp"
 #include "data_path.hpp"
 #include "Framebuffers.hpp"
+#include "GameObjects.hpp"
 
 #include <iostream>
 #include <algorithm>
+#include <map>
+#include <unordered_set>
 
 // PlayerCamera
 //========================================
@@ -25,14 +28,46 @@ PlayerCamera::~PlayerCamera() {
 void PlayerCamera::TakePicture(Scene &scene) {
 
     //get fragment counts for each drawable
-    std::list<std::pair<Scene::Drawable &, GLuint>> result;
+    std::list<std::pair<Scene::Drawable &, GLuint>> occlusionResults;
 
     GLfloat *data = new GLfloat[3 * scene_camera->drawable_size.x * scene_camera->drawable_size.y];
-    scene.render_picture(*scene_camera, result, data);
+    scene.render_picture(*scene_camera, occlusionResults, data);
 
-    Picture picture = GeneratePicture(result);
+    //Set of creatures in frame, because there will be duplicates for body parts
+    std::unordered_set< std::string > creature_set;
+    for(auto &pair : occlusionResults) {
+        std::string name = pair.first.transform->name;
+        std::string code = name.substr(0, name.find('-'));
+        if(Creature::creature_map.count(code)) {
+            creature_set.insert(code);
+        }
+    }
+
+    //list of creatures & focal point visibilities
+    //i know this type is ugly af but i think it's good for memory management bc of vector resizes. i think.
+    std::list< std::pair<Creature *, std::shared_ptr< std::vector< bool > > > > creatures_in_frame;
+    for(auto &code : creature_set) {
+        creatures_in_frame.emplace_back(std::make_pair(&Creature::creature_map[code], std::make_shared<std::vector< bool >>()));
+    }
+
+    //Get focal point vector - indices of bools map to indices of focal points in creature
+    for(auto &pair : creatures_in_frame) {
+        scene.test_focal_points(*scene_camera, pair.first->focal_points, *pair.second);
+    }
+
+    //print how many focal points are in frame
+    for(auto &pair : creatures_in_frame) {
+        auto pred = [&](bool b) {
+            return b;
+        };
+        std::cout << pair.first->name << " detected, focal point count: " << std::count_if((*pair.second).begin(),
+                                                                                           (*pair.second).end(), pred) << std::endl;
+    }
+
+    //todo: i think we should make a struct for picture info, there's so much info we can pass in
+    Picture picture = GeneratePicture(occlusionResults);
     player->pictures->push_back(picture);
-    std::cout << picture.get_scoring_string() << std::endl;
+//    std::cout << picture.get_scoring_string() << std::endl;
 
     //convert pixel data to correct format for png export
     uint8_t *png_data = new uint8_t [4 * scene_camera->drawable_size.x * scene_camera->drawable_size.y];
@@ -45,7 +80,7 @@ void PlayerCamera::TakePicture(Scene &scene) {
     save_png(data_path("album/" + picture.title + ".png"), scene_camera->drawable_size,
              reinterpret_cast<const glm::u8vec4 *>(png_data), LowerLeftOrigin);
 
-    free(data);
+    delete[] data; //what the heck this is the syntax
 }
 
 Picture PlayerCamera::GeneratePicture(std::list<std::pair<Scene::Drawable &, GLuint>> frag_counts) {
