@@ -266,10 +266,6 @@ void Scene::test_focal_points(const Camera &camera, std::vector< Scene::Drawable
         GLuint passed = 0;
         glGetQueryObjectuiv(query, GL_QUERY_RESULT, &passed);
 
-        if(passed) {
-            std::cout << "uwu" << std::endl;
-        }
-
 //        GLuint has_finished;
 //        glGetQueryObjectuiv(query, GL_QUERY_RESULT_AVAILABLE, &has_finished);
 //        std::cout << drawable.transform->name << "finished: " << has_finished << std::endl;
