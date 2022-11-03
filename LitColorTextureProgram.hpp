@@ -31,6 +31,7 @@ struct LitColorTextureProgram {
 	
 	//Textures:
 	//TEXTURE0 - texture that is accessed by TexCoord
+    GLuint USES_VERTEX_COLOR_bool = -1U;
 };
 
 extern Load< LitColorTextureProgram > lit_color_texture_program;

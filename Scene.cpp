@@ -209,6 +209,17 @@ void Scene::render_drawable(Scene::Drawable const &drawable, glm::mat4 const &wo
         glm::mat3 normal_to_light = glm::inverse(glm::transpose(glm::mat3(object_to_light)));
         glUniformMatrix3fv(pipeline.NORMAL_TO_LIGHT_mat3, 1, GL_FALSE, glm::value_ptr(normal_to_light));
     }
+    GL_ERRORS();
+
+    //set uses vertex color uniform
+    if (pipeline.USES_VERTEX_COLOR != -1U) {
+        GLuint uses_vertex_color = GL_FALSE;
+        if(drawable.uses_vertex_color) {
+            uses_vertex_color = GL_TRUE;
+        }
+        glUniform1ui(pipeline.USES_VERTEX_COLOR, uses_vertex_color);
+    }
+    GL_ERRORS();
 
     //set any requested custom uniforms:
     if (pipeline.set_uniforms) pipeline.set_uniforms();
@@ -429,8 +440,6 @@ void Scene::load(std::string const &filename,
 	if (file.peek() != EOF) {
 		std::cerr << "WARNING: trailing data in scene file '" << filename << "'" << std::endl;
 	}
-
-
 
 }
 

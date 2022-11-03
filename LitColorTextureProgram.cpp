@@ -15,6 +15,8 @@ Load< LitColorTextureProgram > lit_color_texture_program(LoadTagEarly, []() -> L
 	lit_color_texture_program_pipeline.OBJECT_TO_LIGHT_mat4x3 = ret->OBJECT_TO_LIGHT_mat4x3;
 	lit_color_texture_program_pipeline.NORMAL_TO_LIGHT_mat3 = ret->NORMAL_TO_LIGHT_mat3;
 
+    lit_color_texture_program_pipeline.USES_VERTEX_COLOR = ret->USES_VERTEX_COLOR_bool;
+
 	/* This will be used later if/when we build a light loop into the Scene:
 	lit_color_texture_program_pipeline.LIGHT_TYPE_int = ret->LIGHT_TYPE_int;
 	lit_color_texture_program_pipeline.LIGHT_LOCATION_vec3 = ret->LIGHT_LOCATION_vec3;
@@ -78,6 +80,7 @@ LitColorTextureProgram::LitColorTextureProgram() {
             "uniform vec3 LIGHT_DIRECTION;\n"
             "uniform vec3 LIGHT_ENERGY;\n"
             "uniform float LIGHT_CUTOFF;\n"
+            "uniform bool USES_VERTEX_COLOR;\n"
             "in vec3 position;\n"
             "in vec3 normal;\n"
             "in vec4 color;\n"
@@ -105,7 +108,12 @@ LitColorTextureProgram::LitColorTextureProgram() {
             "	} else { //(LIGHT_TYPE == 3) //directional light \n"
             "		e = max(0.0, dot(n,-LIGHT_DIRECTION)) * LIGHT_ENERGY;\n"
             "	}\n"
-            "	vec4 albedo = texture(TEX, texCoord);\n"
+            "   vec4 albedo;\n"
+            "   if (USES_VERTEX_COLOR) {\n"
+            "       albedo = texture(TEX, texCoord) * color;\n"
+            "   } else {\n"
+            "       albedo = texture(TEX, texCoord);\n"
+            "   }\n"
             "	fragColor = vec4(e*albedo.rgb, albedo.a);\n"
             "}\n"
     );
@@ -129,6 +137,8 @@ LitColorTextureProgram::LitColorTextureProgram() {
 	LIGHT_DIRECTION_vec3 = glGetUniformLocation(program, "LIGHT_DIRECTION");
 	LIGHT_ENERGY_vec3 = glGetUniformLocation(program, "LIGHT_ENERGY");
 	LIGHT_CUTOFF_float = glGetUniformLocation(program, "LIGHT_CUTOFF");
+
+    USES_VERTEX_COLOR_bool = glGetUniformLocation(program, "USES_VERTEX_COLOR");
 
 
 	GLuint TEX_sampler2D = glGetUniformLocation(program, "TEX");

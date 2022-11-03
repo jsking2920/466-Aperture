@@ -43,6 +43,7 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
         // load texture, supports only 1 texture for now
         // file existence check from https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exists-using-standard-c-c11-14-17-c
         if(std::filesystem::exists(data_path("assets/textures/" + transform->name + ".png"))) {
+            drawable.uses_vertex_color = false;
             glBindTexture(GL_TEXTURE_2D, tex);
             glm::uvec2 size;
             std::vector< glm::u8vec4 > tex_data;
@@ -60,7 +61,7 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
             GL_ERRORS();
         } else {
             //no texture found, using vertex colors
-
+            drawable.uses_vertex_color = true;
         }
 
 	});
