@@ -2,6 +2,8 @@
 
 #include "gl_compile_program.hpp"
 #include "gl_errors.hpp"
+#include "load_save_png.hpp"
+#include "data_path.hpp"
 
 Scene::Drawable::Pipeline lit_color_texture_program_pipeline;
 
@@ -28,8 +30,10 @@ Load< LitColorTextureProgram > lit_color_texture_program(LoadTagEarly, []() -> L
 	glGenTextures(1, &tex);
 
 	glBindTexture(GL_TEXTURE_2D, tex);
-	std::vector< glm::u8vec4 > tex_data(1, glm::u8vec4(0xff));
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex_data.data());
+    glm::uvec2 size(1920, 963);
+    std::vector< glm::u8vec4 > tex_data;
+    load_png(data_path("album/Magnificent BigRocks.png"), &size, &tex_data, LowerLeftOrigin);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex_data.data());
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -44,7 +48,6 @@ Load< LitColorTextureProgram > lit_color_texture_program(LoadTagEarly, []() -> L
 });
 
 LitColorTextureProgram::LitColorTextureProgram() {
-	//TODO: add texture samling and rendering to the shader:
 	//Compile vertex and fragment shaders using the convenient 'gl_compile_program' helper function:
 	program = gl_compile_program(
 		//vertex shader:
