@@ -94,7 +94,7 @@ void Scene::draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_lig
 
 	//Iterate through all drawables, sending each one to OpenGL:
 	for (auto const &drawable : drawables) {
-        if(!drawable.invisible && !drawable.occluded) {
+        if(drawable.render_to_screen && !drawable.occluded) {
             render_drawable(drawable, world_to_clip, world_to_light);
         }
 	}
@@ -132,7 +132,7 @@ void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scen
 
     for(auto &drawable : drawables) {
         GLuint query = drawable.query;
-        if(drawable.invisible || drawable.occluded) {
+        if(!drawable.render_to_picture || drawable.occluded) {
             continue;
         }
         //query syntax from https://www.reddit.com/r/opengl/comments/1pv8qe/how_do_occlusion_queries_work/
@@ -233,6 +233,7 @@ void Scene::render_drawable(Scene::Drawable const &drawable, glm::mat4 const &wo
         }
     }
     glActiveTexture(GL_TEXTURE0);
+    GL_ERRORS();
 
 }
 

@@ -57,8 +57,9 @@ struct Scene {
         //for occlusion testing
         GLuint query = 0;
 
-        //for focal point etc. drawing
-        bool invisible = false;
+        //conditional drawing
+        bool render_to_screen = true;
+        bool render_to_picture = true;
         bool occluded = false; //for later use in object occlusion
 
 		//Contains all the data needed to run the OpenGL pipeline:

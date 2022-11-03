@@ -18,7 +18,8 @@ void Creature::init_transforms (Scene &scene) {
             if (trans.name.substr(trans.name.find('_') + 1, 3) == "foc") {
                 std::cout << trans.name << std::endl;
                 focal_points.push_back(&draw);
-                draw.invisible = true;
+                draw.render_to_screen = false;
+                draw.render_to_picture = false;
             }         
         }
     }
