@@ -122,6 +122,7 @@ struct Scene {
 	//Scenes, of course, may have many of the above objects:
 	std::list< Transform > transforms;
 	std::list< Drawable > drawables;
+    std::list< Drawable > focal_points;
 	std::list< Camera > cameras;
 	std::list< Light > lights;
 
