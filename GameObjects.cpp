@@ -1,5 +1,6 @@
 #include "GameObjects.hpp"
 #include "Scene.hpp"
+#include "glm/gtx/string_cast.hpp"
 
 std::map< std::string, Creature > Creature::creature_map = std::map< std::string, Creature >();
 
@@ -16,7 +17,10 @@ void Creature::init_transforms (Scene &scene) {
             }
 
             if (trans.name.substr(trans.name.find('_') + 1, 3) == "foc") {
+                //print out the facing direction 
                 std::cout << trans.name << std::endl;
+                std::cout << glm::to_string(trans.get_front_direction()) << std::endl;
+
                 focal_points.push_back(&draw);
                 draw.render_to_screen = false;
                 draw.render_to_picture = false;

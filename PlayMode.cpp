@@ -19,13 +19,13 @@
 GLuint main_meshes_for_lit_color_texture_program = 0;
 GLuint main_meshes_for_lit_color_program = 0;
 Load< MeshBuffer > main_meshes(LoadTagDefault, []() -> MeshBuffer const * {
-	MeshBuffer const *ret = new MeshBuffer(data_path("assets/proto-world.pnct"));
+	MeshBuffer const *ret = new MeshBuffer(data_path("assets/proto-world2.pnct"));
 	main_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
 	return ret;
 });
 
 Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
-	return new Scene(data_path("assets/proto-world.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
+	return new Scene(data_path("assets/proto-world2.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
         Mesh const &mesh = main_meshes->lookup(mesh_name);
         scene.drawables.emplace_back(transform);
         Scene::Drawable &drawable = scene.drawables.back();
@@ -68,7 +68,7 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 });
 
 Load< WalkMeshes > main_walkmeshes(LoadTagDefault, []() -> WalkMeshes const * {
-	WalkMeshes *ret = new WalkMeshes(data_path("assets/proto-world.w"));
+	WalkMeshes *ret = new WalkMeshes(data_path("assets/proto-world2.w"));
 	return ret;
 });
 
@@ -110,7 +110,7 @@ PlayMode::PlayMode() : scene(*main_scene) {
     //  if we use things that need references in the future, change make_tuple to forward_as_tuple
     //  put in constructor??
     std::string id_code = "FLO0";
-    Creature::creature_map.emplace(std::piecewise_construct, std::make_tuple(id_code), std::make_tuple("Floater", "FLO", 0, 0, glm::vec3(1.0f, 0.0f, 0.0f)));
+    Creature::creature_map.emplace(std::piecewise_construct, std::make_tuple(id_code), std::make_tuple("Floater", "FLO", 0, 0));
     Creature &creature = Creature::creature_map[id_code];
     creature.init_transforms(scene);
 }

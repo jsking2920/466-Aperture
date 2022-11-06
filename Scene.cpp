@@ -74,6 +74,18 @@ glm::mat4x3 Scene::Transform::make_world_to_local() const {
 	}
 }
 
+glm::mat3x3 Scene::Transform::get_world_rotation() const {
+	if (!parent) {
+		return glm::mat3_cast(rotation);
+	} else {
+		return parent->get_world_rotation() * glm::mat3_cast(rotation);
+	}
+}
+
+glm::vec3 Scene::Transform::get_front_direction() const {
+	return get_world_rotation() * glm::vec3(1.0f, 0.0f, 0.0f);
+}	
+
 //-------------------------
 
 glm::mat4 Scene::Camera::make_projection() const {

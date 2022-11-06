@@ -43,6 +43,10 @@ struct Scene {
 		// ..relative to the world:
 		glm::mat4x3 make_local_to_world() const;
 		glm::mat4x3 make_world_to_local() const;
+		//with some additional helper functions:
+		glm::mat3x3 get_world_rotation() const;
+		//return the front direction(positive X) in world space
+		glm::vec3 get_front_direction() const;
 
 		//since hierarchy is tracked through pointers, copy-constructing a transform  is not advised:
 		Transform(Transform const &) = delete;
