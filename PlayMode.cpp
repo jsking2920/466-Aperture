@@ -19,13 +19,13 @@
 GLuint main_meshes_for_lit_color_texture_program = 0;
 GLuint main_meshes_for_lit_color_program = 0;
 Load< MeshBuffer > main_meshes(LoadTagDefault, []() -> MeshBuffer const * {
-	MeshBuffer const *ret = new MeshBuffer(data_path("assets/proto-world2.pnct"));
+	MeshBuffer const *ret = new MeshBuffer(data_path("assets/proto-world.pnct"));
 	main_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
 	return ret;
 });
 
 Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
-	return new Scene(data_path("assets/proto-world2.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
+	return new Scene(data_path("assets/proto-world.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
         Mesh const &mesh = main_meshes->lookup(mesh_name);
         scene.drawables.emplace_back(transform);
         Scene::Drawable &drawable = scene.drawables.back();
@@ -68,7 +68,7 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 });
 
 Load< WalkMeshes > main_walkmeshes(LoadTagDefault, []() -> WalkMeshes const * {
-	WalkMeshes *ret = new WalkMeshes(data_path("assets/proto-world2.w"));
+	WalkMeshes *ret = new WalkMeshes(data_path("assets/proto-world.w"));
 	return ret;
 });
 
@@ -286,6 +286,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
 	// Draw scene based on active camera (Player's "eyes" or their PlayerCamera)
 	if (player->in_cam_view) {

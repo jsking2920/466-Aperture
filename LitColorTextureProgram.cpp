@@ -114,6 +114,7 @@ LitColorTextureProgram::LitColorTextureProgram() {
             "   } else {\n"
             "       albedo = texture(TEX, texCoord);\n"
             "   }\n"
+            "   if (albedo.a < 0.5) discard;\n"
             "	fragColor = vec4(e*albedo.rgb, albedo.a);\n"
             "}\n"
     );
