@@ -242,7 +242,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	glUseProgram(0);
 
     // Draw to framebuffer
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.hdr_fb);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.ms_fb);
 	
 	glClearColor(0.5f, 1.0f, 1.0f, 1.0f);
 	glClearDepth(1.0f); // 1.0 is actually the default value to clear the depth buffer to, but FYI you can change it.
@@ -285,6 +285,10 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		}
 	}
 	*/
+	// blit multisampled buffer to the normal, intermediate post_processing buffer. Image is stored in screen_texture
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffers.ms_fb);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffers.pp_fb);
+	glBlitFramebuffer(0, 0, drawable_size.x, drawable_size.y, 0, 0, drawable_size.x, drawable_size.y, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     // Copy framebuffer to main window:

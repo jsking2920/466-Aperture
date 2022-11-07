@@ -118,15 +118,15 @@ void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scen
 
     //transform rgb16f texture to rgba8ui texture for export
     //code modeled after this snippet https://stackoverflow.com/questions/48938930/pixel-access-with-glgetteximage
-    glBindTexture(GL_TEXTURE_2D, framebuffers.hdr_color_tex);
+    glBindTexture(GL_TEXTURE_2D, framebuffers.ms_color_tex);
     glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_FLOAT, data);
     glBindTexture(GL_TEXTURE_2D, 0);
 
     //run query for each drawable
     glEnable(GL_DEPTH_TEST);
     //bind renderbuffers for rendering
-    glBindRenderbuffer(GL_RENDERBUFFER, framebuffers.hdr_depth_rb);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.hdr_fb);
+    glBindRenderbuffer(GL_RENDERBUFFER, framebuffers.ms_depth_rb);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.ms_fb);
 
     glClear(GL_COLOR_BUFFER_BIT);
 
@@ -244,8 +244,8 @@ void Scene::test_focal_points(const Camera &camera, std::vector< Scene::Drawable
     results.resize(focal_points.size());
 
     //bind renderbuffers for rendering
-    glBindRenderbuffer(GL_RENDERBUFFER, framebuffers.hdr_depth_rb);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.hdr_fb);
+    glBindRenderbuffer(GL_RENDERBUFFER, framebuffers.ms_depth_rb);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.ms_fb);
 
     //disable writing color & depth
     glDepthMask(GL_FALSE);

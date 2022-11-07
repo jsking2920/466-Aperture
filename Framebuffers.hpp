@@ -13,10 +13,15 @@ struct Framebuffers {
     // Current size of framebuffer attachments
     glm::uvec2 size = glm::uvec2(0,0);
 
-    //for the "hdr tonemapping" rendering example:
-    GLuint hdr_color_tex = 0; // GL_RGB16F color texture
-    GLuint hdr_depth_rb = 0; // GL_DEPTH_COMPONENT24 renderbuffer
-    GLuint hdr_fb = 0; // color0: color_tex , depth: depth_rb
+    // MSAA enabled gl objects
+    int msaa_samples = 4; // number of samples per pixel for multisample anti-aliasing
+    GLuint ms_color_tex = 0; // GL_RGB16F color texture
+    GLuint ms_depth_rb = 0; // GL_DEPTH_COMPONENT24 renderbuffer
+    GLuint ms_fb = 0; // color0: color_tex , depth: depth_rb
+
+    // Intermediate post-processing objects
+    GLuint pp_fb = 0; // intermediate between anti-aliased fb and final render
+    GLuint screen_texture = 0;
 
     void tone_map(); //copy hdr.color_tex to screen with tone mapping applied
 
