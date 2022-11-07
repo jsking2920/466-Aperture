@@ -214,7 +214,7 @@ void TextRenderer::draw(std::string text, float x, float y, float scale, glm::ve
     GL_ERRORS();
 }
 
-std::string TextRenderer::format_time(float seconds) {
+std::string TextRenderer::format_stopwatch(float seconds) {
 
     std::string sec = std::to_string(int(seconds) % 60);
     std::string fractional_sec = std::to_string(int(seconds * 100) % 100);
@@ -224,4 +224,17 @@ std::string TextRenderer::format_time(float seconds) {
         return minutes + ":" + sec + "." + fractional_sec;
     }
     return sec + "." + fractional_sec;
+}
+
+std::string TextRenderer::format_time_of_day(float seconds, float length_of_day) {
+
+    int hrs = int(seconds / (length_of_day / 24.0f));
+    hrs = hrs == 0 || hrs == 24 ? 12 : hrs;
+    hrs = hrs > 12 ? hrs - 12 : hrs;
+    std::string hours = hrs < 10 ? "0" + std::to_string(hrs) : std::to_string(hrs);
+    int mins = int(seconds / (length_of_day / 1440.0f)) % 60;
+    std::string minutes = mins < 10 ? "0" + std::to_string(mins) : std::to_string(mins);
+    std::string am_pm = seconds < length_of_day / 2.0f ? "am" : "pm";
+
+    return hours + ":" + minutes + am_pm;
 }

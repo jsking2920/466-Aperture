@@ -40,6 +40,11 @@ struct PlayMode : Mode {
 
 	Player* player = nullptr;
 
+	float day_length = 240.0f;// 4 minutes = 1 day, 10 seconds = 1 hour
+	float time_of_day = 0.0f; // loops from 0 to day_length
+	float sunrise = 60.0f; // sunrise at 6am
+	float sunset = 210.0f; // sunset at 9pm
+
 	// Text Rendering
 	TextRenderer* display_text = nullptr;
 	uint8_t display_font_size = 48;
