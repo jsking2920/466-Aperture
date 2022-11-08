@@ -40,30 +40,36 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
         GLuint tex;
         glGenTextures(1, &tex);
 
-        // load texture, supports only 1 texture for now
+        // load texture for object if one exists, supports only 1 texture for now
+		// texture must share name with transform in scene ( "assets/textures/{transform->name}.png" )
         // file existence check from https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exists-using-standard-c-c11-14-17-c
-        if(std::filesystem::exists(data_path("assets/textures/" + transform->name + ".png"))) {
+        if (std::filesystem::exists(data_path("assets/textures/" + transform->name + ".png"))) {
             drawable.uses_vertex_color = false;
+
             glBindTexture(GL_TEXTURE_2D, tex);
             glm::uvec2 size;
             std::vector< glm::u8vec4 > tex_data;
+
             load_png(data_path("assets/textures/" + transform->name + ".png"), &size, &tex_data, LowerLeftOrigin);
+
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex_data.data());
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glGenerateMipmap(GL_TEXTURE_2D);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // change this to GL_REPEAT or something else for texture tiling
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+         
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // mipmapping for textures far from cam
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); // Bilinear filtering for textures close to cam
             glBindTexture(GL_TEXTURE_2D, 0);
 
             drawable.pipeline.textures[0].texture = tex;
             drawable.pipeline.textures[0].target = GL_TEXTURE_2D;
 
-            GL_ERRORS();
+            GL_ERRORS(); // check for errros
         } else {
             //no texture found, using vertex colors
             drawable.uses_vertex_color = true;
         }
-
 	});
 });
 
