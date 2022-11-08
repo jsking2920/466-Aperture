@@ -17,17 +17,22 @@ void Creature::init_transforms (Scene &scene) {
             }
 
             if (trans.name.substr(trans.name.find('_') + 1, 3) == "foc") {
-                //print out the facing direction 
-                std::cout << trans.name << std::endl;
-                std::cout << glm::to_string(trans.get_front_direction()) << std::endl;
-
+                if (trans.name.length() == 8) {
+                    focal_point = &trans;
+                    std::cout << "found focal point:" << trans.name << std::endl;
+                }
                 focal_points.push_back(&draw);
                 draw.render_to_screen = false;
                 draw.render_to_picture = false;
             }         
         }
     }
+    assert(focal_point != nullptr);
     assert(transform != nullptr);
     assert(focal_points.size() > 0);
+}
+
+glm::vec3 Creature::get_best_angle() const {
+    return focal_point->get_front_direction();
 }
 
