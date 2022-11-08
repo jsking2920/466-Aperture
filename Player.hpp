@@ -18,9 +18,7 @@ struct PlayerCamera {
 	~PlayerCamera();
 
     struct PictureStatistics { //data about the picture that is used for scoring
-        PictureStatistics(PlayerCamera camera);
-
-        std::shared_ptr<GLfloat[]> data;
+        std::vector<GLfloat> data;
         std::list<std::pair<Scene::Drawable &, GLuint>> frag_counts;
         std::list< std::pair<Creature *, std::shared_ptr< std::vector< bool > > > > creatures_in_frame;
     };
@@ -35,7 +33,7 @@ struct PlayerCamera {
 
 	void TakePicture(Scene &scene); // Adds picture to player.pictures
     Picture ScorePicture(PictureStatistics picture_stats); // generates scoring info and description/etc.
-	void SavePicture(std::shared_ptr<GLfloat[]> data, std::string name); // saves picture as a png to dist/album/ (creating folder if needed)
+	void SavePicture(std::vector<GLfloat> data, std::string name); // saves picture as a png to dist/album/ (creating folder if needed)
 	void AdjustZoom(float diff);
 };
 

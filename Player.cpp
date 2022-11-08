@@ -26,14 +26,10 @@ PlayerCamera::~PlayerCamera() {
 	delete scene_camera;
 }
 
-PlayerCamera::PictureStatistics::PictureStatistics(PlayerCamera camera) {
-    data = std::make_shared<GLfloat>(3 * camera.scene_camera->drawable_size.x * camera.scene_camera->drawable_size.y);
-
-}
-
 void PlayerCamera::TakePicture(Scene &scene) {
 
-    PictureStatistics stats(*this);
+    PictureStatistics stats;
+    stats.data.resize(3 * scene_camera->drawable_size.x * scene_camera->drawable_size.y);
 
     //get fragment counts for each drawable
     scene.render_picture(*scene_camera, stats.frag_counts, stats.data);
@@ -117,7 +113,7 @@ Picture PlayerCamera::ScorePicture(PlayerCamera::PictureStatistics stats) {
     return picture;
 }
 
-void PlayerCamera::SavePicture(std::shared_ptr<GLfloat[]> data, std::string name) {
+void PlayerCamera::SavePicture(std::vector<GLfloat> data, std::string name) {
 
 	//convert pixel data to correct format for png export
 	uint8_t* png_data = new uint8_t[4 * scene_camera->drawable_size.x * scene_camera->drawable_size.y];
