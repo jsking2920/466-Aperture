@@ -1,5 +1,6 @@
 :: Scott King (10/31/22)
 :: Runs blender asset pipeline and builds game.exe
+:: All references to blender need to be swapped to Blender 3.2 for this to work on my laptop
 @ECHO OFF
 ECHO Running pipeline and building game.exe
 ECHO ==============================================

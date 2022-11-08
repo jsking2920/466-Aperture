@@ -17,19 +17,18 @@ struct Framebuffers {
     int msaa_samples = 4; // number of samples per pixel for multisample anti-aliasing
     GLuint ms_color_tex = 0; // GL_RGB16F color texture
     GLuint ms_depth_rb = 0; // GL_DEPTH_COMPONENT24 renderbuffer
-    GLuint ms_fb = 0; // color0: color_tex , depth: depth_rb
+    GLuint ms_fb = 0; // color0: ms_color_tex , depth: ms_depth_rb
 
     // Intermediate post-processing objects
     GLuint pp_fb = 0; // intermediate between anti-aliased fb and final render
     GLuint screen_texture = 0;
 
-    void tone_map(); //copy hdr.color_tex to screen with tone mapping applied
-
-    //for the "bloom" effect:
+    // Objects for the "bloom" effect
     GLuint blur_x_tex = 0; //GL_RGB16F color texture for first pass of blur
     GLuint blur_x_fb = 0; // color0: blur_x_tex
 
-    void add_bloom(); //do a basic bloom effect on the hdr.color_tex
+    void tone_map(); //copy ms_color_tex to screen with tone mapping applied
+    void add_bloom(); //do a basic bloom effect on the screen_texture
 };
 
 // the actual storage

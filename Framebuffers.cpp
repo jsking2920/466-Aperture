@@ -12,114 +12,127 @@ Framebuffers framebuffers;
 
 void Framebuffers::realloc(glm::uvec2 const &drawable_size) {
 
+    // return early if resizing is not needed
     if (drawable_size == size) return;
     size = drawable_size;
 
-    //name texture if not yet named:
-    if (ms_color_tex == 0) glGenTextures(1, &ms_color_tex);
+    // Resize ms_color_tex
+    {
+        //name texture if not yet named:
+        if (ms_color_tex == 0) glGenTextures(1, &ms_color_tex);
 
-    //resize texture:
-    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, ms_color_tex); // multisampled texture to support msaa
-    glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 
-                 msaa_samples, // number of samples per pixel
-                 GL_RGB16F, //<-- storage will be RGB 16-bit half-float
-                 size.x, size.y, //width, height
-                 GL_TRUE //<-- use identical sample locations and the same number of samples per texel
-    );
-    //unnecessary for multisample, as these are the only ones supported
-//    glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-//    glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-//    glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-//    glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+        //resize texture:
+        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, ms_color_tex); // multisampled texture to support msaa
+        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE,
+            msaa_samples, // number of samples per pixel
+            GL_RGB16F, //<-- storage will be RGB 16-bit half-float
+            size.x, size.y, //width, height
+            GL_TRUE //<-- use identical sample locations and the same number of samples per texel
+        );
+        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+    }
+   
+    // Resize ms_depth_rb
+    {
+        //name renderbuffer if not yet named:
+        if (ms_depth_rb == 0) glGenRenderbuffers(1, &ms_depth_rb);
 
-    //name renderbuffer if not yet named:
-    if (ms_depth_rb == 0) glGenRenderbuffers(1, &ms_depth_rb);
+        //resize renderbuffer:
+        glBindRenderbuffer(GL_RENDERBUFFER, ms_depth_rb);
+        glRenderbufferStorageMultisample(GL_RENDERBUFFER,
+            msaa_samples, // number of samples per pixel
+            GL_DEPTH_COMPONENT24, //<-- storage will be 24-bit fixed point depth values
+            size.x, size.y);
+        glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    }
+    
+    // Resize ms_fb
+    {
+        //set up framebuffer if not yet named:
+        if (ms_fb == 0) {
+            glGenFramebuffers(1, &ms_fb);
+            glBindFramebuffer(GL_FRAMEBUFFER, ms_fb);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, ms_color_tex, 0);
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, ms_depth_rb);
+            //GL_DEPTH_STENCIL_ATTACHMENT ????
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
 
-    //resize renderbuffer:
-    glBindRenderbuffer(GL_RENDERBUFFER, ms_depth_rb);
-    glRenderbufferStorageMultisample(GL_RENDERBUFFER, 
-                                     msaa_samples, // number of samples per pixel
-                                     GL_DEPTH_COMPONENT24, //<-- storage will be 24-bit fixed point depth values
-                                     size.x, size.y);
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
-    //set up framebuffer if not yet named:
-    if (ms_fb == 0) {
-        glGenFramebuffers(1, &ms_fb);
+        // make sure ms_fb isn't borked
         glBindFramebuffer(GL_FRAMEBUFFER, ms_fb);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, ms_color_tex, 0);
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, ms_depth_rb);
-                                                //GL_DEPTH_STENCIL_ATTACHMENT ????
+        gl_check_fb(); //<-- helper function to check framebuffer completeness
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
+    
+    // Resize screen_texture
+    {
+        // Set up screen_texture if not yet named
+        if (screen_texture == 0) glGenTextures(1, &screen_texture);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, ms_fb);
-    gl_check_fb(); //<-- helper function to check framebuffer completeness
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    //--------Post Processing-----------
-
-    // Set up scren_tecture if not yet named
-    if (screen_texture == 0) {
-        glGenTextures(1, &screen_texture);
+        // resize screen_texture and set parameters
+        glBindTexture(GL_TEXTURE_2D, screen_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0,
+            GL_RGB16F, //<-- storage will be RGB 16-bit half-float
+            size.x, size.y, 0, //width, height, border
+            GL_RGB, GL_FLOAT, //<-- source data (if we were uploading it) would be floating point RGB
+            nullptr //<-- don't upload data, just allocate on-GPU storage
+        );
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-    // resize screen_texture and set parameters
-    glBindTexture(GL_TEXTURE_2D, screen_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0,
-        GL_RGB16F, //<-- storage will be RGB 16-bit half-float
-        size.x, size.y, 0, //width, height, border
-        GL_RGB, GL_FLOAT, //<-- source data (if we were uploading it) would be floating point RGB
-        nullptr //<-- don't upload data, just allocate on-GPU storage
-    );
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    // Resize pp_fb
+    {
+        // set up pp_fb if not yet named
+        if (pp_fb == 0) {
+            glGenFramebuffers(1, &pp_fb);
+            glBindFramebuffer(GL_FRAMEBUFFER, pp_fb);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, screen_texture, 0);
+        }
 
-    // set up pp_fb if not yet named
-    if (pp_fb == 0) {
-        glGenFramebuffers(1, &pp_fb);
+        // make sure pp_fb isn't borked
         glBindFramebuffer(GL_FRAMEBUFFER, pp_fb);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, screen_texture, 0);
+        gl_check_fb(); //<-- helper function to check framebuffer completeness
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
-    glBindFramebuffer(GL_FRAMEBUFFER, pp_fb);
-    gl_check_fb(); //<-- helper function to check framebuffer completeness
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
+    // Resize blur textures
+    {
+        // set up tex if not yet named
+        if (blur_x_tex == 0) glGenTextures(1, &blur_x_tex);
 
-    // todo: anything beyond here may not work with changes made for msaa
+        // resize texture
+        glBindTexture(GL_TEXTURE_2D, blur_x_tex);
+        glTexImage2D(GL_TEXTURE_2D, 0,
+            GL_RGB16F, //<-- storage will be RGB 16-bit half-float
+            size.x, size.y, 0, //width, height, border
+            GL_RGB, GL_FLOAT, //<-- source data (if we were uploading it) would be floating point RGB
+            nullptr //<-- don't upload data, just allocate on-GPU storage
+        );
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glBindTexture(GL_TEXTURE_2D, 0);
 
-    if (blur_x_tex == 0) glGenTextures(1, &blur_x_tex);
+        // set up framebuffer if not yet named
+        if (blur_x_fb == 0) {
+            glGenFramebuffers(1, &blur_x_fb);
+            glBindFramebuffer(GL_FRAMEBUFFER, blur_x_fb);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, blur_x_tex, 0);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
 
-    //resize texture:
-    glBindTexture(GL_TEXTURE_2D, blur_x_tex);
-    glTexImage2D(GL_TEXTURE_2D, 0,
-                 GL_RGB16F, //<-- storage will be RGB 16-bit half-float
-                 size.x, size.y, 0, //width, height, border
-                 GL_RGB, GL_FLOAT, //<-- source data (if we were uploading it) would be floating point RGB
-                 nullptr //<-- don't upload data, just allocate on-GPU storage
-    );
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    //set up framebuffer if not yet named:
-    if (blur_x_fb == 0) {
-        glGenFramebuffers(1, &blur_x_fb);
+        // make sure blur_x_fb isn't borked
         glBindFramebuffer(GL_FRAMEBUFFER, blur_x_fb);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, blur_x_tex, 0);
+        gl_check_fb(); //<-- helper function to check framebuffer completeness
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    glBindFramebuffer(GL_FRAMEBUFFER, blur_x_fb);
-    gl_check_fb(); //<-- helper function to check framebuffer completeness
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
+    // Check for gl errors
     GL_ERRORS();
 }
 
@@ -337,7 +350,7 @@ void Framebuffers::add_bloom() {
     glDisable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
 
-    //blur hdr_color_tex in the X direction, store into blur_x_tex:
+    // blur screen_texture in the X direction, store into blur_x_tex:
     glBindFramebuffer(GL_FRAMEBUFFER, blur_x_fb);
 
     glUseProgram(blur_x_program->program);
@@ -354,7 +367,7 @@ void Framebuffers::add_bloom() {
     glUseProgram(0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    //blur blur_x_tex in the Y direction, store back into hdr_color_tex:
+    // blur blur_x_tex in the Y direction, store back into screen_texture
     glBindFramebuffer(GL_FRAMEBUFFER, screen_texture);
 
     glEnable(GL_BLEND);

@@ -42,8 +42,6 @@ Load< LitColorTextureProgram > lit_color_texture_program(LoadTagEarly, []() -> L
     lit_color_texture_program_pipeline.textures[0].target = GL_TEXTURE_2D;
 
     GL_ERRORS();
-    return ret;
-
 	return ret;
 });
 
