@@ -3,6 +3,7 @@
 #include "WalkMesh.hpp"
 #include "Scene.hpp"
 #include "Picture.hpp"
+#include "GameObjects.hpp"
 
 #include <glm/glm.hpp>
 #include <memory>
@@ -16,6 +17,14 @@ struct PlayerCamera {
 	PlayerCamera(Scene::Transform* scene_transform);
 	~PlayerCamera();
 
+    struct PictureStatistics { //data about the picture that is used for scoring
+        PictureStatistics(PlayerCamera camera);
+
+        std::shared_ptr<GLfloat[]> data;
+        std::list<std::pair<Scene::Drawable &, GLuint>> frag_counts;
+        std::list< std::pair<Creature *, std::shared_ptr< std::vector< bool > > > > creatures_in_frame;
+    };
+
 	Player* player = nullptr; // initialized by Player contstructor
 	Scene::Camera* scene_camera; // used for actually drawing view of scene
 
@@ -25,8 +34,8 @@ struct PlayerCamera {
 	float max_zoom = 3.0f; 
 
 	void TakePicture(Scene &scene); // Adds picture to player.pictures
-    Picture GeneratePicture(std::list<std::pair<Scene::Drawable &, GLuint>> frag_counts); // generates scoring info and description/etc.
-	void SavePicture(GLfloat* data, std::string name); // saves picture as a png to dist/album/ (creating folder if needed)
+    Picture ScorePicture(PictureStatistics picture_stats); // generates scoring info and description/etc.
+	void SavePicture(std::shared_ptr<GLfloat[]> data, std::string name); // saves picture as a png to dist/album/ (creating folder if needed)
 	void AdjustZoom(float diff);
 };
 

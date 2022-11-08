@@ -26,17 +26,21 @@ PlayerCamera::~PlayerCamera() {
 	delete scene_camera;
 }
 
+PlayerCamera::PictureStatistics::PictureStatistics(PlayerCamera camera) {
+    data = std::make_shared<GLfloat>(3 * camera.scene_camera->drawable_size.x * camera.scene_camera->drawable_size.y);
+
+}
+
 void PlayerCamera::TakePicture(Scene &scene) {
 
-    //get fragment counts for each drawable
-    std::list<std::pair<Scene::Drawable &, GLuint>> occlusionResults;
+    PictureStatistics stats(*this);
 
-    GLfloat *data = new GLfloat[3 * scene_camera->drawable_size.x * scene_camera->drawable_size.y];
-    scene.render_picture(*scene_camera, occlusionResults, data);
+    //get fragment counts for each drawable
+    scene.render_picture(*scene_camera, stats.frag_counts, stats.data);
 
     //Set of creatures in frame, because there will be duplicates for body parts
     std::unordered_set< std::string > creature_set;
-    for (auto &pair : occlusionResults) {
+    for (auto &pair : stats.frag_counts) {
         std::string name = pair.first.transform->name;
         std::string code = name.substr(0, name.find('-'));
         if (Creature::creature_map.count(code)) {
@@ -46,13 +50,13 @@ void PlayerCamera::TakePicture(Scene &scene) {
 
     //list of creatures & focal point visibilities
     //i know this type is ugly af but i think it's good for memory management bc of vector resizes. i think.
-    std::list< std::pair<Creature *, std::shared_ptr< std::vector< bool > > > > creatures_in_frame;
+//    std::list< std::pair<Creature *, std::shared_ptr< std::vector< bool > > > > creatures_in_frame;
     for (auto &code : creature_set) {
-        creatures_in_frame.emplace_back(std::make_pair(&Creature::creature_map[code], std::make_shared<std::vector< bool >>()));
+        stats.creatures_in_frame.emplace_back(std::make_pair(&Creature::creature_map[code], std::make_shared<std::vector< bool >>()));
     }
 
     //Get focal point vector - indices of bools map to indices of focal points in creature
-    for (auto &pair : creatures_in_frame) {
+    for (auto &pair : stats.creatures_in_frame) {
         scene.test_focal_points(*scene_camera, pair.first->focal_points, *pair.second);
     }
 
@@ -68,20 +72,19 @@ void PlayerCamera::TakePicture(Scene &scene) {
 	*/
 
     // TODO: i think we should make a struct for picture info, there's so much info we can pass in
-    Picture picture = GeneratePicture(occlusionResults);
+    Picture picture = ScorePicture(stats);
     player->pictures->push_back(picture);
 	//std::cout << picture.get_scoring_string() << std::endl;
 	// 
 	// TODO: move save picture out of here to make it user-prompted; will need to handle data/memory allocation differently
-	SavePicture(data, picture.title);
-    delete[] data;
+	SavePicture(stats.data, picture.title);
 }
 
-Picture PlayerCamera::GeneratePicture(std::list<std::pair<Scene::Drawable &, GLuint>> frag_counts) {
+Picture PlayerCamera::ScorePicture(PlayerCamera::PictureStatistics stats) {
 
     Picture picture = Picture();
 
-    if (frag_counts.empty()) {
+    if (stats.frag_counts.empty()) {
         picture.title = "Pure Emptiness";
         picture.score_elements.emplace_back("Relatable", 500);
         picture.score_elements.emplace_back("Deep", 500);
@@ -91,17 +94,17 @@ Picture PlayerCamera::GeneratePicture(std::list<std::pair<Scene::Drawable &, GLu
     auto sort_by_frag_count = [&](std::pair<Scene::Drawable &, GLuint> a, std::pair<Scene::Drawable &, GLuint> b) {
         return a.second > b.second;
     };
-    frag_counts.sort(sort_by_frag_count);
+    stats.frag_counts.sort(sort_by_frag_count);
 
     //TODO: improve subject selection process
-    Scene::Drawable &subject = frag_counts.front().first;
-    unsigned int subject_frag_count = frag_counts.front().second;
+    Scene::Drawable &subject = stats.frag_counts.front().first;
+    unsigned int subject_frag_count = stats.frag_counts.front().second;
 
     //Add points for bigness
     picture.score_elements.emplace_back("Bigness", subject_frag_count/1000);
 
     //Add bonus points for additional subjects
-    std::for_each(std::next(frag_counts.begin()), frag_counts.end(), [&](std::pair<Scene::Drawable &, GLuint> creature) {
+    std::for_each(std::next(stats.frag_counts.begin()), stats.frag_counts.end(), [&](std::pair<Scene::Drawable &, GLuint> creature) {
         picture.score_elements.emplace_back("Bonus " + creature.first.transform->name, 100);
     });
 
@@ -114,7 +117,7 @@ Picture PlayerCamera::GeneratePicture(std::list<std::pair<Scene::Drawable &, GLu
     return picture;
 }
 
-void PlayerCamera::SavePicture(GLfloat* data, std::string name) {
+void PlayerCamera::SavePicture(std::shared_ptr<GLfloat[]> data, std::string name) {
 
 	//convert pixel data to correct format for png export
 	uint8_t* png_data = new uint8_t[4 * scene_camera->drawable_size.x * scene_camera->drawable_size.y];
@@ -130,6 +133,7 @@ void PlayerCamera::SavePicture(GLfloat* data, std::string name) {
 	}
 	save_png(data_path("PhotoAlbum/" + name + ".png"), scene_camera->drawable_size,
 		reinterpret_cast<const glm::u8vec4*>(png_data), LowerLeftOrigin);
+    delete[] png_data;
 }
 
 void PlayerCamera::AdjustZoom(float diff) {
