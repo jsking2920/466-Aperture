@@ -110,11 +110,11 @@ PlayMode::PlayMode() : scene(*main_scene) {
 	display_text = new TextRenderer(data_path("assets/fonts/Audiowide-Regular.ttf"), display_font_size);
 	barcode_text = new TextRenderer(data_path("assets/fonts/LibreBarcode128Text-Regular.ttf"), barcode_font_size);
 
-
+	// TODO: 
 	// Load creatures, should eventually loop through codes and/or models
-    //  using syntax from https://stackoverflow.com/questions/14075128/mapemplace-with-a-custom-value-type
-    //  if we use things that need references in the future, change make_tuple to forward_as_tuple
-    //  put in constructor??
+    // using syntax from https://stackoverflow.com/questions/14075128/mapemplace-with-a-custom-value-type
+    // if we use things that need references in the future, change make_tuple to forward_as_tuple
+    // put in constructor??
     std::string id_code = "FLO0";
     Creature::creature_map.emplace(std::piecewise_construct, std::make_tuple(id_code), std::make_tuple("Floater", "FLO", 0, 0));
     Creature &creature = Creature::creature_map[id_code];
@@ -220,7 +220,7 @@ void PlayMode::update(float elapsed) {
 
 	time_of_day += elapsed;
 	if (time_of_day > day_length) {
-		// handle end of day stuff
+		// TODO: handle end of day stuff
 		time_of_day = 0.0f;
 	}
 	
@@ -265,115 +265,134 @@ void PlayMode::update(float elapsed) {
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
-    // Code block from https://github.com/15-466/15-466-f20-framebuffer
-    // Make sure framebuffers are the same size as the window:
-    framebuffers.realloc(drawable_size);
-	
 	// Update camera aspect ratios for drawable
-	player->camera->aspect = float(drawable_size.x) / float(drawable_size.y);
-	player->player_camera->scene_camera->aspect = float(drawable_size.x) / float(drawable_size.y);
-    player->camera->drawable_size = drawable_size;
-    player->player_camera->scene_camera->drawable_size = drawable_size;
-
-	// Set up sun type and position for lit_color_texture_program:
-	glUseProgram(lit_color_texture_program->program);
-	glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 1); // hemisphere light
-	glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f,-1.0f))); // directly above, pointing down
-	
-	// calculate brightness of sun/moon based in time of day
-	float brightness;
-	glm::vec3 light_color;
-	if (time_of_day >= sunrise && time_of_day <= sunset) { // daytime lighting
-		// sinusoidal curve that goes from 0 at sun rise to 1 at the midpoint between sun rise and set to 0 at sun set
-		brightness = std::sin(((time_of_day - sunrise) / (sunset - sunrise)) * float(M_PI));
-		// increase amplitude of curve so that middle of the day is all at or above max brightness
-		brightness *= 1.3f;
-		// lerp brightness value from 0.075 to 1.5 so that it's never completely dark
-		brightness = ((1.0f - brightness) * 0.075f) + brightness;
-		// clamp brightness to [0.1f, 1.0f], which creates a "plateau" in the curve at midday
-		brightness = brightness > 1.0f ? 1.0f : brightness;
-		light_color = glm::vec3(1.0f, 1.0f, 0.95f); // slightly warm light (less blue)
-	}
-	else { // nighttime lighting
-		float unwrapped_time = time_of_day < sunset ? day_length + time_of_day : time_of_day; // handle timer wrapping aorund to 0
-		// sinusoidal curve that goes from 0 at sun set to 1 at the midpoint between sun set and rise to 0 at sun rise
-		brightness = std::sin(((unwrapped_time - sunset) / (sunrise + (day_length - sunset))) * float(M_PI));
-		// lerp brightness value from 0.075 to 0.4 so that it's never completely dark but also never quite as bright as day
-		brightness = ((1.0f - brightness) * 0.075f) + (brightness * 0.4f);
-		light_color = glm::vec3(0.975f, 0.975f, 1.0f); // slightly cool light (more blue) that is also dimmer
-	}
-	light_color *= brightness;
-
-	glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(light_color)); 
-	glUseProgram(0);
-
-    glUseProgram(lit_color_texture_program->program);
-    glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 1);
-    glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f,-1.0f)));
-    glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(glm::vec3(1.0f, 1.0f, 0.95f)));
-    glUseProgram(0);
-
-    // Draw to framebuffer
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.ms_fb);
-	
-	glm::vec3 sky_color = glm::vec3(0.5f, 1.0f, 1.0f) * brightness;
-	glClearColor(sky_color.x, sky_color.y, sky_color.z, 1.0f);
-	glClearDepth(1.0f); // 1.0 is actually the default value to clear the depth buffer to, but FYI you can change it.
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LEQUAL);
-	//glEnable(GL_BLEND);
-	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	
-	// Draw scene based on active camera (Player's "eyes" or their PlayerCamera)
-	if (player->in_cam_view) {
-		scene.draw(*player->player_camera->scene_camera);
-	}
-	else {
-		scene.draw(*player->camera);
-	}
-
-    /* Debug code for printint all visible objects
-    {
-		std::list<std::pair<Scene::Drawable &, GLuint>> results;
-        if (player.in_cam_view) {
-			scene.render_picture(*player.player_camera->scene_camera, results);
-        } else {
-			scene.render_picture(*player.camera, results);
-        }
-        for (auto &guy: results) {
-			std::cout << guy.first.transform->name << std::endl;
-        }
-        std::cout << "\n" << std::endl;
-    }
-	*/
-
-	/* Debug code for visualizing walk mesh
 	{
-		glDisable(GL_DEPTH_TEST);
-		DrawLines lines(player.camera->make_projection() * glm::mat4(player.camera->transform->make_world_to_local()));
-		for (auto const &tri : player.walk_mesh->triangles) {
-			lines.draw(player.walk_mesh->vertices[tri.x], player.walk_mesh->vertices[tri.y], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
-			lines.draw(player.walk_mesh->vertices[tri.y], player.walk_mesh->vertices[tri.z], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
-			lines.draw(player.walk_mesh->vertices[tri.z], player.walk_mesh->vertices[tri.x], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
+		player->camera->aspect = float(drawable_size.x) / float(drawable_size.y);
+		player->player_camera->scene_camera->aspect = float(drawable_size.x) / float(drawable_size.y);
+		player->camera->drawable_size = drawable_size;
+		player->player_camera->scene_camera->drawable_size = drawable_size;
+	}
+
+	// Handle scene lighting
+	{
+		// Set up sky lighting uniforms for lit_color_texture_program:
+		glUseProgram(lit_color_texture_program->program);
+		glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 1); // hemisphere light
+		glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f, -1.0f))); // directly above, pointing down
+
+		// calculate brightness of sun/moon based in time of day
+		float brightness;
+		glm::vec3 light_color;
+		if (time_of_day >= sunrise && time_of_day <= sunset) { // daytime lighting
+			// sinusoidal curve that goes from 0 at sun rise to 1 at the midpoint between sun rise and set to 0 at sun set
+			brightness = std::sin(((time_of_day - sunrise) / (sunset - sunrise)) * float(M_PI));
+			// increase amplitude of curve so that middle of the day is all at or above max brightness
+			brightness *= 1.3f;
+			// lerp brightness value from 0.075 to 1.5 so that it's never completely dark
+			brightness = ((1.0f - brightness) * 0.075f) + brightness;
+			// clamp brightness to [0.1f, 1.0f], which creates a "plateau" in the curve at midday
+			brightness = brightness > 1.0f ? 1.0f : brightness;
+			light_color = glm::vec3(1.0f, 1.0f, 0.95f); // slightly warm light (less blue)
+		}
+		else { // nighttime lighting
+			float unwrapped_time = time_of_day < sunset ? day_length + time_of_day : time_of_day; // handle timer wrapping aorund to 0
+			// sinusoidal curve that goes from 0 at sun set to 1 at the midpoint between sun set and rise to 0 at sun rise
+			brightness = std::sin(((unwrapped_time - sunset) / (sunrise + (day_length - sunset))) * float(M_PI));
+			// lerp brightness value from 0.075 to 0.4 so that it's never completely dark but also never quite as bright as day
+			brightness = ((1.0f - brightness) * 0.075f) + (brightness * 0.4f);
+			light_color = glm::vec3(0.975f, 0.975f, 1.0f); // slightly cool light (more blue) that is also dimmer
+		}
+		light_color *= brightness;
+
+		glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(light_color));
+		glUseProgram(0);
+
+		glUseProgram(lit_color_texture_program->program);
+		glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 1);
+		glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f, -1.0f)));
+		glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(glm::vec3(1.0f, 1.0f, 0.95f)));
+		glUseProgram(0);
+
+		// Set "sky" (clear color)
+		glm::vec3 sky_color = glm::vec3(0.5f, 1.0f, 1.0f) * brightness;
+		glClearColor(sky_color.x, sky_color.y, sky_color.z, 1.0f);
+	}
+	
+	// Draw scene to multisampled framebuffer
+	{
+		// Based on: https://github.com/15-466/15-466-f20-framebuffer
+		// Make sure framebuffers are the same size as the window:
+		framebuffers.realloc(drawable_size);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.ms_fb);
+
+		// set clear depth, testing criteria, and the like
+		glClearDepth(1.0f); // 1.0 is the default value to clear the depth buffer to, but you can change it
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clears currently bound framebuffer's (framebuffers.ms_fb )color and depth info
+		                                                    // clears color to clearColor set above (sky_color) and clearDepth set above (1.0)
+		glEnable(GL_DEPTH_TEST); // enable depth testing
+		glDepthFunc(GL_LEQUAL); // set criteria for depth test
+
+		// TODO: implement blending, currently doesn't work because objects are being rendered in arbitrary order
+		// glEnable(GL_BLEND);
+		// glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		// Draw based on active camera (Player's "eyes" or their PlayerCamera)
+		if (player->in_cam_view) {
+			scene.draw(*player->player_camera->scene_camera);
+		}
+		else {
+			scene.draw(*player->camera);
 		}
 	}
-	*/
-	// blit multisampled buffer to the normal, intermediate post_processing buffer. Image is stored in screen_texture
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffers.ms_fb);
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffers.pp_fb);
-	glBlitFramebuffer(0, 0, drawable_size.x, drawable_size.y, 0, 0, drawable_size.x, drawable_size.y, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
-    //clean up your binds :)
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	// Debugging code
+	{
+		/* Debug code for printint all visible objects
+		{
+			std::list<std::pair<Scene::Drawable &, GLuint>> results;
+			if (player.in_cam_view) {
+				scene.render_picture(*player.player_camera->scene_camera, results);
+			} else {
+				scene.render_picture(*player.camera, results);
+			}
+			for (auto &guy: results) {
+				std::cout << guy.first.transform->name << std::endl;
+			}
+			std::cout << "\n" << std::endl;
+		}
+		*/
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    // Copy framebuffer to main window:
-    framebuffers.tone_map();
+		/* Debug code for visualizing walk mesh
+		{
+			glDisable(GL_DEPTH_TEST);
+			DrawLines lines(player.camera->make_projection() * glm::mat4(player.camera->transform->make_world_to_local()));
+			for (auto const &tri : player.walk_mesh->triangles) {
+				lines.draw(player.walk_mesh->vertices[tri.x], player.walk_mesh->vertices[tri.y], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
+				lines.draw(player.walk_mesh->vertices[tri.y], player.walk_mesh->vertices[tri.z], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
+				lines.draw(player.walk_mesh->vertices[tri.z], player.walk_mesh->vertices[tri.x], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
+			}
+		}
+		*/
+	}
+
+	// Resolve mulstisampled buffer to screen and perform post processing
+	{
+		// blit multisampled buffer to the normal, intermediate post_processing buffer. Image is stored in screen_texture
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffers.ms_fb);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffers.pp_fb);
+
+		glBlitFramebuffer(0, 0, drawable_size.x, drawable_size.y, 0, 0, drawable_size.x, drawable_size.y, GL_COLOR_BUFFER_BIT, GL_LINEAR); // Bilinear interpolation for anti aliasing
+
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		// Copy framebuffer to main window:
+		framebuffers.tone_map();
+	}
 	
-	// UI
+	// Draw UI
 	{
 		if (player->in_cam_view) {
 			// Draw viewport grid
