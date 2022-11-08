@@ -29,7 +29,7 @@ PlayerCamera::~PlayerCamera() {
 void PlayerCamera::TakePicture(Scene &scene) {
 
     PictureStatistics stats;
-    stats.data.resize(3 * scene_camera->drawable_size.x * scene_camera->drawable_size.y);
+    stats.data.resize(sizeof(GLfloat) * 3 * scene_camera->drawable_size.x * scene_camera->drawable_size.y);
 
     //get fragment counts for each drawable
     scene.render_picture(*scene_camera, stats.frag_counts, stats.data);

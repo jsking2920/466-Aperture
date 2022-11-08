@@ -117,7 +117,7 @@ void Scene::draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_lig
 	GL_ERRORS();
 }
 
-void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scene::Drawable &, GLuint>> &occlusion_results, std::vector<GLfloat> data) {
+void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scene::Drawable &, GLuint>> &occlusion_results, std::vector<GLfloat> &data) {
     assert(camera.transform);
     glm::mat4 world_to_clip = camera.make_projection() * glm::mat4(camera.transform->make_world_to_local());
     glm::mat4x3 world_to_light = glm::mat4x3(1.0f);
@@ -131,7 +131,7 @@ void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scen
     //transform rgb16f texture to rgba8ui texture for export
     //code modeled after this snippet https://stackoverflow.com/questions/48938930/pixel-access-with-glgetteximage
     glBindTexture(GL_TEXTURE_2D, framebuffers.screen_texture);
-    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_FLOAT, &data[0]);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_FLOAT, data.data());
     glBindTexture(GL_TEXTURE_2D, 0);
     GL_ERRORS();
 
