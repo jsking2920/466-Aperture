@@ -7,38 +7,68 @@
 #include "Load.hpp"
 #include "gl_errors.hpp"
 #include "data_path.hpp"
+#include "load_save_png.hpp"
 #include "Framebuffers.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <filesystem>
 
 #include <random>
 
 GLuint main_meshes_for_lit_color_texture_program = 0;
+GLuint main_meshes_for_lit_color_program = 0;
 Load< MeshBuffer > main_meshes(LoadTagDefault, []() -> MeshBuffer const * {
-	MeshBuffer const *ret = new MeshBuffer(data_path("assets/proto-world.pnct"));
+	MeshBuffer const *ret = new MeshBuffer(data_path("assets/proto-world2.pnct"));
 	main_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
 	return ret;
 });
 
 Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
-	return new Scene(data_path("assets/proto-world.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){\
-		Mesh const &mesh = main_meshes->lookup(mesh_name);
+	return new Scene(data_path("assets/proto-world2.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
+        Mesh const &mesh = main_meshes->lookup(mesh_name);
+        scene.drawables.emplace_back(transform);
+        Scene::Drawable &drawable = scene.drawables.back();
 
-		scene.drawables.emplace_back(transform);
-		Scene::Drawable &drawable = scene.drawables.back();
+        drawable.pipeline = lit_color_texture_program_pipeline;
 
-		drawable.pipeline = lit_color_texture_program_pipeline;
+        drawable.pipeline.vao = main_meshes_for_lit_color_texture_program;
+        drawable.pipeline.type = mesh.type;
+        drawable.pipeline.start = mesh.start;
+        drawable.pipeline.count = mesh.count;
 
-		drawable.pipeline.vao = main_meshes_for_lit_color_texture_program;
-		drawable.pipeline.type = mesh.type;
-		drawable.pipeline.start = mesh.start;
-		drawable.pipeline.count = mesh.count;
+        GLuint tex;
+        glGenTextures(1, &tex);
+
+        // load texture, supports only 1 texture for now
+        // file existence check from https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exists-using-standard-c-c11-14-17-c
+        if(std::filesystem::exists(data_path("assets/textures/" + transform->name + ".png"))) {
+            drawable.uses_vertex_color = false;
+            glBindTexture(GL_TEXTURE_2D, tex);
+            glm::uvec2 size;
+            std::vector< glm::u8vec4 > tex_data;
+            load_png(data_path("assets/textures/" + transform->name + ".png"), &size, &tex_data, LowerLeftOrigin);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex_data.data());
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glBindTexture(GL_TEXTURE_2D, 0);
+
+            drawable.pipeline.textures[0].texture = tex;
+            drawable.pipeline.textures[0].target = GL_TEXTURE_2D;
+
+            GL_ERRORS();
+        } else {
+            //no texture found, using vertex colors
+            drawable.uses_vertex_color = true;
+        }
+
 	});
 });
 
 Load< WalkMeshes > main_walkmeshes(LoadTagDefault, []() -> WalkMeshes const * {
-	WalkMeshes *ret = new WalkMeshes(data_path("assets/proto-world.w"));
+	WalkMeshes *ret = new WalkMeshes(data_path("assets/proto-world2.w"));
 	return ret;
 });
 
@@ -80,7 +110,7 @@ PlayMode::PlayMode() : scene(*main_scene) {
     //  if we use things that need references in the future, change make_tuple to forward_as_tuple
     //  put in constructor??
     std::string id_code = "FLO0";
-    Creature::creature_map.emplace(std::piecewise_construct, std::make_tuple(id_code), std::make_tuple("Floater", "FLO", 0, 0, glm::vec3(1.0f, 0.0f, 0.0f)));
+    Creature::creature_map.emplace(std::piecewise_construct, std::make_tuple(id_code), std::make_tuple("Floater", "FLO", 0, 0));
     Creature &creature = Creature::creature_map[id_code];
     creature.init_transforms(scene);
 }
@@ -271,6 +301,12 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(light_color)); 
 	glUseProgram(0);
 
+    glUseProgram(lit_color_texture_program->program);
+    glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 1);
+    glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f,-1.0f)));
+    glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(glm::vec3(1.0f, 1.0f, 0.95f)));
+    glUseProgram(0);
+
     // Draw to framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.ms_fb);
 	
@@ -281,6 +317,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
+	//glEnable(GL_BLEND);
+	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
 	// Draw scene based on active camera (Player's "eyes" or their PlayerCamera)
 	if (player->in_cam_view) {

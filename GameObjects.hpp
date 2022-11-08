@@ -18,8 +18,8 @@ struct Creature {
 
     //constructor
     Creature() = default;
-    Creature(std::string name_, std::string code_, int ID_, int number_, glm::vec3 ideal_angle_)
-            : name(name_), code(code_), ID(ID_), number(number_), ideal_angle(ideal_angle_) {}
+    Creature(std::string name_, std::string code_, int ID_, int number_)
+            : name(name_), code(code_), ID(ID_), number(number_) {}
     ~Creature() = default;
 
     //Displaying information to the user --------------------------------------
@@ -38,9 +38,6 @@ struct Creature {
     int ID = 0;
     //which number of creature it is
     int number = 0;
-    //ideal angle, defaulted to front
-    glm::vec3 ideal_angle = glm::vec3(1.0f, 0.0f, 0.0f);
-
     //have a transform which we can query for position and orientation
     Scene::Transform *transform = nullptr;
     //have a drawable for rendering
@@ -52,15 +49,15 @@ struct Creature {
     //std::vector< Scene::Transform > body_parts = {};
 
 
-    //Function defs
+    //Initialization/parsing function form scene
     void init_transforms(Scene &scene);
+    //Helper functions:
+    //return the best angle in world space
+    glm::vec3 get_best_angle() const;
 
-    //some helper functions -------------------------------------------------
-    glm::vec3 get_front_direction() {
-        //front = positive X direction
-        glm::vec4 f = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
-        glm::vec3 front_direction = transform->make_local_to_world() * f;
-        return front_direction;
-    };
+    private:
+    Scene::Transform *focal_point = nullptr;
+
+
 };
 

@@ -10,6 +10,8 @@
 #include <algorithm>
 #include <string>
 
+#define MAX_ANGLE 0.7f
+
 WalkMesh::WalkMesh(std::vector< glm::vec3 > const &vertices_, std::vector< glm::vec3 > const &normals_, std::vector< glm::uvec3 > const &triangles_)
 	: vertices(vertices_), normals(normals_), triangles(triangles_) {
 
@@ -231,9 +233,17 @@ bool WalkMesh::cross_edge(WalkPoint const &start, WalkPoint *end_, glm::quat *ro
     //  Compute rotation that takes starting triangle's normal to ending triangle's normal:
     glm::vec3 start_normal = to_world_triangle_normal(start);
     glm::vec3 end_normal = to_world_triangle_normal(end);
-    rotation = glm::rotation(start_normal, end_normal);
-
-    return true;
+	
+	//if walking on a triangle too steep, don't
+	if (glm::dot(end_normal, glm::vec3(0.0f, 0.0f, 1.0f)) < MAX_ANGLE)
+	{
+		end = start;
+		rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f); //identity quat (wxyz init order)
+		return false;
+	}
+	//return corrected rotation
+	rotation = glm::rotation(start_normal, end_normal);
+	return true;
 }
 
 WalkMeshes::WalkMeshes(std::string const &filename) {

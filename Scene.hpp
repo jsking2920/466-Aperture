@@ -14,6 +14,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <list>
 #include <memory>
@@ -42,6 +43,10 @@ struct Scene {
 		// ..relative to the world:
 		glm::mat4x3 make_local_to_world() const;
 		glm::mat4x3 make_world_to_local() const;
+		//with some additional helper functions:
+		glm::mat3x3 get_world_rotation() const;
+		//return the front direction(positive X) in world space
+		glm::vec3 get_front_direction() const;
 
 		//since hierarchy is tracked through pointers, copy-constructing a transform  is not advised:
 		Transform(Transform const &) = delete;
@@ -57,9 +62,11 @@ struct Scene {
         //for occlusion testing
         GLuint query = 0;
 
-        //for focal point etc. drawing
-        bool invisible = false;
+        //conditional drawing
+        bool render_to_screen = true;
+        bool render_to_picture = true;
         bool occluded = false; //for later use in object occlusion
+        bool uses_vertex_color = false;
 
 		//Contains all the data needed to run the OpenGL pipeline:
 		struct Pipeline {
@@ -76,8 +83,11 @@ struct Scene {
 			GLuint OBJECT_TO_CLIP_mat4 = -1U; //uniform location for object to clip space matrix
 			GLuint OBJECT_TO_LIGHT_mat4x3 = -1U; //uniform location for object to light space (== world space) matrix
 			GLuint NORMAL_TO_LIGHT_mat3 = -1U; //uniform location for normal to light space (== world space) matrix
+            GLuint USES_VERTEX_COLOR = -1U;
 
-			std::function< void() > set_uniforms; //(optional) function to set any other useful uniforms
+			std::function< void() > set_uniforms = [&] {
+
+            }; //(optional) function to set any other useful uniforms
 
 			//texture objects to bind for the first TextureCount textures:
 			enum : uint32_t { TextureCount = 4 };

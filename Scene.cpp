@@ -74,6 +74,18 @@ glm::mat4x3 Scene::Transform::make_world_to_local() const {
 	}
 }
 
+glm::mat3x3 Scene::Transform::get_world_rotation() const {
+	if (!parent) {
+		return glm::mat3_cast(rotation);
+	} else {
+		return parent->get_world_rotation() * glm::mat3_cast(rotation);
+	}
+}
+
+glm::vec3 Scene::Transform::get_front_direction() const {
+	return get_world_rotation() * glm::vec3(1.0f, 0.0f, 0.0f);
+}	
+
 //-------------------------
 
 glm::mat4 Scene::Camera::make_projection() const {
@@ -94,7 +106,7 @@ void Scene::draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_lig
 
 	//Iterate through all drawables, sending each one to OpenGL:
 	for (auto const &drawable : drawables) {
-        if(!drawable.invisible && !drawable.occluded) {
+        if(drawable.render_to_screen && !drawable.occluded) {
             render_drawable(drawable, world_to_clip, world_to_light);
         }
 	}
@@ -133,7 +145,7 @@ void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scen
 
     for(auto &drawable : drawables) {
         GLuint query = drawable.query;
-        if(drawable.invisible || drawable.occluded) {
+        if(!drawable.render_to_picture || drawable.occluded) {
             continue;
         }
         //query syntax from https://www.reddit.com/r/opengl/comments/1pv8qe/how_do_occlusion_queries_work/
@@ -210,6 +222,17 @@ void Scene::render_drawable(Scene::Drawable const &drawable, glm::mat4 const &wo
         glm::mat3 normal_to_light = glm::inverse(glm::transpose(glm::mat3(object_to_light)));
         glUniformMatrix3fv(pipeline.NORMAL_TO_LIGHT_mat3, 1, GL_FALSE, glm::value_ptr(normal_to_light));
     }
+    GL_ERRORS();
+
+    //set uses vertex color uniform
+    if (pipeline.USES_VERTEX_COLOR != -1U) {
+        GLuint uses_vertex_color = GL_FALSE;
+        if(drawable.uses_vertex_color) {
+            uses_vertex_color = GL_TRUE;
+        }
+        glUniform1ui(pipeline.USES_VERTEX_COLOR, uses_vertex_color);
+    }
+    GL_ERRORS();
 
     //set any requested custom uniforms:
     if (pipeline.set_uniforms) pipeline.set_uniforms();
@@ -234,6 +257,7 @@ void Scene::render_drawable(Scene::Drawable const &drawable, glm::mat4 const &wo
         }
     }
     glActiveTexture(GL_TEXTURE0);
+    GL_ERRORS();
 
 }
 
@@ -429,8 +453,6 @@ void Scene::load(std::string const &filename,
 	if (file.peek() != EOF) {
 		std::cerr << "WARNING: trailing data in scene file '" << filename << "'" << std::endl;
 	}
-
-
 
 }
 
