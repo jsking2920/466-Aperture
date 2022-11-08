@@ -321,6 +321,10 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffers.pp_fb);
 	glBlitFramebuffer(0, 0, drawable_size.x, drawable_size.y, 0, 0, drawable_size.x, drawable_size.y, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
+    //clean up your binds :)
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     // Copy framebuffer to main window:
     framebuffers.tone_map();
