@@ -28,8 +28,9 @@ PlayerCamera::~PlayerCamera() {
 
 void PlayerCamera::TakePicture(Scene &scene) {
 
-    PictureStatistics stats;
-    stats.data.resize(sizeof(GLfloat) * 3 * scene_camera->drawable_size.x * scene_camera->drawable_size.y);
+    Picture::PictureStatistics stats;
+    stats.dimensions = scene_camera->drawable_size;
+    stats.data.resize(3 * scene_camera->drawable_size.x * scene_camera->drawable_size.y);
 
     //get fragment counts for each drawable
     scene.render_picture(*scene_camera, stats.frag_counts, stats.data);
@@ -46,7 +47,6 @@ void PlayerCamera::TakePicture(Scene &scene) {
 
     //list of creatures & focal point visibilities
     //i know this type is ugly af but i think it's good for memory management bc of vector resizes. i think.
-//    std::list< std::pair<Creature *, std::shared_ptr< std::vector< bool > > > > creatures_in_frame;
     for (auto &code : creature_set) {
         stats.creatures_in_frame.emplace_back(std::make_pair(&Creature::creature_map[code], std::make_shared<std::vector< bool >>()));
     }
@@ -68,68 +68,12 @@ void PlayerCamera::TakePicture(Scene &scene) {
 	*/
 
     // TODO: i think we should make a struct for picture info, there's so much info we can pass in
-    Picture picture = ScorePicture(stats);
+    Picture picture(stats);
     player->pictures->push_back(picture);
 	//std::cout << picture.get_scoring_string() << std::endl;
 	// 
 	// TODO: move save picture out of here to make it user-prompted; will need to handle data/memory allocation differently
-	SavePicture(stats.data, picture.title);
-}
-
-Picture PlayerCamera::ScorePicture(PlayerCamera::PictureStatistics stats) {
-
-    Picture picture = Picture();
-
-    if (stats.frag_counts.empty()) {
-        picture.title = "Pure Emptiness";
-        picture.score_elements.emplace_back("Relatable", 500);
-        picture.score_elements.emplace_back("Deep", 500);
-        return picture;
-    }
-
-    auto sort_by_frag_count = [&](std::pair<Scene::Drawable &, GLuint> a, std::pair<Scene::Drawable &, GLuint> b) {
-        return a.second > b.second;
-    };
-    stats.frag_counts.sort(sort_by_frag_count);
-
-    //TODO: improve subject selection process
-    Scene::Drawable &subject = stats.frag_counts.front().first;
-    unsigned int subject_frag_count = stats.frag_counts.front().second;
-
-    //Add points for bigness
-    picture.score_elements.emplace_back("Bigness", subject_frag_count/1000);
-
-    //Add bonus points for additional subjects
-    std::for_each(std::next(stats.frag_counts.begin()), stats.frag_counts.end(), [&](std::pair<Scene::Drawable &, GLuint> creature) {
-        picture.score_elements.emplace_back("Bonus " + creature.first.transform->name, 100);
-    });
-
-    //Magnificence
-    picture.score_elements.emplace_back("Magnificence", 200);
-
-    //TODO: make name unique for file saving purposes
-    picture.title = "Magnificent " + subject.transform->name;
-
-    return picture;
-}
-
-void PlayerCamera::SavePicture(std::vector<GLfloat> data, std::string name) {
-
-	//convert pixel data to correct format for png export
-	uint8_t* png_data = new uint8_t[4 * scene_camera->drawable_size.x * scene_camera->drawable_size.y];
-	for (uint32_t i = 0; i < scene_camera->drawable_size.x * scene_camera->drawable_size.y; i++) {
-		png_data[i * 4] = (uint8_t)round(data[i * 3] * 255);
-		png_data[i * 4 + 1] = (uint8_t)round(data[i * 3 + 1] * 255);
-		png_data[i * 4 + 2] = (uint8_t)round(data[i * 3 + 2] * 255);
-		png_data[i * 4 + 3] = 255;
-	}
-	// create album folder if it doesn't exist
-	if (!std::filesystem::exists(data_path("PhotoAlbum/"))) {
-		std::filesystem::create_directory(data_path("PhotoAlbum/"));
-	}
-	save_png(data_path("PhotoAlbum/" + name + ".png"), scene_camera->drawable_size,
-		reinterpret_cast<const glm::u8vec4*>(png_data), LowerLeftOrigin);
-    delete[] png_data;
+    picture.save_picture_png();
 }
 
 void PlayerCamera::AdjustZoom(float diff) {
