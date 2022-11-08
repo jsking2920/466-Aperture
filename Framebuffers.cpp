@@ -48,13 +48,12 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size) {
     
     // Resize ms_fb
     {
-        //set up framebuffer if not yet named:
+        //set up ms_fb if not yet named:
         if (ms_fb == 0) {
             glGenFramebuffers(1, &ms_fb);
             glBindFramebuffer(GL_FRAMEBUFFER, ms_fb);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, ms_color_tex, 0);
             glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, ms_depth_rb);
-            //GL_DEPTH_STENCIL_ATTACHMENT ????
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
 

@@ -25,7 +25,8 @@ struct PlayerCamera {
 	float max_zoom = 3.0f; 
 
 	void TakePicture(Scene &scene); // Adds picture to player.pictures
-    Picture GeneratePicture(std::list<std::pair<Scene::Drawable &, GLuint>> frag_counts);
+    Picture GeneratePicture(std::list<std::pair<Scene::Drawable &, GLuint>> frag_counts); // generates scoring info and description/etc.
+	void SavePicture(GLfloat* data, std::string name); // saves picture as a png to dist/album/ (creating folder if needed)
 	void AdjustZoom(float diff);
 };
 

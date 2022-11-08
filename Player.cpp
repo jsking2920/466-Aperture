@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <map>
 #include <unordered_set>
+#include <filesystem>
 
 // PlayerCamera
 //========================================
@@ -70,18 +71,9 @@ void PlayerCamera::TakePicture(Scene &scene) {
     Picture picture = GeneratePicture(occlusionResults);
     player->pictures->push_back(picture);
 	//std::cout << picture.get_scoring_string() << std::endl;
-
-    //convert pixel data to correct format for png export
-    uint8_t *png_data = new uint8_t [4 * scene_camera->drawable_size.x * scene_camera->drawable_size.y];
-    for (uint32_t i = 0; i < scene_camera->drawable_size.x * scene_camera->drawable_size.y; i++) {
-        png_data[i * 4    ] = (uint8_t)round(data[i * 3    ] * 255);
-        png_data[i * 4 + 1] = (uint8_t)round(data[i * 3 + 1] * 255);
-        png_data[i * 4 + 2] = (uint8_t)round(data[i * 3 + 2] * 255);
-        png_data[i * 4 + 3] = 255;
-    }
-    save_png(data_path("album/" + picture.title + ".png"), scene_camera->drawable_size,
-             reinterpret_cast<const glm::u8vec4 *>(png_data), LowerLeftOrigin);
-
+	// 
+	// TODO: move save picture out of here to make it user-prompted; will need to handle data/memory allocation differently
+	SavePicture(data, picture.title);
     delete[] data;
 }
 
@@ -120,6 +112,24 @@ Picture PlayerCamera::GeneratePicture(std::list<std::pair<Scene::Drawable &, GLu
     picture.title = "Magnificent " + subject.transform->name;
 
     return picture;
+}
+
+void PlayerCamera::SavePicture(GLfloat* data, std::string name) {
+
+	//convert pixel data to correct format for png export
+	uint8_t* png_data = new uint8_t[4 * scene_camera->drawable_size.x * scene_camera->drawable_size.y];
+	for (uint32_t i = 0; i < scene_camera->drawable_size.x * scene_camera->drawable_size.y; i++) {
+		png_data[i * 4] = (uint8_t)round(data[i * 3] * 255);
+		png_data[i * 4 + 1] = (uint8_t)round(data[i * 3 + 1] * 255);
+		png_data[i * 4 + 2] = (uint8_t)round(data[i * 3 + 2] * 255);
+		png_data[i * 4 + 3] = 255;
+	}
+	// create album folder if it doesn't exist
+	if (!std::filesystem::exists(data_path("PhotoAlbum/"))) {
+		std::filesystem::create_directory(data_path("PhotoAlbum/"));
+	}
+	save_png(data_path("PhotoAlbum/" + name + ".png"), scene_camera->drawable_size,
+		reinterpret_cast<const glm::u8vec4*>(png_data), LowerLeftOrigin);
 }
 
 void PlayerCamera::AdjustZoom(float diff) {
