@@ -43,14 +43,16 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
         // load texture for object if one exists, supports only 1 texture for now
 		// texture must share name with transform in scene ( "assets/textures/{transform->name}.png" )
         // file existence check from https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exists-using-standard-c-c11-14-17-c
-        if (std::filesystem::exists(data_path("assets/textures/" + transform->name + ".png"))) {
+
+		std::string identifier = transform->name.substr(0, 6);
+        if (std::filesystem::exists(data_path("assets/textures/" + identifier + ".png"))) {
             drawable.uses_vertex_color = false;
 
             glBindTexture(GL_TEXTURE_2D, tex);
             glm::uvec2 size;
             std::vector< glm::u8vec4 > tex_data;
 
-            load_png(data_path("assets/textures/" + transform->name + ".png"), &size, &tex_data, LowerLeftOrigin);
+            load_png(data_path("assets/textures/" + identifier + ".png"), &size, &tex_data, LowerLeftOrigin);
 
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex_data.data());
 			glGenerateMipmap(GL_TEXTURE_2D);
