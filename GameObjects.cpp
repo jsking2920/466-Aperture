@@ -8,22 +8,24 @@ std::map< std::string, Creature > Creature::creature_map = std::map< std::string
 void Creature::init_transforms (Scene &scene) {
     for (auto &draw : scene.drawables) {
         Scene::Transform &trans = *draw.transform;
-        std::cout << trans.name << std::endl;
         std::string full_code;
         if(number < 10) {
             full_code = code + "_0" + std::to_string(number);
         } else {
             full_code = code + "_" + std::to_string(number);
         }
+
+        std::cout << trans.name.substr(0, 6) << ", " << full_code << std::endl;
         if (trans.name.substr(0, 6) == full_code) {
             std::cout << trans.name.substr(6) <<std::endl;
-            if (trans.name.substr(6) == name) {
+            if (trans.name.length() == 6) {
                 transform = &trans;
                 drawable = &draw;
                 // std::cout << "transform set to be" << trans.name << std::endl;
             }
 
-            if (trans.name.substr(6, 3) == "foc") {
+//            std::cout << trans.name.substr(7, 3) <<std::endl;
+            if (trans.name.length() >= 10 && trans.name.substr(7, 3) == "foc") {
                 if (trans.name.length() == 8) {
                     focal_point = &trans;
                     std::cout << "found primary focal point:" << trans.name << std::endl;

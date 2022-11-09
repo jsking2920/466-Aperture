@@ -67,7 +67,7 @@ std::list<ScoreElement> Picture::score_creature(PictureInfo::CreatureInfo creatu
         int total_fp = (int)creature_info.are_focal_points_in_frame.size();
         int fp_in_frame = (int)std::count(creature_info.are_focal_points_in_frame.begin(), creature_info.are_focal_points_in_frame.end(), [](bool &b) { return b; });
 
-        float total = fp_in_frame/total_fp * 2000;
+        float total = (float)fp_in_frame/(float)total_fp * 2000;
         //random salting, could be removed (is this called salting)
         if(total < 2000) {
             total += ((float) rand() / (float)RAND_MAX) * 30;
@@ -114,7 +114,7 @@ std::string Picture::get_scoring_string() {
 void Picture::save_picture_png() {
 
     //convert pixel data to correct format for png export
-    uint8_t* png_data = new uint8_t[4 * dimensions.x * dimensions.y];
+    std::vector<uint8_t>png_data(4 * (unsigned long)dimensions.x * (unsigned long)dimensions.y);
     for (uint32_t i = 0; i < dimensions.x * dimensions.y; i++) {
         png_data[i * 4] = (uint8_t)round((*data)[i * 3] * 255);
         png_data[i * 4 + 1] = (uint8_t)round((*data)[i * 3 + 1] * 255);
@@ -128,16 +128,15 @@ void Picture::save_picture_png() {
     //save pic if name is unique
     if (!std::filesystem::exists(data_path("PhotoAlbum/" + title + ".png"))) {
         save_png(data_path("PhotoAlbum/" + title + ".png"), dimensions,
-                 reinterpret_cast<const glm::u8vec4*>(png_data), LowerLeftOrigin);
+                 reinterpret_cast<const glm::u8vec4*>(png_data.data()), LowerLeftOrigin);
     } else {
         //enumerate file name
         for(uint16_t count = 1; count < 9999; count++) {
             if (!std::filesystem::exists(data_path("PhotoAlbum/" + title + std::to_string(count) + ".png"))) {
-                save_png(data_path("PhotoAlbum/" + std::to_string(count) + ".png"), dimensions,
-                         reinterpret_cast<const glm::u8vec4*>(png_data), LowerLeftOrigin);
+                save_png(data_path("PhotoAlbum/" + title + std::to_string(count) + ".png"), dimensions,
+                         reinterpret_cast<const glm::u8vec4*>(png_data.data()), LowerLeftOrigin);
                 break;
             }
         }
     }
-    delete[] png_data;
 }
