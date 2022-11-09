@@ -252,6 +252,20 @@ void PlayMode::update(float elapsed) {
 		// Snap a pic on left click, if in camera view
 		if (player->in_cam_view && lmb.downs == 1) {
 			player->player_camera->TakePicture(scene);
+			score_text_is_showing = true;
+			score_text_popup_timer = 0.0f;
+		}
+	}
+
+	// UI
+	{
+		if (score_text_is_showing) {
+			if (score_text_popup_timer >= score_text_popup_duration) {
+				score_text_is_showing = false;
+			}
+			else {
+				score_text_popup_timer += elapsed;
+			}
 		}
 	}
 	
@@ -425,13 +439,16 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			barcode_text->draw("FLOATER", (1.0f / 3.0f) * float(drawable_size.x), ((1.0f / 3.0f) - 0.05f) * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));	
 		}
 		else {
+			// Draw clock
+			display_text->draw(display_text->format_time_of_day(time_of_day, day_length), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		}
+
+		if (score_text_is_showing) {
 			// draw text of last picture taken
 			if (!player->pictures->empty()) {
 				display_text->draw(player->pictures->back().title, 0.025f * float(drawable_size.x), 0.95f * float(drawable_size.y), 0.6f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 				display_text->draw("Score: " + std::to_string(player->pictures->back().get_total_score()), 0.025f * float(drawable_size.x), 0.9f * float(drawable_size.y), 0.5f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 			}
-			// Draw clock
-			display_text->draw(display_text->format_time_of_day(time_of_day, day_length), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 		}
 	}
 	GL_ERRORS();
