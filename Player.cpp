@@ -51,6 +51,7 @@ void PlayerCamera::TakePicture(Scene &scene) {
     for (auto &pair : stats.frag_counts) {
         std::string name = pair.first.transform->name;
         std::string code_id = name.substr(0, 6);
+        std::cout << code_id << std::endl;
         if (Creature::creature_map.count(code_id)) {
             creature_set.insert(code_id);
         }
