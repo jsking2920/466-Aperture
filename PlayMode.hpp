@@ -50,4 +50,10 @@ struct PlayMode : Mode {
 	uint8_t display_font_size = 48;
 	TextRenderer* barcode_text = nullptr;
 	uint8_t barcode_font_size = 36;
+	
+	// UI
+	float score_text_popup_timer = 0.0f;
+	float score_text_popup_duration = 2.0f;
+	bool score_text_is_showing = false;
+
 };

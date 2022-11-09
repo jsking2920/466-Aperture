@@ -43,14 +43,16 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
         // load texture for object if one exists, supports only 1 texture for now
 		// texture must share name with transform in scene ( "assets/textures/{transform->name}.png" )
         // file existence check from https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exists-using-standard-c-c11-14-17-c
-        if (std::filesystem::exists(data_path("assets/textures/" + transform->name + ".png"))) {
+
+		std::string identifier = transform->name.substr(0, 6);
+        if (std::filesystem::exists(data_path("assets/textures/" + identifier + ".png"))) {
             drawable.uses_vertex_color = false;
 
             glBindTexture(GL_TEXTURE_2D, tex);
             glm::uvec2 size;
             std::vector< glm::u8vec4 > tex_data;
 
-            load_png(data_path("assets/textures/" + transform->name + ".png"), &size, &tex_data, LowerLeftOrigin);
+            load_png(data_path("assets/textures/" + identifier + ".png"), &size, &tex_data, LowerLeftOrigin);
 
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex_data.data());
 			glGenerateMipmap(GL_TEXTURE_2D);
@@ -250,6 +252,20 @@ void PlayMode::update(float elapsed) {
 		// Snap a pic on left click, if in camera view
 		if (player->in_cam_view && lmb.downs == 1) {
 			player->player_camera->TakePicture(scene);
+			score_text_is_showing = true;
+			score_text_popup_timer = 0.0f;
+		}
+	}
+
+	// UI
+	{
+		if (score_text_is_showing) {
+			if (score_text_popup_timer >= score_text_popup_duration) {
+				score_text_is_showing = false;
+			}
+			else {
+				score_text_popup_timer += elapsed;
+			}
 		}
 	}
 	
@@ -423,13 +439,16 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			barcode_text->draw("FLOATER", (1.0f / 3.0f) * float(drawable_size.x), ((1.0f / 3.0f) - 0.05f) * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));	
 		}
 		else {
+			// Draw clock
+			display_text->draw(display_text->format_time_of_day(time_of_day, day_length), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		}
+
+		if (score_text_is_showing) {
 			// draw text of last picture taken
 			if (!player->pictures->empty()) {
 				display_text->draw(player->pictures->back().title, 0.025f * float(drawable_size.x), 0.95f * float(drawable_size.y), 0.6f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 				display_text->draw("Score: " + std::to_string(player->pictures->back().get_total_score()), 0.025f * float(drawable_size.x), 0.9f * float(drawable_size.y), 0.5f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 			}
-			// Draw clock
-			display_text->draw(display_text->format_time_of_day(time_of_day, day_length), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 		}
 	}
 	GL_ERRORS();
