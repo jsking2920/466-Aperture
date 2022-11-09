@@ -65,7 +65,7 @@ std::list<ScoreElement> Picture::score_creature(PictureInfo::CreatureInfo creatu
         //Add points for focal points
         //in the future, could weight focal points or have per-focal point angles
         int total_fp = (int)creature_info.are_focal_points_in_frame.size();
-        int fp_in_frame = (int)std::count(creature_info.are_focal_points_in_frame.begin(), creature_info.are_focal_points_in_frame.end(), [](bool &b) { return b; });
+        int fp_in_frame = (int)std::count(creature_info.are_focal_points_in_frame.begin(), creature_info.are_focal_points_in_frame.end(), [](bool b) { return b; });
 
         float total = (float)fp_in_frame/(float)total_fp * 2000;
         //random salting, could be removed (is this called salting)
