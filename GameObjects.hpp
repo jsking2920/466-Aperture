@@ -48,6 +48,9 @@ struct Creature {
     //have an array of body parts
     //std::vector< Scene::Transform > body_parts = {};
 
+    //scoring parameters
+    int score = 3000;
+
 
     //Initialization/parsing function form scene
     void init_transforms(Scene &scene);
