@@ -7,7 +7,7 @@
 #include <iostream>
 #include <algorithm>
 #include <map>
-#include <unordered_set>
+#include <set>
 #include <filesystem>
 
 // PlayerCamera
@@ -28,32 +28,54 @@ PlayerCamera::~PlayerCamera() {
 
 void PlayerCamera::TakePicture(Scene &scene) {
 
-    //get fragment counts for each drawable
-    std::list<std::pair<Scene::Drawable &, GLuint>> occlusionResults;
+    Picture::PictureInfo stats;
+    stats.data = std::make_shared<std::vector<GLfloat>>(3 * scene_camera->drawable_size.x * scene_camera->drawable_size.y);
+    stats.dimensions = scene_camera->drawable_size;
+//    stats.data->resize(3 * scene_camera->drawable_size.x * scene_camera->drawable_size.y);
+    stats.angle = eulerAngles(player->camera->transform->rotation);
 
-    GLfloat *data = new GLfloat[3 * scene_camera->drawable_size.x * scene_camera->drawable_size.y];
-    scene.render_picture(*scene_camera, occlusionResults, data);
+    //get fragment counts for each drawable
+    scene.render_picture(*scene_camera, stats.frag_counts, *stats.data);
+
+    //sort by frag count
+    auto sort_by_frag_count = [&](std::pair<Scene::Drawable &, GLuint> a, std::pair<Scene::Drawable &, GLuint> b) {
+        return a.second > b.second;
+    };
+    stats.frag_counts.sort(sort_by_frag_count);
+    std::for_each(stats.frag_counts.begin(), stats.frag_counts.end(), [&](auto pair) {
+        stats.total_frag_count += pair.second;
+    });
 
     //Set of creatures in frame, because there will be duplicates for body parts
-    std::unordered_set< std::string > creature_set;
-    for (auto &pair : occlusionResults) {
+    std::set< std::string > creature_set;
+    for (auto &pair : stats.frag_counts) {
         std::string name = pair.first.transform->name;
-        std::string code = name.substr(0, name.find('-'));
-        if (Creature::creature_map.count(code)) {
-            creature_set.insert(code);
+        std::string code_id = name.substr(0, 6);
+        if (Creature::creature_map.count(code_id)) {
+            creature_set.insert(code_id);
         }
     }
 
     //list of creatures & focal point visibilities
-    //i know this type is ugly af but i think it's good for memory management bc of vector resizes. i think.
-    std::list< std::pair<Creature *, std::shared_ptr< std::vector< bool > > > > creatures_in_frame;
-    for (auto &code : creature_set) {
-        creatures_in_frame.emplace_back(std::make_pair(&Creature::creature_map[code], std::make_shared<std::vector< bool >>()));
+    for (auto &code_id : creature_set) {
+        stats.creatures_in_frame.emplace_back();
+        stats.creatures_in_frame.back().creature = &Creature::creature_map[code_id];
     }
 
-    //Get focal point vector - indices of bools map to indices of focal points in creature
-    for (auto &pair : creatures_in_frame) {
-        scene.test_focal_points(*scene_camera, pair.first->focal_points, *pair.second);
+    //populate creature infos
+    for (auto &creature_info : stats.creatures_in_frame) {
+        //Get focal point vector - indices of bools map to indices of focal points in creature
+        scene.test_focal_points(*scene_camera, creature_info.creature->focal_points, creature_info.are_focal_points_in_frame);
+        //populate frag counts by summing over all labeled parts
+        creature_info.frag_count = 0;
+        std::for_each(stats.frag_counts.begin(), stats.frag_counts.end(), [&](auto pair) {
+            if(pair.first.transform->name.substr(0, pair.first.transform->name.find('-'))
+                    == creature_info.creature->code + std::to_string(creature_info.creature->ID)) {
+            creature_info.frag_count += pair.second;
+            }
+        });
+        //vector from player to creature
+        creature_info.player_to_creature = creature_info.creature->transform->position - player->transform->position;
     }
 
     // Debug: print how many focal points are in frame
@@ -67,69 +89,12 @@ void PlayerCamera::TakePicture(Scene &scene) {
     }
 	*/
 
-    // TODO: i think we should make a struct for picture info, there's so much info we can pass in
-    Picture picture = GeneratePicture(occlusionResults);
-    player->pictures->push_back(picture);
-	//std::cout << picture.get_scoring_string() << std::endl;
-	// 
-	// TODO: move save picture out of here to make it user-prompted; will need to handle data/memory allocation differently
-	SavePicture(data, picture.title);
-    delete[] data;
-}
+    player->pictures->emplace_back(stats);
+    Picture &picture = player->pictures->back();
+	std::cout << picture.get_scoring_string() << std::endl;
 
-Picture PlayerCamera::GeneratePicture(std::list<std::pair<Scene::Drawable &, GLuint>> frag_counts) {
-
-    Picture picture = Picture();
-
-    if (frag_counts.empty()) {
-        picture.title = "Pure Emptiness";
-        picture.score_elements.emplace_back("Relatable", 500);
-        picture.score_elements.emplace_back("Deep", 500);
-        return picture;
-    }
-
-    auto sort_by_frag_count = [&](std::pair<Scene::Drawable &, GLuint> a, std::pair<Scene::Drawable &, GLuint> b) {
-        return a.second > b.second;
-    };
-    frag_counts.sort(sort_by_frag_count);
-
-    //TODO: improve subject selection process
-    Scene::Drawable &subject = frag_counts.front().first;
-    unsigned int subject_frag_count = frag_counts.front().second;
-
-    //Add points for bigness
-    picture.score_elements.emplace_back("Bigness", subject_frag_count/1000);
-
-    //Add bonus points for additional subjects
-    std::for_each(std::next(frag_counts.begin()), frag_counts.end(), [&](std::pair<Scene::Drawable &, GLuint> creature) {
-        picture.score_elements.emplace_back("Bonus " + creature.first.transform->name, 100);
-    });
-
-    //Magnificence
-    picture.score_elements.emplace_back("Magnificence", 200);
-
-    //TODO: make name unique for file saving purposes
-    picture.title = "Magnificent " + subject.transform->name;
-
-    return picture;
-}
-
-void PlayerCamera::SavePicture(GLfloat* data, std::string name) {
-
-	//convert pixel data to correct format for png export
-	uint8_t* png_data = new uint8_t[4 * scene_camera->drawable_size.x * scene_camera->drawable_size.y];
-	for (uint32_t i = 0; i < scene_camera->drawable_size.x * scene_camera->drawable_size.y; i++) {
-		png_data[i * 4] = (uint8_t)round(data[i * 3] * 255);
-		png_data[i * 4 + 1] = (uint8_t)round(data[i * 3 + 1] * 255);
-		png_data[i * 4 + 2] = (uint8_t)round(data[i * 3 + 2] * 255);
-		png_data[i * 4 + 3] = 255;
-	}
-	// create album folder if it doesn't exist
-	if (!std::filesystem::exists(data_path("PhotoAlbum/"))) {
-		std::filesystem::create_directory(data_path("PhotoAlbum/"));
-	}
-	save_png(data_path("PhotoAlbum/" + name + ".png"), scene_camera->drawable_size,
-		reinterpret_cast<const glm::u8vec4*>(png_data), LowerLeftOrigin);
+	// TODO: move save picture out of here to make it user-prompted
+    picture.save_picture_png();
 }
 
 void PlayerCamera::AdjustZoom(float diff) {
@@ -164,13 +129,14 @@ Player::Player(Scene::Transform* _transform, WalkMesh const* _walk_mesh, Scene::
 	// Player's camera shares same position/rotation/etc as their scene camera ("eyes")
 	player_camera->scene_camera->transform->parent = camera->transform;
 	player_camera->scene_camera->fovy = camera->fovy;
-	
-	pictures = new std::list<Picture>();
+
+    pictures = new std::list<Picture>();
+
 }
 
 Player::~Player() {
 	delete player_camera;
-	delete pictures;
+    delete pictures;
 }
 
 void Player::OnMouseMotion(glm::vec2 mouse_motion) {
@@ -190,7 +156,7 @@ void Player::OnMouseMotion(glm::vec2 mouse_motion) {
 void Player::Move(glm::vec2 direction, float elapsed) {
 
 	// Make it so that moving diagonally doesn't go faster
-	if (direction != glm::vec2(0.0f)) direction = glm::normalize(direction) * speed * elapsed;
+	if (direction != glm::vec2(0.0f)) direction = glm::normalize(direction) * get_speed() * elapsed;
 
 	// Get move in world coordinate system
 	glm::vec3 remain = transform->make_local_to_world() * glm::vec4(direction.x, direction.y, 0.0f, 0.0f);
@@ -257,4 +223,12 @@ void Player::ToggleCrouch() {
 		camera->transform->position.z -= crouch_offset;
 	}
 	is_crouched = !is_crouched;
+}
+
+float Player::get_speed() {
+    if(in_cam_view) {
+        return speed/2;
+    } else {
+        return speed;
+    }
 }

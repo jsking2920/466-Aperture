@@ -3,6 +3,7 @@
 #include "WalkMesh.hpp"
 #include "Scene.hpp"
 #include "Picture.hpp"
+#include "GameObjects.hpp"
 
 #include <glm/glm.hpp>
 #include <memory>
@@ -25,8 +26,6 @@ struct PlayerCamera {
 	float max_zoom = 3.0f; 
 
 	void TakePicture(Scene &scene); // Adds picture to player.pictures
-    Picture GeneratePicture(std::list<std::pair<Scene::Drawable &, GLuint>> frag_counts); // generates scoring info and description/etc.
-	void SavePicture(GLfloat* data, std::string name); // saves picture as a png to dist/album/ (creating folder if needed)
 	void AdjustZoom(float diff);
 };
 
@@ -52,10 +51,11 @@ struct Player {
 	// false = view from "eyes"/camera, true = view from PlayerCamera "viewport" (picture taking mode)
 	bool in_cam_view = false;
 	// List of pics player has taken
-	std::list<Picture>* pictures = nullptr; // TODO: add an album view in game to look at these
+	std::list<Picture> *pictures; // TODO: add an album view in game to look at these
 	
 	void ToggleCrouch(); // Adjusts z pos of player's cameras so it looks like they crouched
 	void Move(glm::vec2 direction, float elapsed); // un-normalized, cardinal directions such as (-1.0f, 0.0f) -> left button only held, (1.0f, 1.0f) -> right and up buttons held, etc. 
 	void OnMouseMotion(glm::vec2 mouse_motion);
+    float get_speed(); //for halving speed in cam mode
 };
 

@@ -117,7 +117,7 @@ PlayMode::PlayMode() : scene(*main_scene) {
     // using syntax from https://stackoverflow.com/questions/14075128/mapemplace-with-a-custom-value-type
     // if we use things that need references in the future, change make_tuple to forward_as_tuple
     // put in constructor??
-    std::string id_code = "FLO0";
+    std::string id_code = "FLO_00";
     Creature::creature_map.emplace(std::piecewise_construct, std::make_tuple(id_code), std::make_tuple("Floater", "FLO", 0, 0));
     Creature &creature = Creature::creature_map[id_code];
     creature.init_transforms(scene);

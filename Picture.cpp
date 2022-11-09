@@ -1,11 +1,96 @@
 #include "Picture.hpp"
+#include "data_path.hpp"
+#include "load_save_png.hpp"
 
 #include <algorithm>
+#include <utility>
+#include <filesystem>
 
-Picture::Picture() {
-    //TODO: Pass in texture to constructor and save
+Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.data) {
+    if (stats.frag_counts.empty()) {
+        title = "Pure Emptiness";
+        score_elements.emplace_back("Relatable", 500);
+        score_elements.emplace_back("Deep", 500);
+        return;
+    }
 
-    //TODO: Export as png?
+    if(stats.creatures_in_frame.empty()) {
+        //TODO: once we add in some points for nature, make this better
+        title = "Beautiful Nature";
+        score_elements.emplace_back("So peaceful!", 2000);
+        return;
+    }
+
+    PictureInfo::CreatureInfo subject_info = stats.creatures_in_frame.front();
+
+    {   //grade subject
+        //Magnificence
+        score_elements.emplace_back(subject_info.creature->name, subject_info.creature->score);
+        auto result = score_creature(subject_info, stats);
+        score_elements.insert(score_elements.end(), result.begin(), result.end()); //from https://stackoverflow.com/q/1449703
+    }
+
+    {
+        //Add bonus points for additional subjects
+        std::for_each(std::next(stats.creatures_in_frame.begin()), stats.creatures_in_frame.end(),
+                      [&](PictureInfo::CreatureInfo creature_info) {
+                          auto result = score_creature(creature_info, stats);
+                          int total_score = creature_info.creature->score;
+                          std::for_each(result.begin(), result.end(), [&](ScoreElement el) { total_score += el.value; });
+                          score_elements.emplace_back("Bonus " + creature_info.creature->transform->name, total_score / 10);
+                      });
+    }
+
+    //TODO: make name unique for file saving purposes
+    title = "Magnificent " + subject_info.creature->transform->name;
+}
+
+std::list<ScoreElement> Picture::score_creature(PictureInfo::CreatureInfo creature_info, PictureInfo stats) {
+    std::list<ScoreElement> result;
+    {
+        //Add points for bigness
+        //in the future, could get these params from the creature itself or factor in distance
+        const float max_frag_percent = 1 / 5;
+        const float min_frag_percent = 1 / 20;
+
+        float fraction = (float)creature_info.frag_count/(float)stats.total_frag_count;
+        //stretch 0 to max_percent to be 0.f to 1.f
+        float remapped = std::clamp(fraction / max_frag_percent, 0.f, 1.f);
+        if(remapped > min_frag_percent) {
+            result.emplace_back("Clarity", remapped * 2000);
+        }
+    }
+
+    {
+        //Add points for focal points
+        //in the future, could weight focal points or have per-focal point angles
+        int total_fp = creature_info.are_focal_points_in_frame.size();
+        int fp_in_frame = std::count(creature_info.are_focal_points_in_frame.begin(), creature_info.are_focal_points_in_frame.end(), [](bool &b) { return b; });
+
+        float total = fp_in_frame/total_fp * 2000;
+        //random salting, could be removed (is this called salting)
+        if(total < 2000) {
+            total += ((float) rand() / RAND_MAX) * 30;
+        }
+        result.emplace_back("Framing", total);
+    }
+
+    {
+        //Add points for angle
+        //in the future, change to a multiplier? and also change const params to be per creature
+        const float best_degrees_deviated = 10; //degrees away from the ideal angle for full points, keep in mind it's on a cos scale so not linear
+        const float worst_degrees_deviated = 100; //degrees away from the ideal angle for min points
+
+        glm::vec3 creature_to_player_norm = glm::normalize(-creature_info.player_to_creature);
+        //ranges from -1, pointing opposite the correct angle, to 1, pointing directly at the correct angle
+        float dot = glm::dot(creature_to_player_norm, creature_info.creature->get_best_angle()); //cos theta
+        //clamped between min and max values
+        float clamped_dot = std::clamp(dot, std::cos(worst_degrees_deviated), std::cos(best_degrees_deviated));
+        //normalized to be between 0 and 1
+        float normalized_dot =  (clamped_dot - std::cos(worst_degrees_deviated)) / (std::cos(best_degrees_deviated) - std::cos(worst_degrees_deviated));
+        result.emplace_back("Angle", normalized_dot * 2000);
+    }
+    return result;
 }
 
 uint32_t Picture::get_total_score() {
@@ -23,4 +108,36 @@ std::string Picture::get_scoring_string() {
     });
     ret += "Total Score: " + std::to_string(get_total_score()) + "\n\n";
     return ret;
+}
+
+
+void Picture::save_picture_png() {
+
+    //convert pixel data to correct format for png export
+    uint8_t* png_data = new uint8_t[4 * dimensions.x * dimensions.y];
+    for (uint32_t i = 0; i < dimensions.x * dimensions.y; i++) {
+        png_data[i * 4] = (uint8_t)round((*data)[i * 3] * 255);
+        png_data[i * 4 + 1] = (uint8_t)round((*data)[i * 3 + 1] * 255);
+        png_data[i * 4 + 2] = (uint8_t)round((*data)[i * 3 + 2] * 255);
+        png_data[i * 4 + 3] = 255;
+    }
+    // create album folder if it doesn't exist
+    if (!std::filesystem::exists(data_path("PhotoAlbum/"))) {
+        std::filesystem::create_directory(data_path("PhotoAlbum/"));
+    }
+    //save pic if name is unique
+    if (!std::filesystem::exists(data_path("PhotoAlbum/" + title + ".png"))) {
+        save_png(data_path("PhotoAlbum/" + title + ".png"), dimensions,
+                 reinterpret_cast<const glm::u8vec4*>(png_data), LowerLeftOrigin);
+    } else {
+        //enumerate file name
+        for(uint16_t count = 1; count < 9999; count++) {
+            if (!std::filesystem::exists(data_path("PhotoAlbum/" + title + std::to_string(count) + ".png"))) {
+                save_png(data_path("PhotoAlbum/" + std::to_string(count) + ".png"), dimensions,
+                         reinterpret_cast<const glm::u8vec4*>(png_data), LowerLeftOrigin);
+                break;
+            }
+        }
+    }
+    delete[] png_data;
 }
