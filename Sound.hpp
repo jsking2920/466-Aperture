@@ -6,12 +6,12 @@
 #include <vector>
 #include <string>
 #include <cmath>
+#include <map>
 
 //Game audio system. Simplified from f18-base3.
 //Uses 48kHz sampling rate.
 
 namespace Sound {
-
 //Sample objects hold mono (one-channel) audio.
 struct Sample {
 	//Load from a '.wav' or '.opus' file.
@@ -24,6 +24,8 @@ struct Sample {
 	//sample data is stored as 48kHz, mono, floating-point:
 	std::vector< float > data;
 };
+
+extern const std::map<std::string, Sample> *sample_map;
 
 //Ramp<> manages values that should be smoothly interpolated
 //  to a target over a certain amount of time:

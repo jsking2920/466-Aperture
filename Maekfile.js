@@ -79,7 +79,7 @@ if (maek.OS === "windows") {
 	);
 } else if (maek.OS === "macos") {
 	maek.options.CPPFlags.push(
-		//`-O2`, //optimize
+		`-O2`, //optimize
 		//include paths for nest libraries:
 		`-I${NEST_LIBS}/SDL2/include/SDL2`, `-D_THREAD_SAFE`, //the output of sdl-config --cflags
 		`-I${NEST_LIBS}/glm/include`,
@@ -140,9 +140,6 @@ const game_names = [
 	maek.CPP('main.cpp'),
 	maek.CPP('LitColorTextureProgram.cpp'),
 	//maek.CPP('ColorTextureProgram.cpp'),  //not used right now, but you might want it
-	maek.CPP('Sound.cpp'),
-	maek.CPP('load_wav.cpp'),
-	maek.CPP('load_opus.cpp')
 ];
 
 const common_names = [
@@ -163,6 +160,9 @@ const common_names = [
 	maek.CPP('WalkMesh.cpp'),
 	maek.CPP('Picture.cpp'),
 	maek.CPP('Framebuffers.cpp'),
+	maek.CPP('Sound.cpp'),
+	maek.CPP('load_wav.cpp'),
+	maek.CPP('load_opus.cpp'),
 	maek.CPP('GameObjects.cpp')
 ];
 

@@ -3,13 +3,14 @@
 #include "data_path.hpp"
 #include "Framebuffers.hpp"
 #include "GameObjects.hpp"
+#include "glm/gtx/string_cast.hpp"
+#include "Sound.hpp"
 
 #include <iostream>
 #include <algorithm>
 #include <map>
 #include <set>
 #include <filesystem>
-#include "glm/gtx/string_cast.hpp"
 
 // PlayerCamera
 //========================================
@@ -28,6 +29,7 @@ PlayerCamera::~PlayerCamera() {
 }
 
 void PlayerCamera::TakePicture(Scene &scene) {
+    Sound::play(Sound::sample_map->at("CameraClick"));
 
     PictureInfo stats;
     stats.data = std::make_shared<std::vector<GLfloat>>(3 * scene_camera->drawable_size.x * scene_camera->drawable_size.y);
@@ -79,7 +81,7 @@ void PlayerCamera::TakePicture(Scene &scene) {
         glm::vec3 worldpos = creature_info.creature->transform->make_local_to_world() * glm::vec4(creature_info.creature->transform->position, 1.0f);
         glm::vec3 camera_worldpos = player->camera->transform->make_local_to_world() * glm::vec4(player->camera->transform->position, 1.0f);
         creature_info.player_to_creature = worldpos - camera_worldpos;
-        std::cout << glm::to_string(worldpos) << ",  " << glm::to_string(camera_worldpos);
+//        std::cout << glm::to_string(worldpos) << ",  " << glm::to_string(camera_worldpos);
     }
 
     // Debug: print how many focal points are in frame

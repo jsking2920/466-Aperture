@@ -26,6 +26,9 @@ namespace {
 }
 
 //public-facing data:
+const std::map<std::string, Sound::Sample> *Sound::sample_map = nullptr;
+
+//global static
 
 //global volume control:
 Sound::Ramp< float > Sound::volume = Sound::Ramp< float >(1.0f);

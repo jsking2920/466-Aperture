@@ -80,8 +80,17 @@ Load< WalkMeshes > main_walkmeshes(LoadTagDefault, []() -> WalkMeshes const * {
 	return ret;
 });
 
-Load< Sound::Sample > music_sample(LoadTagDefault, []() -> Sound::Sample const* {
-	return new Sound::Sample(data_path("assets/audio/PlaceHolder.opus"));
+//Automatically loads samples with names listed in names vector. names vector can include paths
+Load< std::map<std::string, Sound::Sample> > audio_samples(LoadTagDefault, []() -> std::map<std::string, Sound::Sample> const* {
+    auto *sample_map = new std::map<std::string, Sound::Sample>();
+    std::vector<std::string> names = {
+            //insert new samples here
+            "CameraClick",
+    };
+    for(std::string name : names) {
+        sample_map->emplace(std::piecewise_construct, std::make_tuple(name), std::make_tuple(data_path("assets/audio/" + name + ".opus")));
+    }
+    return sample_map;
 });
 
 PlayMode::PlayMode() : scene(*main_scene) {
@@ -112,6 +121,12 @@ PlayMode::PlayMode() : scene(*main_scene) {
 	display_text = new TextRenderer(data_path("assets/fonts/Audiowide-Regular.ttf"), display_font_size);
 	barcode_text = new TextRenderer(data_path("assets/fonts/LibreBarcode128Text-Regular.ttf"), barcode_font_size);
 
+    //load audio samples
+    sample_map = *audio_samples;
+    Sound::sample_map = &sample_map;
+    //example access
+//    Sound::play(Sound::sample_map->at("CameraClick"));
+
 	// TODO: 
 	// Load creatures, should eventually loop through codes and/or models
     // using syntax from https://stackoverflow.com/questions/14075128/mapemplace-with-a-custom-value-type
@@ -125,6 +140,7 @@ PlayMode::PlayMode() : scene(*main_scene) {
 
 PlayMode::~PlayMode() {
 	delete player;
+    Sound::sample_map = nullptr;
 }
 
 bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size) {

@@ -36,6 +36,7 @@ struct PlayMode : Mode {
 	Scene scene;
 
 	// Audio
+    std::map<std::string, Sound::Sample> sample_map;
 	std::shared_ptr< Sound::PlayingSample > music_loop;
 
 	Player* player = nullptr;
