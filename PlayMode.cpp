@@ -105,7 +105,7 @@ PlayMode::PlayMode() : scene(*main_scene) {
 		// Create new transform for Player's PlayerCamera
 		scene.transforms.emplace_back();
 
-		player = new Player(player_transform, &main_walkmeshes->lookup("WalkMesh"), &scene.cameras.back(), &scene.transforms.back());
+		player = new Player(player_transform, &main_walkmeshes->lookup("WalkMe"), &scene.cameras.back(), &scene.transforms.back());
 	}
 	
 	// Set up text renderer
