@@ -9,6 +9,7 @@
 #include <map>
 #include <set>
 #include <filesystem>
+#include "glm/gtx/string_cast.hpp"
 
 // PlayerCamera
 //========================================
@@ -75,7 +76,10 @@ void PlayerCamera::TakePicture(Scene &scene) {
             }
         });
         //vector from player to creature
-        creature_info.player_to_creature = creature_info.creature->transform->position - player->transform->position;
+        glm::vec3 worldpos = creature_info.creature->transform->make_local_to_world() * glm::vec4(creature_info.creature->transform->position, 1.0f);
+        glm::vec3 camera_worldpos = player->camera->transform->make_local_to_world() * glm::vec4(player->camera->transform->position, 1.0f);
+        creature_info.player_to_creature = worldpos - camera_worldpos;
+        std::cout << glm::to_string(worldpos) << ",  " << glm::to_string(camera_worldpos);
     }
 
     // Debug: print how many focal points are in frame

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <utility>
 #include <filesystem>
+#include <math.h>
 
 Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.data) {
     if (stats.frag_counts.empty()) {
@@ -81,17 +82,22 @@ std::list<ScoreElement> Picture::score_creature(CreatureInfo &creature_info, Pic
     {
         //Add points for angle
         //in the future, change to a multiplier? and also change const params to be per creature
-        const float best_degrees_deviated = 10.0f; //degrees away from the ideal angle for full points, keep in mind it's on a cos scale so not linear
-        const float worst_degrees_deviated = 100.0f; //degrees away from the ideal angle for min points
+        const float best_degrees_deviated = 7.0f; //degrees away from the ideal angle for full points, keep in mind it's on a cos scale so not linear
+        const float worst_degrees_deviated = 90.0f; //degrees away from the ideal angle for min points
+        const float exponent = 1.1f;
 
         glm::vec3 creature_to_player_norm = glm::normalize(-creature_info.player_to_creature);
         //ranges from -1, pointing opposite the correct angle, to 1, pointing directly at the correct angle
         float dot = glm::dot(creature_to_player_norm, creature_info.creature->get_best_angle()); //cos theta
         //clamped between min and max values
-        float clamped_dot = std::clamp(dot, std::cos(worst_degrees_deviated), std::cos(best_degrees_deviated));
+        float lo = std::cos( worst_degrees_deviated * M_PI / 180.f);
+        float hi = std::cos(best_degrees_deviated * M_PI / 180.f);
+        float clamped_dot = std::clamp(dot, lo, hi);
         //normalized to be between 0 and 1
-        float normalized_dot =  (clamped_dot - std::cos(worst_degrees_deviated)) / (std::cos(best_degrees_deviated) - std::cos(worst_degrees_deviated));
-        result.emplace_back("Angle", (uint32_t)(normalized_dot * 2000.0f));
+        float normalized_dot =  (clamped_dot - lo) / (hi - lo);
+        if(normalized_dot > 0.01) {
+            result.emplace_back("Angle", (uint32_t) (std::pow(normalized_dot, exponent) * 3000.0f));
+        }
     }
     return result;
 }
