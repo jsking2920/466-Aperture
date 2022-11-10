@@ -311,10 +311,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		glUseProgram(lit_color_texture_program->program);
 		glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 1); // hemisphere light
 
-        glm::vec3 day_sky_color(0.5f, 1.0f, 1.0f);
-        glm::vec3 night_sky_color(0.f, 0.02f, 0.1f);
-        glm::vec3 sunset_sky_color(0.5f, 0.3f, 0.1f);
-
 		// calculate brightness of sun/moon based in time of day
         //TODO: make this better! Add ambient light to simulate indirect light & prevent it from being all dark ever
         //Fix "jump" at day/night switch over, by letting brightnesses reach zero and turning up ambient lighting
@@ -329,16 +325,15 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			brightness = std::sin(((time_of_day - sunrise) / (sunset - sunrise)) * float(M_PI));
 			// increase amplitude of curve so that middle of the day is all at or above max brightness
 			brightness *= 1.3f;
-            float color_sin = std::clamp(brightness, 0.f, 1.f);
+            float color_sin = std::clamp(brightness, 0.0f, 1.0f);
 			// lerp brightness value from 0.15 to 1.5 so that it's never completely dark
 			brightness = ((1.0f - brightness) * 0.15f) + brightness;
 			// clamp brightness to [0.1f, 1.0f], which creates a "plateau" in the curve at midday
 			brightness = brightness > 1.0f ? 1.0f : brightness;
-			light_color = glm::vec3(1.0f, 1.0f, 0.95f); // slightly warm light (less blue)
 
+			light_color = glm::vec3(1.0f, 1.0f, 0.95f); // slightly warm light (less blue)
             light_angle = glm::vec3( 0, -std::cos(((time_of_day - sunrise) / (sunset - sunrise)) * float(M_PI)) / std::sqrt(2),
                                    -std::sin(((time_of_day - sunrise) / (sunset - sunrise)) * float(M_PI)) / std::sqrt(2));
-
             sky_color = day_sky_color * color_sin + sunset_sky_color * std::pow( 1 - color_sin, 3.f );
 		}
 		else { // nighttime lighting
@@ -350,7 +345,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			light_color = glm::vec3(0.975f, 0.975f, 1.0f); // slightly cool light (more blue) that is also dimmer
             light_angle = glm::vec3( 0, -std::cos(((unwrapped_time - sunset) / (sunrise + (day_length - sunset))) * float(M_PI)) / std::sqrt(2),
                                      -std::sin(((unwrapped_time - sunset) / (sunrise + (day_length - sunset))) * float(M_PI)) / std::sqrt(2));
-
             sky_color = night_sky_color * sin + sunset_sky_color * std::pow( 1 - sin, 3.f );
 		}
 		light_color *= brightness;
@@ -358,12 +352,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(light_angle));
 		glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(light_color));
 		glUseProgram(0);
-
-//		glUseProgram(lit_color_texture_program->program);
-//		glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 1);
-//		glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f, -1.0f)));
-//		glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(glm::vec3(1.0f, 1.0f, 0.95f)));
-//		glUseProgram(0);
 
 		// Set "sky" (clear color)
 		glClearColor(sky_color.x, sky_color.y, sky_color.z, 1.0f);

@@ -32,9 +32,9 @@ void PlayerCamera::TakePicture(Scene &scene) {
     Sound::play(Sound::sample_map->at("CameraClick"));
 
     PictureInfo stats;
-    stats.data = std::make_shared<std::vector<GLfloat>>(3 * scene_camera->drawable_size.x * scene_camera->drawable_size.y);
+    stats.data = std::make_shared<std::vector<GLfloat>>(3.0f * scene_camera->drawable_size.x * scene_camera->drawable_size.y);
     stats.dimensions = scene_camera->drawable_size;
-//    stats.data->resize(3 * scene_camera->drawable_size.x * scene_camera->drawable_size.y);
+    //stats.data->resize(3 * scene_camera->drawable_size.x * scene_camera->drawable_size.y);
     stats.angle = eulerAngles(player->camera->transform->rotation);
 
     //get fragment counts for each drawable
@@ -81,7 +81,7 @@ void PlayerCamera::TakePicture(Scene &scene) {
         glm::vec3 worldpos = creature_info.creature->transform->make_local_to_world() * glm::vec4(creature_info.creature->transform->position, 1.0f);
         glm::vec3 camera_worldpos = player->camera->transform->make_local_to_world() * glm::vec4(player->camera->transform->position, 1.0f);
         creature_info.player_to_creature = worldpos - camera_worldpos;
-//        std::cout << glm::to_string(worldpos) << ",  " << glm::to_string(camera_worldpos);
+        //std::cout << glm::to_string(worldpos) << ",  " << glm::to_string(camera_worldpos);
     }
 
     // Debug: print how many focal points are in frame
@@ -137,7 +137,6 @@ Player::Player(Scene::Transform* _transform, WalkMesh const* _walk_mesh, Scene::
 	player_camera->scene_camera->fovy = camera->fovy;
 
     pictures = new std::list<Picture>();
-
 }
 
 Player::~Player() {
@@ -232,9 +231,11 @@ void Player::ToggleCrouch() {
 }
 
 float Player::get_speed() {
-    if(in_cam_view) {
-        return speed/2;
-    } else {
+
+    if (in_cam_view) {
+        return speed / 2.0f;
+    } 
+	else {
         return speed;
     }
 }

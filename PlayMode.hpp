@@ -39,12 +39,18 @@ struct PlayMode : Mode {
     std::map<std::string, Sound::Sample> sample_map;
 	std::shared_ptr< Sound::PlayingSample > music_loop;
 
+	// Player
 	Player* player = nullptr;
 
+	// Day/Night Cycle Stuff
 	float day_length = 240.0f;// 4 minutes = 1 day, 10 seconds = 1 hour
 	float time_of_day = 65.0f; // loops from 0 to day_length, starts at 6:30 AM
 	float sunrise = 60.0f; // sunrise at 6am
 	float sunset = 200.0f; // sunset at 8pm
+
+	glm::vec3 day_sky_color = glm::vec3(0.5f, 1.0f, 1.0f);
+	glm::vec3 night_sky_color = glm::vec3(0.f, 0.02f, 0.1f);
+	glm::vec3 sunset_sky_color = glm::vec3(0.5f, 0.3f, 0.1f);
 
 	// Text Rendering
 	TextRenderer* display_text = nullptr;
@@ -56,5 +62,4 @@ struct PlayMode : Mode {
 	float score_text_popup_timer = 0.0f;
 	float score_text_popup_duration = 2.0f;
 	bool score_text_is_showing = false;
-
 };
