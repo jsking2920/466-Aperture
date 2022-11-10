@@ -9,21 +9,22 @@
 Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.data) {
     if (stats.frag_counts.empty()) {
         title = "Pure Emptiness";
-        score_elements.emplace_back("Relatable", 500);
-        score_elements.emplace_back("Deep", 500);
+        score_elements.emplace_back("Relatable", (uint32_t)500);
+        score_elements.emplace_back("Deep", (uint32_t)500);
         return;
     }
 
-    if(stats.creatures_in_frame.empty()) {
+    if (stats.creatures_in_frame.empty()) {
         //TODO: once we add in some points for nature, make this better
         title = "Beautiful Nature";
-        score_elements.emplace_back("So peaceful!", 2000);
+        score_elements.emplace_back("So peaceful!", (uint32_t)2000);
         return;
     }
 
     PictureInfo::CreatureInfo subject_info = stats.creatures_in_frame.front();
 
-    {   //grade subject
+    //grade subject
+    {   
         //Magnificence
         score_elements.emplace_back(subject_info.creature->name, subject_info.creature->score);
         auto result = score_creature(subject_info, stats);
@@ -37,7 +38,7 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
                           auto result = score_creature(creature_info, stats);
                           int total_score = creature_info.creature->score;
                           std::for_each(result.begin(), result.end(), [&](ScoreElement el) { total_score += el.value; });
-                          score_elements.emplace_back("Bonus " + creature_info.creature->transform->name, total_score / 10);
+                          score_elements.emplace_back("Bonus " + creature_info.creature->transform->name, (uint32_t)(total_score / 10));
                       });
     }
 
@@ -50,14 +51,14 @@ std::list<ScoreElement> Picture::score_creature(PictureInfo::CreatureInfo creatu
     {
         //Add points for bigness
         //in the future, could get these params from the creature itself or factor in distance
-        const float max_frag_percent = 1 / 5;
-        const float min_frag_percent = 1 / 20;
+        const float max_frag_percent = 1.0f / 5.0f;
+        const float min_frag_percent = 1.0f / 20.0f;
 
         float fraction = (float)creature_info.frag_count/(float)stats.total_frag_count;
         //stretch 0 to max_percent to be 0.f to 1.f
-        float remapped = std::clamp(fraction / max_frag_percent, 0.f, 1.f);
-        if(remapped > min_frag_percent) {
-            result.emplace_back("Clarity", remapped * 2000);
+        float remapped = std::clamp(fraction / max_frag_percent, 0.0f, 1.0f);
+        if (remapped > min_frag_percent) {
+            result.emplace_back("Clarity", (uint32_t)(remapped * 2000.0f));
         }
     }
 
@@ -67,19 +68,19 @@ std::list<ScoreElement> Picture::score_creature(PictureInfo::CreatureInfo creatu
         int total_fp = (int)creature_info.are_focal_points_in_frame.size();
         int fp_in_frame = (int)std::count(creature_info.are_focal_points_in_frame.begin(), creature_info.are_focal_points_in_frame.end(), [](bool b) { return b; });
 
-        float total = (float)fp_in_frame/(float)total_fp * 2000;
+        float total = (float)fp_in_frame / (float)total_fp * 2000.0f;
         //random salting, could be removed (is this called salting)
-        if(total < 2000) {
-            total += ((float) rand() / (float)RAND_MAX) * 30;
+        if (total < 2000.0f) {
+            total += ((float) rand() / (float)RAND_MAX) * 30.0f;
         }
-        result.emplace_back("Framing", total);
+        result.emplace_back("Framing", (uint32_t)total);
     }
 
     {
         //Add points for angle
         //in the future, change to a multiplier? and also change const params to be per creature
-        const float best_degrees_deviated = 10; //degrees away from the ideal angle for full points, keep in mind it's on a cos scale so not linear
-        const float worst_degrees_deviated = 100; //degrees away from the ideal angle for min points
+        const float best_degrees_deviated = 10.0f; //degrees away from the ideal angle for full points, keep in mind it's on a cos scale so not linear
+        const float worst_degrees_deviated = 100.0f; //degrees away from the ideal angle for min points
 
         glm::vec3 creature_to_player_norm = glm::normalize(-creature_info.player_to_creature);
         //ranges from -1, pointing opposite the correct angle, to 1, pointing directly at the correct angle
@@ -88,7 +89,7 @@ std::list<ScoreElement> Picture::score_creature(PictureInfo::CreatureInfo creatu
         float clamped_dot = std::clamp(dot, std::cos(worst_degrees_deviated), std::cos(best_degrees_deviated));
         //normalized to be between 0 and 1
         float normalized_dot =  (clamped_dot - std::cos(worst_degrees_deviated)) / (std::cos(best_degrees_deviated) - std::cos(worst_degrees_deviated));
-        result.emplace_back("Angle", normalized_dot * 2000);
+        result.emplace_back("Angle", normalized_dot * 2000.0f);
     }
     return result;
 }
