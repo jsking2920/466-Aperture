@@ -32,7 +32,7 @@ void PlayerCamera::TakePicture(Scene &scene) {
     Sound::play(Sound::sample_map->at("CameraClick"));
 
     PictureInfo stats;
-    stats.data = std::make_shared<std::vector<GLfloat>>(3.0f * scene_camera->drawable_size.x * scene_camera->drawable_size.y);
+    stats.data = std::make_shared<std::vector<GLfloat>>(3 * scene_camera->drawable_size.x * scene_camera->drawable_size.y);
     stats.dimensions = scene_camera->drawable_size;
     //stats.data->resize(3 * scene_camera->drawable_size.x * scene_camera->drawable_size.y);
     stats.angle = eulerAngles(player->camera->transform->rotation);
