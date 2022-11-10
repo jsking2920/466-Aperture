@@ -28,7 +28,7 @@ PlayerCamera::~PlayerCamera() {
 
 void PlayerCamera::TakePicture(Scene &scene) {
 
-    Picture::PictureInfo stats;
+    PictureInfo stats;
     stats.data = std::make_shared<std::vector<GLfloat>>(3 * scene_camera->drawable_size.x * scene_camera->drawable_size.y);
     stats.dimensions = scene_camera->drawable_size;
 //    stats.data->resize(3 * scene_camera->drawable_size.x * scene_camera->drawable_size.y);

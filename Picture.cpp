@@ -21,7 +21,7 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
         return;
     }
 
-    PictureInfo::CreatureInfo subject_info = stats.creatures_in_frame.front();
+    CreatureInfo subject_info = stats.creatures_in_frame.front();
 
     //grade subject
     {   
@@ -34,7 +34,7 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
     {
         //Add bonus points for additional subjects
         std::for_each(std::next(stats.creatures_in_frame.begin()), stats.creatures_in_frame.end(),
-                      [&](PictureInfo::CreatureInfo creature_info) {
+                      [&](CreatureInfo creature_info) {
                           auto result = score_creature(creature_info, stats);
                           int total_score = creature_info.creature->score;
                           std::for_each(result.begin(), result.end(), [&](ScoreElement el) { total_score += el.value; });
@@ -46,7 +46,7 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
     title = "Magnificent " + subject_info.creature->transform->name;
 }
 
-std::list<ScoreElement> Picture::score_creature(PictureInfo::CreatureInfo creature_info, PictureInfo stats) {
+std::list<ScoreElement> Picture::score_creature(CreatureInfo creature_info, PictureInfo stats) {
     std::list<ScoreElement> result;
     {
         //Add points for bigness
@@ -66,7 +66,7 @@ std::list<ScoreElement> Picture::score_creature(PictureInfo::CreatureInfo creatu
         //Add points for focal points
         //in the future, could weight focal points or have per-focal point angles
         int total_fp = (int)creature_info.are_focal_points_in_frame.size();
-        int fp_in_frame = (int)std::count(creature_info.are_focal_points_in_frame.begin(), creature_info.are_focal_points_in_frame.end(), [](bool b) { return b; });
+        int fp_in_frame = (int)std::count_if(creature_info.are_focal_points_in_frame.begin(), creature_info.are_focal_points_in_frame.end(), [](bool b) { return b; });
 
         float total = (float)fp_in_frame / (float)total_fp * 2000.0f;
         //random salting, could be removed (is this called salting)
@@ -89,7 +89,7 @@ std::list<ScoreElement> Picture::score_creature(PictureInfo::CreatureInfo creatu
         float clamped_dot = std::clamp(dot, std::cos(worst_degrees_deviated), std::cos(best_degrees_deviated));
         //normalized to be between 0 and 1
         float normalized_dot =  (clamped_dot - std::cos(worst_degrees_deviated)) / (std::cos(best_degrees_deviated) - std::cos(worst_degrees_deviated));
-        result.emplace_back("Angle", normalized_dot * 2000.0f);
+        result.emplace_back("Angle", (uint32_t)(normalized_dot * 2000.0f));
     }
     return result;
 }
