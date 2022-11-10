@@ -90,8 +90,8 @@ std::list<ScoreElement> Picture::score_creature(CreatureInfo &creature_info, Pic
         //ranges from -1, pointing opposite the correct angle, to 1, pointing directly at the correct angle
         float dot = glm::dot(creature_to_player_norm, creature_info.creature->get_best_angle()); //cos theta
         //clamped between min and max values
-        float lo = std::cos( worst_degrees_deviated * M_PI / 180.f);
-        float hi = std::cos(best_degrees_deviated * M_PI / 180.f);
+        float lo = (float)std::cos( worst_degrees_deviated * M_PI / 180.f);
+        float hi = (float)std::cos(best_degrees_deviated * M_PI / 180.f);
         float clamped_dot = std::clamp(dot, lo, hi);
         //normalized to be between 0 and 1
         float normalized_dot =  (clamped_dot - lo) / (hi - lo);
