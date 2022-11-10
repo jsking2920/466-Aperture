@@ -136,6 +136,14 @@ PlayMode::PlayMode() : scene(*main_scene) {
     Creature::creature_map.emplace(std::piecewise_construct, std::make_tuple(id_code), std::make_tuple("Floater", "FLO", 1, 1));
     Creature &creature = Creature::creature_map[id_code];
     creature.init_transforms(scene);
+	id_code = "FLO_02";
+    Creature::creature_map.emplace(std::piecewise_construct, std::make_tuple(id_code), std::make_tuple("Floater", "FLO", 2, 2));
+    creature = Creature::creature_map[id_code];
+    creature.init_transforms(scene);
+	id_code = "FLO_03";
+    Creature::creature_map.emplace(std::piecewise_construct, std::make_tuple(id_code), std::make_tuple("Floater", "FLO", 3, 3));
+    creature = Creature::creature_map[id_code];
+    creature.init_transforms(scene);
 }
 
 PlayMode::~PlayMode() {
