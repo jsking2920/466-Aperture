@@ -46,19 +46,21 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
     title = "Magnificent " + subject_info.creature->transform->name;
 }
 
-std::list<ScoreElement> Picture::score_creature(CreatureInfo creature_info, PictureInfo stats) {
+std::list<ScoreElement> Picture::score_creature(CreatureInfo &creature_info, PictureInfo &stats) {
     std::list<ScoreElement> result;
     {
         //Add points for bigness
         //in the future, could get these params from the creature itself or factor in distance
         const float max_frag_percent = 1.0f / 5.0f;
-        const float min_frag_percent = 1.0f / 20.0f;
+        const float min_frag_percent = 1.0f / 50.0f;
+        const float exponent = 0.7f;
+        const float offset = 300;
 
         float fraction = (float)creature_info.frag_count/(float)stats.total_frag_count;
         //stretch 0 to max_percent to be 0.f to 1.f
-        float remapped = std::clamp(fraction / max_frag_percent, 0.0f, 1.0f);
-        if (remapped > min_frag_percent) {
-            result.emplace_back("Clarity", (uint32_t)(remapped * 2000.0f));
+        float remapped = std::pow(std::clamp(fraction / max_frag_percent, 0.0f, 1.0f), exponent);
+        if (fraction > min_frag_percent && remapped > 0.15f) {
+            result.emplace_back("Prominence", (uint32_t)((remapped * 2000.0f + offset) - offset));
         }
     }
 
@@ -73,7 +75,7 @@ std::list<ScoreElement> Picture::score_creature(CreatureInfo creature_info, Pict
         if (total < 2000.0f) {
             total += ((float) rand() / (float)RAND_MAX) * 30.0f;
         }
-        result.emplace_back("Framing", (uint32_t)total);
+        result.emplace_back("Anatomy", (uint32_t)total);
     }
 
     {

@@ -5,15 +5,11 @@
 std::map< std::string, Creature > Creature::creature_map = std::map< std::string, Creature >();
 
 //add to constructor?
+//could make this faster by doing all creatures at once
 void Creature::init_transforms (Scene &scene) {
     for (auto &draw : scene.drawables) {
         Scene::Transform &trans = *draw.transform;
-        std::string full_code;
-        if(number < 10) {
-            full_code = code + "_0" + std::to_string(number);
-        } else {
-            full_code = code + "_" + std::to_string(number);
-        }
+        std::string full_code = get_code_and_number();
 
         std::cout << trans.name.substr(0, 6) << ", " << full_code << std::endl;
         if (trans.name.substr(0, 6) == full_code) {
@@ -48,5 +44,20 @@ void Creature::init_transforms (Scene &scene) {
 
 glm::vec3 Creature::get_best_angle() const {
     return focal_point->get_front_direction();
+}
+
+std::string Creature::get_code_and_number() const {
+    return Creature::get_code_and_number(code, number);
+}
+
+
+std::string Creature::get_code_and_number(std::string code, int number) {
+    std::string full_code;
+    if(number < 10) {
+        full_code = code + "_0" + std::to_string(number);
+    } else {
+        full_code = code + "_" + std::to_string(number);
+    }
+    return full_code;
 }
 

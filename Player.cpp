@@ -51,7 +51,6 @@ void PlayerCamera::TakePicture(Scene &scene) {
     for (auto &pair : stats.frag_counts) {
         std::string name = pair.first.transform->name;
         std::string code_id = name.substr(0, 6);
-        std::cout << code_id << std::endl;
         if (Creature::creature_map.count(code_id)) {
             creature_set.insert(code_id);
         }
@@ -70,8 +69,8 @@ void PlayerCamera::TakePicture(Scene &scene) {
         //populate frag counts by summing over all labeled parts
         creature_info.frag_count = 0;
         std::for_each(stats.frag_counts.begin(), stats.frag_counts.end(), [&](auto pair) {
-            if(pair.first.transform->name.substr(0, pair.first.transform->name.find('-'))
-                    == creature_info.creature->code + std::to_string(creature_info.creature->ID)) {
+            if(pair.first.transform->name.substr(0, 6)
+                    == creature_info.creature->get_code_and_number()) {
             creature_info.frag_count += pair.second;
             }
         });

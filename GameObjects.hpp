@@ -19,7 +19,7 @@ struct Creature {
     //constructor
     Creature() = default;
     Creature(std::string name_, std::string code_, int ID_, int number_)
-            : name(name_), code(code_), ID(ID_), number(number_) {}
+            : name(name_), code(code_), number(number_) {}
     ~Creature() = default;
 
     //Displaying information to the user --------------------------------------
@@ -34,8 +34,6 @@ struct Creature {
     std::string name = "unnamed";
     //three character code for parsing the creature
     std::string code = "missing code";
-    //the creature ID
-    int ID = 0;
     //which number of creature it is
     int number = 0;
     //have a transform which we can query for position and orientation
@@ -57,6 +55,9 @@ struct Creature {
     //Helper functions:
     //return the best angle in world space
     glm::vec3 get_best_angle() const;
+    std::string get_code_and_number() const;
+    static std::string get_code_and_number(std::string code, int number);
+
 
     private:
     Scene::Transform *focal_point = nullptr;

@@ -46,7 +46,7 @@ struct Picture {
     std::string title; //generate a silly title based on subject of title + adjective?
     std::list<ScoreElement> score_elements;
 
-    std::list<ScoreElement> score_creature(CreatureInfo creature_info, PictureInfo picture_info);
+    std::list<ScoreElement> score_creature(CreatureInfo &creature_info, PictureInfo &picture_info);
     uint32_t get_total_score();
     std::string get_scoring_string();
     void save_picture_png(); // saves picture as a png to dist/album/ (creating folder if needed)
