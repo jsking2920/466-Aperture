@@ -3,7 +3,7 @@
 #include "glm/gtx/string_cast.hpp"
 
 std::map< std::string, Creature > Creature::creature_map = std::map< std::string, Creature >();
-auto Creature::creature_info = std::list< std::vector < std::string > >();
+std::list< std::vector < std::string > > Creature::creature_info = std::list< std::vector < std::string > >();
 
 //add to constructor?
 //could make this faster by doing all creatures at once
