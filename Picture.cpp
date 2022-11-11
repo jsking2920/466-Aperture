@@ -22,7 +22,7 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
         return;
     }
 
-    CreatureInfo subject_info = stats.creatures_in_frame.front();
+    PictureCreatureInfo subject_info = stats.creatures_in_frame.front();
 
     //grade subject
     {   
@@ -35,7 +35,7 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
     {
         //Add bonus points for additional subjects
         std::for_each(std::next(stats.creatures_in_frame.begin()), stats.creatures_in_frame.end(),
-                      [&](CreatureInfo creature_info) {
+                      [&](PictureCreatureInfo creature_info) {
                           auto result = score_creature(creature_info, stats);
                           int total_score = creature_info.creature->score;
                           std::for_each(result.begin(), result.end(), [&](ScoreElement el) { total_score += el.value; });
@@ -47,7 +47,7 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
     title = "Magnificent " + subject_info.creature->transform->name;
 }
 
-std::list<ScoreElement> Picture::score_creature(CreatureInfo &creature_info, PictureInfo &stats) {
+std::list<ScoreElement> Picture::score_creature(PictureCreatureInfo &creature_info, PictureInfo &stats) {
     std::list<ScoreElement> result;
     {
         //Add points for bigness

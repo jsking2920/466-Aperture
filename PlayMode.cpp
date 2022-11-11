@@ -130,18 +130,27 @@ PlayMode::PlayMode() : scene(*main_scene) {
 //    Sound::play(Sound::sample_map->at("CameraClick"));
 
 
-    //Automatically parses Creature csv and puts results in Creature::creature_info
+    //Automatically parses Creature csv and puts results in Creature::creature_stats_map
+    //TODO: make the stats a struct, not a vector of strings (low priority)
     {
+        Creature::creature_stats_map.clear();
         std::ifstream csv ("assets/ApertureNaming - CreatureSheet.csv", std::ifstream::in);
         std::string buffer;
         getline(csv, buffer); //skip label line
         while (getline(csv, buffer)) {
-            Creature::creature_info.emplace_back();
-            std::vector<std::string> &row = Creature::creature_info.back();
+            size_t delimiter_pos = 0;
+            //get code
+            delimiter_pos = buffer.find(',');
+            std::string code = buffer.substr(0, delimiter_pos);
+            buffer.erase(0, delimiter_pos + 1);
+
+            Creature::creature_stats_map.emplace(std::piecewise_construct, make_tuple(code), std::make_tuple());
+            std::vector<std::string> &row = Creature::creature_stats_map[code];
 //            row.reserve(buffer.length);
+            row.push_back(code);
+
             //loop through comma delimited columns
             //from https://stackoverflow.com/questions/14265581/parse-split-a-string-in-c-using-string-delimiter-standard-c
-            size_t delimiter_pos = 0;
             while ((delimiter_pos = buffer.find(',')) != std::string::npos) {
                 row.push_back(buffer.substr(0, delimiter_pos));
                 buffer.erase(0, delimiter_pos + 1);
@@ -152,15 +161,26 @@ PlayMode::PlayMode() : scene(*main_scene) {
         }
     }
 
-	// TODO: 
-	// Load creatures, should eventually loop through codes and/or models
     // using syntax from https://stackoverflow.com/questions/14075128/mapemplace-with-a-custom-value-type
     // if we use things that need references in the future, change make_tuple to forward_as_tuple
     // put in constructor??
-    std::string id_code = "FLO_01";
-    Creature::creature_map.emplace(std::piecewise_construct, std::make_tuple(id_code), std::make_tuple("Floater", "FLO", 1, 1));
-    Creature &creature = Creature::creature_map[id_code];
-    creature.init_transforms(scene);
+    for(Scene::Drawable &draw : scene.drawables) {
+        std::string &name = draw.transform->name;
+        //if stats exist but creature has not been built yet, initialize creature
+        if(Creature::creature_stats_map.count(name.substr(0,3)) && !Creature::creature_map.count(name.substr(0, 6))) {
+            std::string id_code = name.substr(0, 6);
+            Creature::creature_map.emplace(std::piecewise_construct, std::make_tuple(id_code), std::make_tuple(name.substr(0, 3),
+                                                                                                               std::stoi(name.substr(4, 2))));
+
+            //setup
+            Creature &creature = Creature::creature_map[id_code];
+            creature.init_transforms(scene);
+        }
+    }
+//    std::string id_code = "FLO_01";
+//    Creature::creature_map.emplace(std::piecewise_construct, std::make_tuple(id_code), std::make_tuple("FLO", 1));
+//    Creature &creature = Creature::creature_map[id_code];
+//    creature.init_transforms(scene);
 }
 
 PlayMode::~PlayMode() {

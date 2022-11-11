@@ -15,12 +15,11 @@
 struct Creature {
     // Reference to the creatures
     static std::map< std::string, Creature > creature_map;
-    static std::list< std::vector < std::string > > creature_info;
+    static std::map< std::string, std::vector < std::string > > creature_stats_map;
 
     //constructor
     Creature() = default;
-    Creature(std::string name_, std::string code_, int ID_, int number_)
-            : name(name_), code(code_), number(number_) {}
+    Creature(std::string code_, int number_);
     ~Creature() = default;
 
     //Displaying information to the user --------------------------------------
@@ -37,6 +36,7 @@ struct Creature {
     std::string code = "missing code";
     //which number of creature it is
     int number = 0;
+    std::string description = "missing description";
     //have a transform which we can query for position and orientation
     Scene::Transform *transform = nullptr;
     //have a drawable for rendering

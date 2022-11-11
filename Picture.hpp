@@ -11,7 +11,7 @@ struct ScoreElement {
     uint32_t value = 1;
 };
 
-struct CreatureInfo {
+struct PictureCreatureInfo {
 
     Creature* creature;
     float frag_count;
@@ -22,7 +22,7 @@ struct CreatureInfo {
 //data about the picture that is used for scoring
 struct PictureInfo { 
     
-    CreatureInfo creatureInfo;
+    PictureCreatureInfo creatureInfo;
 
     glm::vec2 dimensions;
     std::shared_ptr<std::vector<GLfloat>> data;
@@ -30,7 +30,7 @@ struct PictureInfo {
     glm::vec3 angle;
     uint32_t total_frag_count;
     std::list< std::pair<Scene::Drawable&, GLuint > > frag_counts;
-    std::list< CreatureInfo > creatures_in_frame;
+    std::list< PictureCreatureInfo > creatures_in_frame;
 };
 
 struct Picture {
@@ -46,7 +46,7 @@ struct Picture {
     std::string title; //generate a silly title based on subject of title + adjective?
     std::list<ScoreElement> score_elements;
 
-    std::list<ScoreElement> score_creature(CreatureInfo &creature_info, PictureInfo &picture_info);
+    std::list<ScoreElement> score_creature(PictureCreatureInfo &creature_info, PictureInfo &picture_info);
     uint32_t get_total_score();
     std::string get_scoring_string();
     void save_picture_png(); // saves picture as a png to dist/album/ (creating folder if needed)
