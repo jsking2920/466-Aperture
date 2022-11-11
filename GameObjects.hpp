@@ -15,6 +15,7 @@
 struct Creature {
     // Reference to the creatures
     static std::map< std::string, Creature > creature_map;
+    static std::list< std::vector < std::string > > creature_info;
 
     //constructor
     Creature() = default;

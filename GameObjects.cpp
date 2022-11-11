@@ -3,6 +3,7 @@
 #include "glm/gtx/string_cast.hpp"
 
 std::map< std::string, Creature > Creature::creature_map = std::map< std::string, Creature >();
+auto Creature::creature_info = std::list< std::vector < std::string > >();
 
 //add to constructor?
 //could make this faster by doing all creatures at once
@@ -11,9 +12,9 @@ void Creature::init_transforms (Scene &scene) {
         Scene::Transform &trans = *draw.transform;
         std::string full_code = get_code_and_number();
 
-        std::cout << trans.name.substr(0, 6) << ", " << full_code << std::endl;
+//        std::cout << trans.name.substr(0, 6) << ", " << full_code << std::endl;
         if (trans.name.substr(0, 6) == full_code) {
-            std::cout << trans.name.substr(6) <<std::endl;
+//            std::cout << trans.name.substr(6) <<std::endl;
             if (trans.name.length() == 6) {
                 transform = &trans;
                 drawable = &draw;

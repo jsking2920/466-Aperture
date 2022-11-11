@@ -13,6 +13,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <filesystem>
+#include <fstream>
 
 #include <random>
 
@@ -93,6 +94,7 @@ Load< std::map<std::string, Sound::Sample> > audio_samples(LoadTagDefault, []() 
     return sample_map;
 });
 
+
 PlayMode::PlayMode() : scene(*main_scene) {
 	
     // Change depth buffer comparison function to be leq instead of less to correctly occlude in object detection
@@ -126,6 +128,29 @@ PlayMode::PlayMode() : scene(*main_scene) {
     Sound::sample_map = &sample_map;
     //example access
 //    Sound::play(Sound::sample_map->at("CameraClick"));
+
+
+    //Automatically parses Creature csv and puts results in Creature::creature_info
+    {
+        std::ifstream csv ("assets/ApertureNaming - CreatureSheet.csv", std::ifstream::in);
+        std::string buffer;
+        getline(csv, buffer); //skip label line
+        while (getline(csv, buffer)) {
+            Creature::creature_info.emplace_back();
+            std::vector<std::string> &row = Creature::creature_info.back();
+//            row.reserve(buffer.length);
+            //loop through comma delimited columns
+            //from https://stackoverflow.com/questions/14265581/parse-split-a-string-in-c-using-string-delimiter-standard-c
+            size_t delimiter_pos = 0;
+            while ((delimiter_pos = buffer.find(',')) != std::string::npos) {
+                row.push_back(buffer.substr(0, delimiter_pos));
+                buffer.erase(0, delimiter_pos + 1);
+            }
+            //run once for last column, not delimited by comma
+            row.push_back(buffer.substr(0, delimiter_pos));
+            buffer.erase(0, delimiter_pos + 1);
+        }
+    }
 
 	// TODO: 
 	// Load creatures, should eventually loop through codes and/or models
