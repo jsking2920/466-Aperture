@@ -18,6 +18,7 @@ Creature::Creature(std::string code_, int number_) : code(code_), number(number_
 
 //add to constructor?
 //could make this faster by doing all creatures at once
+//deprecated
 void Creature::init_transforms (Scene &scene) {
     for (auto &draw : scene.drawables) {
         Scene::Transform &trans = *draw.transform;

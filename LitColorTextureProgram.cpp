@@ -46,7 +46,7 @@ Load< LitColorTextureProgram > lit_color_texture_program(LoadTagEarly, []() -> L
 });
 
 LitColorTextureProgram::LitColorTextureProgram() {
-
+    //forward lighting shader based on https://github.com/15-466/15-466-f19-base6/blob/master/BasicMaterialForwardProgram.cpp
     //shader with no vertex color
     program = gl_compile_program(
             //vertex shader:
@@ -73,47 +73,78 @@ LitColorTextureProgram::LitColorTextureProgram() {
             //fragment shader:
             "#version 330\n"
             "uniform sampler2D TEX;\n"
-            "uniform int LIGHT_TYPE;\n"
-            "uniform vec3 LIGHT_LOCATION;\n"
-            "uniform vec3 LIGHT_DIRECTION;\n"
-            "uniform vec3 LIGHT_ENERGY;\n"
-            "uniform float LIGHT_CUTOFF;\n"
+            "uniform float ROUGHNESS;\n"
+            "uniform uint LIGHTS;\n"
+            "uniform int LIGHT_TYPE[" + std::to_string(MaxLights) + "];\n"
+            "uniform vec3 LIGHT_LOCATION[" + std::to_string(MaxLights) + "];\n"
+            "uniform vec3 LIGHT_DIRECTION[" + std::to_string(MaxLights) + "];\n"
+            "uniform vec3 LIGHT_ENERGY[" + std::to_string(MaxLights) + "];\n"
+            "uniform float LIGHT_CUTOFF[" + std::to_string(MaxLights) + "];\n"
             "uniform bool USES_VERTEX_COLOR;\n"
+            "uniform vec3 EYE;\n"
             "in vec3 position;\n"
             "in vec3 normal;\n"
             "in vec4 color;\n"
             "in vec2 texCoord;\n"
             "out vec4 fragColor;\n"
             "void main() {\n"
+            "	float shininess = pow(1024.0, 1.0 - ROUGHNESS);\n"
+            "	vec4 albedo;\n"
+            "	vec3 v = normalize(EYE - position);\n"
+            "	vec3 total = vec3(0.0f); //total light output\n"
             "	vec3 n = normalize(normal);\n"
             "	vec3 e;\n"
-            "	if (LIGHT_TYPE == 0) { //point light \n"
-            "		vec3 l = (LIGHT_LOCATION - position);\n"
-            "		float dis2 = dot(l,l);\n"
-            "		l = normalize(l);\n"
-            "		float nl = max(0.0, dot(n, l)) / max(1.0, dis2);\n"
-            "		e = nl * LIGHT_ENERGY;\n"
-            "	} else if (LIGHT_TYPE == 1) { //hemi light \n"
-            "		e = (dot(n,-LIGHT_DIRECTION) * 0.5 + 0.5) * LIGHT_ENERGY;\n"
-            "	} else if (LIGHT_TYPE == 2) { //spot light \n"
-            "		vec3 l = (LIGHT_LOCATION - position);\n"
-            "		float dis2 = dot(l,l);\n"
-            "		l = normalize(l);\n"
-            "		float nl = max(0.0, dot(n, l)) / max(1.0, dis2);\n"
-            "		float c = dot(l,-LIGHT_DIRECTION);\n"
-            "		nl *= smoothstep(LIGHT_CUTOFF,mix(LIGHT_CUTOFF,1.0,0.1), c);\n"
-            "		e = nl * LIGHT_ENERGY;\n"
-            "	} else { //(LIGHT_TYPE == 3) //directional light \n"
-            "		e = max(0.0, dot(n,-LIGHT_DIRECTION)) * LIGHT_ENERGY;\n"
-            "	}\n"
-            "   vec4 albedo;\n"
+            "   float counter = 0.;\n"
             "   if (USES_VERTEX_COLOR) {\n"
             "       albedo = texture(TEX, texCoord) * color;\n"
             "   } else {\n"
             "       albedo = texture(TEX, texCoord);\n"
             "   }\n"
             "   if (albedo.a < 0.5) discard;\n"
-            "	fragColor = vec4(e*albedo.rgb, albedo.a);\n"
+            "	for (uint light = 0u; light < LIGHTS; ++light) {\n"
+            "       counter += 1;\n"
+            "		int TYPE = LIGHT_TYPE[light];\n"
+            "		vec3 LOCATION = LIGHT_LOCATION[light];\n"
+            "		vec3 DIRECTION = LIGHT_DIRECTION[light];\n"
+            "		vec3 ENERGY = LIGHT_ENERGY[light];\n"
+            "		float CUTOFF = LIGHT_CUTOFF[light];\n"
+            "		vec3 l; //direction to light\n"
+            "		vec3 h; //half-vector\n"
+            "		vec3 e; //light flux\n"
+            "		if (TYPE == 0) { //point light \n"
+            "			l = (LOCATION - position);\n"
+            "			float dis2 = dot(l,l);\n"
+            "			l = normalize(l);\n"
+            "			h = normalize(l+v);\n"
+            "			float nl = max(0.0, dot(n, l)) / max(1.0, dis2);\n"
+            "			e = nl * ENERGY;\n"
+            "		} else if (TYPE == 1) { //hemi light \n"
+            "			l = -DIRECTION;\n"
+            "			h = vec3(0.0); //no specular from hemi for now\n"
+            "			e = (dot(n,l) * 0.5 + 0.5) * ENERGY;\n"
+            "		} else if (TYPE == 2) { //spot light \n"
+            "			l = (LOCATION - position);\n"
+            "			float dis2 = dot(l,l);\n"
+            "			l = normalize(l);\n"
+            "			h = normalize(l+v);\n"
+            "			float nl = max(0.0, dot(n, l)) / max(1.0, dis2);\n"
+            "			float c = dot(l,-DIRECTION);\n"
+            "			nl *= smoothstep(CUTOFF,mix(CUTOFF,1.0,0.1), c);\n"
+            "			e = nl * ENERGY;\n"
+            "		} else { //(TYPE == 3) //directional light \n"
+            "			l = -DIRECTION;\n"
+            "			h = normalize(l+v);\n"
+            "			e = max(0.0, dot(n,l)) * ENERGY;\n"
+            "		}\n"
+            "		vec3 reflectance =\n"
+            "			albedo.rgb / 3.1415926 //Lambertian Diffuse\n"
+            "			+ pow(max(0.0, dot(n, h)), shininess) //Blinn-Phong Specular\n"
+            "			  * (shininess + 2.0) / (8.0) //normalization factor\n"
+            "			  * mix(0.04, 1.0, pow(1.0 - max(0.0, dot(h, v)), 5.0)) //Schlick's approximation for Fresnel reflectance\n"
+            "		;\n"
+            "		total += e*reflectance;\n"
+            "	}\n"
+            "	fragColor = vec4(total, albedo.a);\n"
             "}\n"
     );
 
@@ -131,11 +162,15 @@ LitColorTextureProgram::LitColorTextureProgram() {
 	OBJECT_TO_LIGHT_mat4x3 = glGetUniformLocation(program, "OBJECT_TO_LIGHT");
 	NORMAL_TO_LIGHT_mat3 = glGetUniformLocation(program, "NORMAL_TO_LIGHT");
 
-	LIGHT_TYPE_int = glGetUniformLocation(program, "LIGHT_TYPE");
-	LIGHT_LOCATION_vec3 = glGetUniformLocation(program, "LIGHT_LOCATION");
-	LIGHT_DIRECTION_vec3 = glGetUniformLocation(program, "LIGHT_DIRECTION");
-	LIGHT_ENERGY_vec3 = glGetUniformLocation(program, "LIGHT_ENERGY");
-	LIGHT_CUTOFF_float = glGetUniformLocation(program, "LIGHT_CUTOFF");
+    ROUGHNESS_float = glGetUniformLocation(program, "ROUGHNESS");
+    EYE_vec3 = glGetUniformLocation(program, "EYE");
+    LIGHTS_uint = glGetUniformLocation(program, "LIGHTS");
+
+	LIGHT_TYPE_int_array = glGetUniformLocation(program, "LIGHT_TYPE");
+	LIGHT_LOCATION_vec3_array = glGetUniformLocation(program, "LIGHT_LOCATION");
+	LIGHT_DIRECTION_vec3_array = glGetUniformLocation(program, "LIGHT_DIRECTION");
+	LIGHT_ENERGY_vec3_array = glGetUniformLocation(program, "LIGHT_ENERGY");
+	LIGHT_CUTOFF_float_array = glGetUniformLocation(program, "LIGHT_CUTOFF");
 
     USES_VERTEX_COLOR_bool = glGetUniformLocation(program, "USES_VERTEX_COLOR");
 

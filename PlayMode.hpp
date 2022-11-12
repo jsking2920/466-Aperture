@@ -51,6 +51,9 @@ struct PlayMode : Mode {
 	glm::vec3 day_sky_color = glm::vec3(0.5f, 1.0f, 1.0f);
 	glm::vec3 night_sky_color = glm::vec3(0.f, 0.02f, 0.1f);
 	glm::vec3 sunset_sky_color = glm::vec3(0.5f, 0.3f, 0.1f);
+    glm::vec3 day_ambient_color = glm::vec3(1.0f, 1.0f, 1.0f);
+    glm::vec3 night_ambient_color = glm::vec3(0.1f, 0.1f, 0.3f);
+    glm::vec3 sunset_ambient_color = glm::vec3(0.9f, 0.6f, 0.4f);
 
 	// Text Rendering
 	TextRenderer* display_text = nullptr;

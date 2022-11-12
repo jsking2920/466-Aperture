@@ -12,8 +12,10 @@
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <glm/detail/type_mat4x4.hpp>
 #include <filesystem>
 #include <fstream>
+#include <algorithm>
 
 #include <random>
 
@@ -37,6 +39,15 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
         drawable.pipeline.type = mesh.type;
         drawable.pipeline.start = mesh.start;
         drawable.pipeline.count = mesh.count;
+
+        //set roughnesses, possibly should be from csv??
+        float roughness = 1.0f;
+//        if (transform->name.substr(0, 9) == "Icosphere") {
+//            roughness = (transform->position.y + 10.0f) / 18.0f;
+//        }
+        drawable.pipeline.set_uniforms = [drawable, roughness](){
+            glUniform1f(lit_color_texture_program->ROUGHNESS_float, roughness);
+        };
 
         GLuint tex;
         glGenTextures(1, &tex);
@@ -294,7 +305,7 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 
 void PlayMode::update(float elapsed) {
 
-	time_of_day += elapsed;
+	time_of_day += elapsed * 4;
 	if (time_of_day > day_length) {
 		// TODO: handle end of day stuff
 		time_of_day = 0.0f;
@@ -363,21 +374,50 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		player->player_camera->scene_camera->drawable_size = drawable_size;
 	}
 
-	// Handle scene lighting
+    //set active camera
+    Scene::Camera *active_camera;
+    if (player->in_cam_view) {
+        active_camera = player->player_camera->scene_camera;
+    }
+    else {
+        active_camera = player->camera;
+    }
+
+	// Handle scene lighting, forward lighting based on https://github.com/15-466/15-466-f19-base6/blob/master/DemoLightingForwardMode.cpp
 	{
-		// Set up sky lighting uniforms for lit_color_texture_program:
-		glUseProgram(lit_color_texture_program->program);
-		glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 1); // hemisphere light
+        glm::vec3 eye = active_camera->transform->make_local_to_world()[3];
+
+        //compute light uniforms:
+        GLsizei lights = uint32_t(scene.lights.size() + 2);
+        //clamp lights to maximum lights allowed by shader:
+        lights = std::min< uint32_t >(lights, LitColorTextureProgram::MaxLights);
+
+        //lighting information vectors
+        std::vector< int32_t > light_type; light_type.reserve(lights);
+        std::vector< glm::vec3 > light_location; light_location.reserve(lights);
+        std::vector< glm::vec3 > light_direction; light_direction.reserve(lights);
+        std::vector< glm::vec3 > light_energy; light_energy.reserve(lights);
+        std::vector< float > light_cutoff; light_cutoff.reserve(lights);
+
+        //hemisphere light is 1
+        light_type.emplace_back(1);
+        light_cutoff.emplace_back(1.0f);
+        light_location.emplace_back(glm::vec3(0, 0, 100));
+        //sun/moon is 2
+        light_type.emplace_back(3);
+        light_cutoff.emplace_back(1.0f);
+        light_location.emplace_back(glm::vec3(0, 0, 100));
+
 
 		// calculate brightness of sun/moon based in time of day
-        //TODO: make this better! Add ambient light to simulate indirect light & prevent it from being all dark ever
         //Fix "jump" at day/night switch over, by letting brightnesses reach zero and turning up ambient lighting
         //Maybe displace sunset and sunrise to be more during the daytime so that sun angles make more sense during sunrise/set
         //make sunrise less orange probably
         glm::vec3 sky_color;
+        glm::vec3 ambient_color;
 		float brightness;
-        glm::vec3 light_angle;
-		glm::vec3 light_color;
+        glm::vec3 sun_angle;
+		glm::vec3 sun_color;
 		if (time_of_day >= sunrise && time_of_day <= sunset) { // daytime lighting
 			// sinusoidal curve that goes from 0 at sun rise to 1 at the midpoint between sun rise and set to 0 at sun set
 			brightness = std::sin(((time_of_day - sunrise) / (sunset - sunrise)) * float(M_PI));
@@ -385,31 +425,82 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			brightness *= 1.3f;
             float color_sin = std::clamp(brightness, 0.0f, 1.0f);
 			// lerp brightness value from 0.15 to 1.5 so that it's never completely dark
-			brightness = ((1.0f - brightness) * 0.15f) + brightness;
+//			brightness = brightness;
 			// clamp brightness to [0.1f, 1.0f], which creates a "plateau" in the curve at midday
 			brightness = brightness > 1.0f ? 1.0f : brightness;
 
-			light_color = glm::vec3(1.0f, 1.0f, 0.95f); // slightly warm light (less blue)
-            light_angle = glm::vec3( 0, -std::cos(((time_of_day - sunrise) / (sunset - sunrise)) * float(M_PI)) / std::sqrt(2),
+            sun_color = glm::vec3(1.0f, 1.0f, 0.95f); // slightly warm light (less blue)
+            sun_angle = glm::vec3(0, -std::cos(((time_of_day - sunrise) / (sunset - sunrise)) * float(M_PI)) / std::sqrt(2),
                                    -std::sin(((time_of_day - sunrise) / (sunset - sunrise)) * float(M_PI)) / std::sqrt(2));
             sky_color = day_sky_color * color_sin + sunset_sky_color * std::pow( 1 - color_sin, 3.f );
+            ambient_color = day_ambient_color * color_sin + sunset_ambient_color * std::pow( 1 - color_sin, 3.f );
 		}
 		else { // nighttime lighting
 			float unwrapped_time = time_of_day < sunset ? day_length + time_of_day : time_of_day; // handle timer wrapping aorund to 0
 			// sinusoidal curve that goes from 0 at sun set to 1 at the midpoint between sun set and rise to 0 at sun rise
 			float sin = std::sin(((unwrapped_time - sunset) / (sunrise + (day_length - sunset))) * float(M_PI));
 			// lerp brightness value from 0.15 to 0.4 so that it's never completely dark but also never quite as bright as day
-			brightness = ((1.0f - sin) * 0.15f) + (sin * 0.4f);
-			light_color = glm::vec3(0.975f, 0.975f, 1.0f); // slightly cool light (more blue) that is also dimmer
-            light_angle = glm::vec3( 0, -std::cos(((unwrapped_time - sunset) / (sunrise + (day_length - sunset))) * float(M_PI)) / std::sqrt(2),
+			brightness = (sin * 0.8f);
+            sun_color = glm::vec3(0.975f, 0.975f, 1.0f); // slightly cool light (more blue) that is also dimmer
+            sun_angle = glm::vec3(0, -std::cos(((unwrapped_time - sunset) / (sunrise + (day_length - sunset))) * float(M_PI)) / std::sqrt(2),
                                      -std::sin(((unwrapped_time - sunset) / (sunrise + (day_length - sunset))) * float(M_PI)) / std::sqrt(2));
             sky_color = night_sky_color * sin + sunset_sky_color * std::pow( 1 - sin, 3.f );
+            ambient_color = night_ambient_color * sin + sunset_ambient_color * std::pow( 1 - sin, 2.f );
 		}
-		light_color *= brightness;
+        sun_color *= brightness;
 
-        glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(light_angle));
-		glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(light_color));
-		glUseProgram(0);
+        //push calculated sky lighting uniforms
+        light_direction.emplace_back(glm::vec3(0, 0, -1.f));
+        light_energy.emplace_back(ambient_color);
+        //push calculated sun lighting uniforms
+        light_direction.emplace_back(sun_angle);
+        light_energy.emplace_back(sun_color);
+
+        //other lights setup
+        for (auto const &light : scene.lights) {
+            //only one hemisphere & directional light is allowed! otherwise they won't get added
+            if(light.type == Scene::Light::Hemisphere || light.type == Scene::Light::Directional) {
+                continue;
+            }
+
+            glm::mat4 light_to_world = light.transform->make_local_to_world();
+            //set up lighting information for this light:
+            light_location.emplace_back(glm::vec3(light_to_world[3]));
+            light_direction.emplace_back(glm::vec3(-light_to_world[2]));
+            light_energy.emplace_back(light.energy);
+
+            if (light.type == Scene::Light::Point) {
+                light_type.emplace_back(0);
+                light_cutoff.emplace_back(1.0f);
+            } else if (light.type == Scene::Light::Spot) {
+                light_type.emplace_back(2);
+                light_cutoff.emplace_back(std::cos(0.5f * light.spot_fov));
+            }
+
+            //skip remaining lights if maximum light count reached:
+            if (light_type.size() == lights) break;
+        }
+
+        GL_ERRORS();
+
+
+        // Set up sky lighting uniforms for lit_color_texture_program:
+        glUseProgram(lit_color_texture_program->program);
+
+        //getting warnings about narrowing conversions, if doesn't compile on windows this is probably why
+        //to solve, cast all the locations to GLint
+        glUniform3fv(lit_color_texture_program->EYE_vec3, 1, glm::value_ptr(eye));
+
+        glUniform1ui(lit_color_texture_program->LIGHTS_uint, (GLuint) lights);
+
+        glUniform1iv(lit_color_texture_program->LIGHT_TYPE_int_array, lights, light_type.data());
+        glUniform3fv(lit_color_texture_program->LIGHT_LOCATION_vec3_array, lights, glm::value_ptr(light_location[0]));
+        glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3_array, lights, glm::value_ptr(light_direction[0]));
+        glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3_array, lights, glm::value_ptr(light_energy[0]));
+        glUniform1fv(lit_color_texture_program->LIGHT_CUTOFF_float_array, lights, light_cutoff.data());
+        glUseProgram(0);
+
+
 
 		// Set "sky" (clear color)
 		glClearColor(sky_color.x, sky_color.y, sky_color.z, 1.0f);
@@ -435,12 +526,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		// glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		// Draw based on active camera (Player's "eyes" or their PlayerCamera)
-		if (player->in_cam_view) {
-			scene.draw(*player->player_camera->scene_camera);
-		}
-		else {
-			scene.draw(*player->camera);
-		}
+		scene.draw(*active_camera);
 	}
 
 	// Debugging code
