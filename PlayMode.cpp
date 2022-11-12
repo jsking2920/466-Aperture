@@ -165,22 +165,35 @@ PlayMode::PlayMode() : scene(*main_scene) {
     // if we use things that need references in the future, change make_tuple to forward_as_tuple
     // put in constructor??
     for(Scene::Drawable &draw : scene.drawables) {
-        std::string &name = draw.transform->name;
+        Scene::Transform &trans = *draw.transform;
+        std::string &name = trans.name;
+        std::string id_code = name.substr(0, 6);
         //if stats exist but creature has not been built yet, initialize creature
-        if(Creature::creature_stats_map.count(name.substr(0,3)) && !Creature::creature_map.count(name.substr(0, 6))) {
-            std::string id_code = name.substr(0, 6);
+        if(Creature::creature_stats_map.count(name.substr(0,3)) && !Creature::creature_map.count(id_code)) {
             Creature::creature_map.emplace(std::piecewise_construct, std::make_tuple(id_code), std::make_tuple(name.substr(0, 3),
                                                                                                                std::stoi(name.substr(4, 2))));
-
-            //setup
+        }
+        //if creature already exists, set up
+        if(Creature::creature_map.count(id_code)) {
             Creature &creature = Creature::creature_map[id_code];
-            creature.init_transforms(scene);
+            if (trans.name == id_code) {
+                creature.transform = &trans;
+                creature.drawable = &draw;
+            }
+
+            if (trans.name.length() >= 10 && trans.name.substr(7, 3) == "foc") {
+                if (trans.name.substr(7, 6) == "foc_00") {
+                    creature.focal_point = &trans;
+                    std::cout << "found primary focal point:" << trans.name << std::endl;
+                } else {
+                    std::cout << "found extra focal point:" << trans.name << std::endl;
+                }
+                creature.focal_points.push_back(&draw);
+                draw.render_to_screen = false;
+                draw.render_to_picture = false;
+            }
         }
     }
-//    std::string id_code = "FLO_01";
-//    Creature::creature_map.emplace(std::piecewise_construct, std::make_tuple(id_code), std::make_tuple("FLO", 1));
-//    Creature &creature = Creature::creature_map[id_code];
-//    creature.init_transforms(scene);
 }
 
 PlayMode::~PlayMode() {

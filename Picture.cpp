@@ -44,7 +44,7 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
     }
 
     //TODO: make name unique for file saving purposes
-    title = "Magnificent " + subject_info.creature->transform->name;
+    title = "Magnificent " + subject_info.creature->name;
 }
 
 std::list<ScoreElement> Picture::score_creature(PictureCreatureInfo &creature_info, PictureInfo &stats) {

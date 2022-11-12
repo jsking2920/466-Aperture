@@ -59,8 +59,6 @@ struct Creature {
     std::string get_code_and_number() const;
     static std::string get_code_and_number(std::string code, int number);
 
-
-    private:
     Scene::Transform *focal_point = nullptr;
 
 
