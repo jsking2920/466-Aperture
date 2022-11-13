@@ -42,12 +42,12 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 
         //set roughnesses, possibly should be from csv??
         float roughness = 1.0f;
-//        if (transform->name.substr(0, 9) == "Icosphere") {
-//            roughness = (transform->position.y + 10.0f) / 18.0f;
-//        }
-        drawable.pipeline.set_uniforms = [drawable, roughness](){
-            glUniform1f(lit_color_texture_program->ROUGHNESS_float, roughness);
-        };
+		//if (transform->name.substr(0, 9) == "Icosphere") {
+			//roughness = (transform->position.y + 10.0f) / 18.0f;
+		//}
+        drawable.pipeline.set_uniforms = [drawable, roughness]() {
+			glUniform1f(lit_color_texture_program->ROUGHNESS_float, roughness);
+		};
 
         GLuint tex;
         glGenTextures(1, &tex);
@@ -136,10 +136,7 @@ PlayMode::PlayMode() : scene(*main_scene) {
 
     //load audio samples
     sample_map = *audio_samples;
-    Sound::sample_map = &sample_map;
-    //example access
-//    Sound::play(Sound::sample_map->at("CameraClick"));
-
+    Sound::sample_map = &sample_map; // example access--> Sound::play(Sound::sample_map->at("CameraClick"));
 
     //Automatically parses Creature csv and puts results in Creature::creature_stats_map
     //TODO: make the stats a struct, not a vector of strings (low priority)
@@ -180,12 +177,14 @@ PlayMode::PlayMode() : scene(*main_scene) {
         std::string &name = trans.name;
         std::string id_code = name.substr(0, 6);
         //if stats exist but creature has not been built yet, initialize creature
-        if(Creature::creature_stats_map.count(name.substr(0,3)) && !Creature::creature_map.count(id_code)) {
-            Creature::creature_map.emplace(std::piecewise_construct, std::make_tuple(id_code), std::make_tuple(name.substr(0, 3),
-                                                                                                               std::stoi(name.substr(4, 2))));
+        if (Creature::creature_stats_map.count(name.substr(0,3)) && !Creature::creature_map.count(id_code)) {
+            Creature::creature_map.emplace(std::piecewise_construct, 
+				                           std::make_tuple(id_code), 
+				                           std::make_tuple(name.substr(0, 3),
+										   std::stoi(name.substr(4, 2))));
         }
         //if creature already exists, set up
-        if(Creature::creature_map.count(id_code)) {
+        if (Creature::creature_map.count(id_code)) {
             Creature &creature = Creature::creature_map[id_code];
             if (trans.name == id_code) {
                 creature.transform = &trans;
@@ -425,7 +424,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			brightness *= 1.3f;
             float color_sin = std::clamp(brightness, 0.0f, 1.0f);
 			// lerp brightness value from 0.15 to 1.5 so that it's never completely dark
-//			brightness = brightness;
+			//brightness = ((1.0f - brightness) * 0.15f) + brightness;
 			// clamp brightness to [0.1f, 1.0f], which creates a "plateau" in the curve at midday
 			brightness = brightness > 1.0f ? 1.0f : brightness;
 
@@ -459,7 +458,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         //other lights setup
         for (auto const &light : scene.lights) {
             //only one hemisphere & directional light is allowed! otherwise they won't get added
-            if(light.type == Scene::Light::Hemisphere || light.type == Scene::Light::Directional) {
+            if (light.type == Scene::Light::Hemisphere || light.type == Scene::Light::Directional) {
                 continue;
             }
 
@@ -500,8 +499,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         glUniform1fv(lit_color_texture_program->LIGHT_CUTOFF_float_array, lights, light_cutoff.data());
         glUseProgram(0);
 
-
-
 		// Set "sky" (clear color)
 		glClearColor(sky_color.x, sky_color.y, sky_color.z, 1.0f);
 	}
@@ -521,7 +518,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		glEnable(GL_DEPTH_TEST); // enable depth testing
 		glDepthFunc(GL_LEQUAL); // set criteria for depth test
 
-		// TODO: implement blending, currently doesn't work because objects are being rendered in arbitrary order
+		// TODO: implement blending, currently doesn't work because objects are being rendered in arbitrary order (maybe?)
 		// glEnable(GL_BLEND);
 		// glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
