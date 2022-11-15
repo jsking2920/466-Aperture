@@ -238,3 +238,8 @@ std::string TextRenderer::format_time_of_day(float seconds, float length_of_day)
 
     return hours + ":" + minutes + am_pm;
 }
+
+std::string TextRenderer::format_percentage(float decimal_val) {
+
+    return std::to_string(int(decimal_val * 100.0f)) + "%";
+}

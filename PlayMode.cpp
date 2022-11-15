@@ -333,8 +333,8 @@ void PlayMode::update(float elapsed) {
 		if (rmb.downs == 1) {
 			player->in_cam_view = !player->in_cam_view;
 		}
-		// Snap a pic on left click, if in camera view
-		if (player->in_cam_view && lmb.downs == 1) {
+		// Snap a pic on left click, if in camera view and has remaining battery
+		if (player->in_cam_view && lmb.downs == 1 && player->player_camera->cur_battery > 0) {
 			player->player_camera->TakePicture(scene);
 			score_text_is_showing = true;
 			score_text_popup_timer = 0.0f;
@@ -598,13 +598,17 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			uint8_t zoom = (uint8_t)(std::round(player->player_camera->cur_zoom * 10.0f));
 			display_text->draw("x" + std::to_string(zoom / 10) + "." + std::to_string(zoom % 10), ((2.0f / 3.0f) - 0.04f) * float(drawable_size.x), ((1.0f / 3.0f) - 0.05f) * float(drawable_size.y), 0.5f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 
+			// Battery readout
+			float battery = (float) player->player_camera->cur_battery / (float) player->player_camera->max_battery;
+			display_text->draw("Battery: " + TextRenderer::format_percentage(battery), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+
 			// Creature in frame text
 			// TODO: implement this feature (need to check for creatures each frame)
 			barcode_text->draw("FLOATER", (1.0f / 3.0f) * float(drawable_size.x), ((1.0f / 3.0f) - 0.05f) * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));	
 		}
 		else {
 			// Draw clock
-			display_text->draw(display_text->format_time_of_day(time_of_day, day_length), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+			display_text->draw(TextRenderer::format_time_of_day(time_of_day, day_length), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 		}
 
 		if (score_text_is_showing) {

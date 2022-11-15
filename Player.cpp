@@ -101,6 +101,8 @@ void PlayerCamera::TakePicture(Scene &scene) {
 
 	// TODO: move save picture out of here to make it user-prompted
     picture.save_picture_png();
+
+	cur_battery -= 1;
 }
 
 void PlayerCamera::AdjustZoom(float diff) {

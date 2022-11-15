@@ -24,6 +24,10 @@ struct PlayerCamera {
 	float cur_zoom = 1.0f;
 	float min_zoom = 0.5f;
 	float max_zoom = 3.0f; 
+	
+	// Measured in number of possible pictures that can be taken, displayed as a percentage
+	uint8_t cur_battery = 10;
+	uint8_t max_battery = 10;
 
 	void TakePicture(Scene &scene); // Adds picture to player.pictures
 	void AdjustZoom(float diff);
