@@ -238,6 +238,10 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			lctrl.downs += 1;
 			lctrl.pressed = true;
 		}
+		else if (evt.key.keysym.sym == SDLK_TAB) {
+			tab.downs += 1;
+			tab.pressed = true;
+		}
 	} else if (evt.type == SDL_KEYUP) {
 		if (evt.key.keysym.sym == SDLK_a) {
 			left.pressed = false;
@@ -254,6 +258,9 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 		}
 		else if (evt.key.keysym.sym == SDLK_LCTRL) {
 			lctrl.pressed = false;
+		}
+		else if (evt.key.keysym.sym == SDLK_TAB) {
+			tab.pressed = false;
 		}
 	} else if (evt.type == SDL_MOUSEBUTTONDOWN) {
 		if (SDL_GetRelativeMouseMode() == SDL_FALSE) {
@@ -351,6 +358,9 @@ void PlayMode::update(float elapsed) {
 				score_text_popup_timer += elapsed;
 			}
 		}
+		if (tab.downs == 1) {
+			// go into journal view
+		}
 	}
 	
 	//reset button press counters:
@@ -361,6 +371,7 @@ void PlayMode::update(float elapsed) {
 	lmb.downs = 0;
 	rmb.downs = 0;
 	lctrl.downs = 0;
+	tab.downs = 0;
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
@@ -600,7 +611,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 			// Battery readout
 			float battery = (float) player->player_camera->cur_battery / (float) player->player_camera->max_battery;
-			display_text->draw("Battery: " + TextRenderer::format_percentage(battery), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+			display_text->draw("Battery: " + TextRenderer::format_percentage(battery), 0.025f * float(drawable_size.x), 0.925f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 
 			// Creature in frame text
 			// TODO: implement this feature (need to check for creatures each frame)
