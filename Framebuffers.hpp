@@ -8,7 +8,7 @@
 struct Framebuffers {
 
     // Called to trigger (re-)allocation on window size change
-    void realloc(glm::uvec2 const &drawable_size); 
+    void realloc(const glm::uvec2 &drawable_size, const glm::uvec2 &new_shadow_size);
 
     // Current size of framebuffer attachments
     glm::uvec2 size = glm::uvec2(0,0);
@@ -26,6 +26,12 @@ struct Framebuffers {
     // Objects for the "bloom" effect
     GLuint blur_x_tex = 0; //GL_RGB16F color texture for first pass of blur
     GLuint blur_x_fb = 0; // color0: blur_x_tex
+
+    //This framebuffer is used for shadow maps, from https://github.com/ixchow/15-466-f18-base3
+    glm::uvec2 shadow_size = glm::uvec2(0,0);
+    GLuint shadow_color_tex = 0; //DEBUG
+    GLuint shadow_depth_tex = 0;
+    GLuint shadow_fb = 0;
 
     void tone_map(); //copy ms_color_tex to screen with tone mapping applied
     void add_bloom(); //do a basic bloom effect on the screen_texture

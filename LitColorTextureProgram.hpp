@@ -21,6 +21,7 @@ struct LitColorTextureProgram {
 	GLuint OBJECT_TO_CLIP_mat4 = -1U;
 	GLuint OBJECT_TO_LIGHT_mat4x3 = -1U;
 	GLuint NORMAL_TO_LIGHT_mat3 = -1U;
+    GLuint LIGHT_TO_SPOT_mat4 = -1U;
 
 	//lighting: based on https://github.com/15-466/15-466-f19-base6/blob/master/BasicMaterialForwardProgram.hpp
     GLuint EYE_vec3 = -1U; //camera position in lighting space
@@ -37,6 +38,8 @@ struct LitColorTextureProgram {
 	
 	//Textures:
 	//TEXTURE0 - texture that is accessed by TexCoord
+    //TEXTURE1 - depth texture
+
     GLuint USES_VERTEX_COLOR_bool = -1U;
 };
 

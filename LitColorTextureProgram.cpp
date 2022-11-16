@@ -14,6 +14,7 @@ Load< LitColorTextureProgram > lit_color_texture_program(LoadTagEarly, []() -> L
 	lit_color_texture_program_pipeline.OBJECT_TO_CLIP_mat4 = ret->OBJECT_TO_CLIP_mat4;
 	lit_color_texture_program_pipeline.OBJECT_TO_LIGHT_mat4x3 = ret->OBJECT_TO_LIGHT_mat4x3;
 	lit_color_texture_program_pipeline.NORMAL_TO_LIGHT_mat3 = ret->NORMAL_TO_LIGHT_mat3;
+    lit_color_texture_program_pipeline.LIGHT_TO_SPOT_mat4 = ret->LIGHT_TO_SPOT_mat4;
 
     lit_color_texture_program_pipeline.USES_VERTEX_COLOR = ret->USES_VERTEX_COLOR_bool;
 
@@ -38,6 +39,8 @@ Load< LitColorTextureProgram > lit_color_texture_program(LoadTagEarly, []() -> L
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glBindTexture(GL_TEXTURE_2D, 0);
 
+    //textures:
+    //texture for object
     lit_color_texture_program_pipeline.textures[0].texture = tex;
     lit_color_texture_program_pipeline.textures[0].target = GL_TEXTURE_2D;
 
@@ -47,6 +50,7 @@ Load< LitColorTextureProgram > lit_color_texture_program(LoadTagEarly, []() -> L
 
 LitColorTextureProgram::LitColorTextureProgram() {
     //forward lighting shader based on https://github.com/15-466/15-466-f19-base6/blob/master/BasicMaterialForwardProgram.cpp
+    //shadow mapping based on https://github.com/ixchow/15-466-f18-base3/blob/master/texture_program.cpp
     //shader with no vertex color
     program = gl_compile_program(
             //vertex shader:
@@ -54,6 +58,7 @@ LitColorTextureProgram::LitColorTextureProgram() {
             "uniform mat4 OBJECT_TO_CLIP;\n"
             "uniform mat4x3 OBJECT_TO_LIGHT;\n"
             "uniform mat3 NORMAL_TO_LIGHT;\n"
+            "uniform mat4 LIGHT_TO_SPOT;\n"
             "in vec4 Position;\n"
             "in vec3 Normal;\n"
             "in vec4 Color;\n"
@@ -62,9 +67,11 @@ LitColorTextureProgram::LitColorTextureProgram() {
             "out vec3 normal;\n"
             "out vec4 color;\n"
             "out vec2 texCoord;\n"
+            "out vec4 spotPosition;\n"
             "void main() {\n"
             "	gl_Position = OBJECT_TO_CLIP * Position;\n"
             "	position = OBJECT_TO_LIGHT * Position;\n"
+            "   spotPosition = LIGHT_TO_SPOT * vec4(position, 1.0f); \n"
             "	normal = NORMAL_TO_LIGHT * Normal;\n"
             "	color = Color;\n"
             "	texCoord = TexCoord;\n"
@@ -73,6 +80,7 @@ LitColorTextureProgram::LitColorTextureProgram() {
             //fragment shader:
             "#version 330\n"
             "uniform sampler2D TEX;\n"
+            "uniform sampler2DShadow DIRECTIONAL_DEPTH_TEX;\n"
             "uniform float ROUGHNESS;\n"
             "uniform uint LIGHTS;\n"
             "uniform int LIGHT_TYPE[" + std::to_string(MaxLights) + "];\n"
@@ -86,6 +94,7 @@ LitColorTextureProgram::LitColorTextureProgram() {
             "in vec3 normal;\n"
             "in vec4 color;\n"
             "in vec2 texCoord;\n"
+            "in vec4 spotPosition;\n"
             "out vec4 fragColor;\n"
             "void main() {\n"
             "	float shininess = pow(1024.0, 1.0 - ROUGHNESS);\n"
@@ -121,7 +130,7 @@ LitColorTextureProgram::LitColorTextureProgram() {
             "		} else if (TYPE == 1) { //hemi light \n"
             "			l = -DIRECTION;\n"
             "			h = vec3(0.0); //no specular from hemi for now\n"
-            "			e = (dot(n,l) * 0.5 + 0.5) * ENERGY;\n"
+//            "			e = (dot(n,l) * 0.5 + 0.5) * ENERGY;\n"
             "		} else if (TYPE == 2) { //spot light \n"
             "			l = (LOCATION - position);\n"
             "			float dis2 = dot(l,l);\n"
@@ -133,8 +142,13 @@ LitColorTextureProgram::LitColorTextureProgram() {
             "			e = nl * ENERGY;\n"
             "		} else { //(TYPE == 3) //directional light \n"
             "			l = -DIRECTION;\n"
-            "			h = normalize(l+v);\n"
-            "			e = max(0.0, dot(n,l)) * ENERGY;\n"
+            "			float shadow = textureProj(DIRECTIONAL_DEPTH_TEX, spotPosition);\n"
+//            "           if(shadow == 0.0) {\n" //Shadow currently always returning 1
+//            "               discard;\n"
+//            "           }\n"
+            "			h = normalize(l+v) * shadow;\n"
+//            "			e = max(0.0, dot(n,l)) * ENERGY * shadow;\n"
+            "			e = vec3(spotPosition.xyz/10.f);\n"
             "		}\n"
             "		vec3 reflectance =\n"
             "			albedo.rgb / 3.1415926 //Lambertian Diffuse\n"
@@ -142,9 +156,10 @@ LitColorTextureProgram::LitColorTextureProgram() {
             "			  * (shininess + 2.0) / (8.0) //normalization factor\n"
             "			  * mix(0.04, 1.0, pow(1.0 - max(0.0, dot(h, v)), 5.0)) //Schlick's approximation for Fresnel reflectance\n"
             "		;\n"
-            "		total += e*reflectance;\n"
+            "		total = e;\n"
             "	}\n"
-            "	fragColor = vec4(total, albedo.a);\n"
+//            "	fragColor = vec4(total, albedo.a);\n"
+            "	fragColor = vec4(spotPosition.xyz, albedo.a);\n"
             "}\n"
     );
 
@@ -161,6 +176,7 @@ LitColorTextureProgram::LitColorTextureProgram() {
 	OBJECT_TO_CLIP_mat4 = glGetUniformLocation(program, "OBJECT_TO_CLIP");
 	OBJECT_TO_LIGHT_mat4x3 = glGetUniformLocation(program, "OBJECT_TO_LIGHT");
 	NORMAL_TO_LIGHT_mat3 = glGetUniformLocation(program, "NORMAL_TO_LIGHT");
+    LIGHT_TO_SPOT_mat4 = glGetUniformLocation(program, "LIGHT_TO_SPOT");
 
     ROUGHNESS_float = glGetUniformLocation(program, "ROUGHNESS");
     EYE_vec3 = glGetUniformLocation(program, "EYE");
@@ -176,11 +192,13 @@ LitColorTextureProgram::LitColorTextureProgram() {
 
 
 	GLuint TEX_sampler2D = glGetUniformLocation(program, "TEX");
+    GLuint DIRECTIONAL_DEPTH_TEX_sampler2D = glGetUniformLocation(program, "DIRECTIONAL_DEPTH_TEX");
 
 	//set TEX to always refer to texture binding zero:
 	glUseProgram(program); //bind program -- glUniform* calls refer to this program now
 
 	glUniform1i(TEX_sampler2D, 0); //set TEX to sample from GL_TEXTURE0
+    glUniform1i(DIRECTIONAL_DEPTH_TEX_sampler2D, 1); //set DIRECTIONAL_DEPTH_TEX_sampler2D to sample from GL_TEXTURE0
 
 	glUseProgram(0); //unbind program -- glUniform* calls refer to ??? now
 }

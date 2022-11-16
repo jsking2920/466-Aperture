@@ -94,22 +94,36 @@ glm::mat4 Scene::Camera::make_projection() const {
 
 //-------------------------
 
-
 void Scene::draw(Camera const &camera) const {
-	assert(camera.transform);
-	glm::mat4 world_to_clip = camera.make_projection() * glm::mat4(camera.transform->make_world_to_local());
-	glm::mat4x3 world_to_light = glm::mat4x3(1.0f);
-	draw(world_to_clip, world_to_light);
+    assert(camera.transform);
+    draw(camera, Scene::Drawable::ProgramTypeDefault);
 }
 
-void Scene::draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light) const {
+void Scene::draw(Camera const &camera, Scene::Drawable::ProgramType program_type) const {
+	assert(camera.transform);
+    assert(program_type < Scene::Drawable::ProgramTypes);
+	glm::mat4 world_to_clip = camera.make_projection() * glm::mat4(camera.transform->make_world_to_local());
+	glm::mat4x3 world_to_light = glm::mat4x3(1.0f);
+	draw(program_type, world_to_clip, world_to_light);
+}
 
-	//Iterate through all drawables, sending each one to OpenGL:
-	for (auto const &drawable : drawables) {
-        if(drawable.render_to_screen && !drawable.occluded) {
-            render_drawable(drawable, world_to_clip, world_to_light);
+void Scene::draw(Scene::Drawable::ProgramType program_type, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light) const {
+
+    if(program_type == Drawable::ProgramTypeShadow) {
+        //Iterate through all drawables, sending each one to OpenGL:
+        for (auto const &drawable: drawables) {
+            if (drawable.render_to_screen) {
+                render_drawable(drawable, program_type, world_to_clip, world_to_light);
+            }
         }
-	}
+    } else {
+        //Iterate through all drawables that aren't marked as occluded, sending each one to OpenGL:
+        for (auto const &drawable: drawables) {
+            if (drawable.render_to_screen && !drawable.occluded) {
+                render_drawable(drawable, program_type, world_to_clip, world_to_light);
+            }
+        }
+    }
 
 	glUseProgram(0);
 	glBindVertexArray(0);
@@ -153,7 +167,7 @@ void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scen
             glGenQueries(1, &query);
         }
         glBeginQuery(GL_SAMPLES_PASSED, query);
-        render_drawable(drawable, world_to_clip, world_to_light);
+        render_drawable(drawable, Scene::Drawable::ProgramTypeDefault, world_to_clip, world_to_light);
         glEndQuery(GL_SAMPLES_PASSED);
 
 
@@ -179,9 +193,9 @@ void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scen
 
 }
 
-void Scene::render_drawable(Scene::Drawable const &drawable, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light) const {
+void Scene::render_drawable(Scene::Drawable const &drawable, Scene::Drawable::ProgramType program_type, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light) const {
     //Reference to drawable's pipeline for convenience:
-    Scene::Drawable::Pipeline const &pipeline = drawable.pipeline;
+    Scene::Drawable::Pipeline const &pipeline = drawable.pipeline[program_type];
 
     //skip any drawables without a shader program set:
     if (pipeline.program == 0) return;
@@ -222,6 +236,21 @@ void Scene::render_drawable(Scene::Drawable const &drawable, glm::mat4 const &wo
         glm::mat3 normal_to_light = glm::inverse(glm::transpose(glm::mat3(object_to_light)));
         glUniformMatrix3fv(pipeline.NORMAL_TO_LIGHT_mat3, 1, GL_FALSE, glm::value_ptr(normal_to_light));
     }
+
+    //LIGHT_TO_SPOT takes objects in light space to spot (place in depth buffer wrt directional light)
+//    if (pipeline.LIGHT_TO_SPOT_mat4 != -1U) {
+//        glm::mat4 world_to_spot =
+//                //This matrix converts from the spotlight's clip space ([-1,1]^3) into depth map texture coordinates ([0,1]^2) and depth map Z values ([0,1]):
+//                glm::mat4(
+//                        0.5f, 0.0f, 0.0f, 0.0f,
+//                        0.0f, 0.5f, 0.0f, 0.0f,
+//                        0.0f, 0.0f, 0.5f, 0.0f,
+//                        0.5f, 0.5f, 0.5f+0.00001f /* <-- bias */, 1.0f
+//                )
+//                //this is the world-to-clip matrix used when rendering the shadow map:
+//                * world_to_clip;
+//        glUniformMatrix4fv(pipeline.LIGHT_TO_SPOT_mat4, 1, GL_FALSE, glm::value_ptr(world_to_spot));
+//    }
     GL_ERRORS();
 
     //set uses vertex color uniform
@@ -237,10 +266,10 @@ void Scene::render_drawable(Scene::Drawable const &drawable, glm::mat4 const &wo
     //set any requested custom uniforms:
     if (pipeline.set_uniforms) pipeline.set_uniforms();
 
-    //TODO: what does this do?
     //set up textures:
     for (uint32_t i = 0; i < Drawable::Pipeline::TextureCount; ++i) {
         if (pipeline.textures[i].texture != 0) {
+//            std::cout << i << std::endl;
             glActiveTexture(GL_TEXTURE0 + i);
             glBindTexture(pipeline.textures[i].target, pipeline.textures[i].texture);
         }
@@ -284,7 +313,8 @@ void Scene::test_focal_points(const Camera &camera, std::vector< Scene::Drawable
             glGenQueries(1, &query);
         }
         glBeginQuery(GL_ANY_SAMPLES_PASSED, query);
-        render_drawable(*drawable, world_to_clip, world_to_light);
+        //use shadow to compute because doesn't require lighting
+        render_drawable(*drawable, Drawable::ProgramTypeShadow, world_to_clip, world_to_light);
         glEndQuery(GL_ANY_SAMPLES_PASSED);
 
 

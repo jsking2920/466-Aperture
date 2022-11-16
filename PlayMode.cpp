@@ -1,6 +1,7 @@
 #include "PlayMode.hpp"
 
 #include "LitColorTextureProgram.hpp"
+#include "depth_program.hpp"
 
 #include "DrawLines.hpp"
 #include "Mesh.hpp"
@@ -11,6 +12,7 @@
 #include "Framebuffers.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/detail/type_mat4x4.hpp>
 #include <filesystem>
@@ -20,10 +22,11 @@
 #include <random>
 
 GLuint main_meshes_for_lit_color_texture_program = 0;
-GLuint main_meshes_for_lit_color_program = 0;
+GLuint main_meshes_for_depth_program = 0;
 Load< MeshBuffer > main_meshes(LoadTagDefault, []() -> MeshBuffer const * {
 	MeshBuffer const *ret = new MeshBuffer(data_path("assets/proto-world2.pnct"));
 	main_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
+    main_meshes_for_depth_program = ret->make_vao_for_program(depth_program->program);
 	return ret;
 });
 
@@ -33,21 +36,30 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
         scene.drawables.emplace_back(transform);
         Scene::Drawable &drawable = scene.drawables.back();
 
-        drawable.pipeline = lit_color_texture_program_pipeline;
+        drawable.pipeline[Scene::Drawable::ProgramTypeDefault] = lit_color_texture_program_pipeline;
 
-        drawable.pipeline.vao = main_meshes_for_lit_color_texture_program;
-        drawable.pipeline.type = mesh.type;
-        drawable.pipeline.start = mesh.start;
-        drawable.pipeline.count = mesh.count;
+        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = main_meshes_for_lit_color_texture_program;
+        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
+        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = mesh.start;
+        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = mesh.count;
 
         //set roughnesses, possibly should be from csv??
         float roughness = 1.0f;
 //        if (transform->name.substr(0, 9) == "Icosphere") {
 //            roughness = (transform->position.y + 10.0f) / 18.0f;
 //        }
-        drawable.pipeline.set_uniforms = [drawable, roughness](){
+        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [drawable, roughness](){
             glUniform1f(lit_color_texture_program->ROUGHNESS_float, roughness);
         };
+
+        //Set up depth program
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].program = depth_program_pipeline.program;
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].vao = main_meshes_for_depth_program;
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].type = mesh.type;
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].start = mesh.start;
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].count = mesh.count;
+
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_CLIP_mat4 = depth_program_pipeline.OBJECT_TO_CLIP_mat4;
 
         GLuint tex;
         glGenTextures(1, &tex);
@@ -76,14 +88,20 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); // Bilinear filtering for textures close to cam
             glBindTexture(GL_TEXTURE_2D, 0);
 
-            drawable.pipeline.textures[0].texture = tex;
-            drawable.pipeline.textures[0].target = GL_TEXTURE_2D;
+            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[0].texture = tex;
+            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[0].target = GL_TEXTURE_2D;
+
+            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].textures[0].texture = tex;
+            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].textures[0].target = GL_TEXTURE_2D;
 
             GL_ERRORS(); // check for errros
         } else {
             //no texture found, using vertex colors
             drawable.uses_vertex_color = true;
         }
+
+        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].texture = framebuffers.shadow_depth_tex;
+        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].target = GL_TEXTURE_2D;
 	});
 });
 
@@ -378,8 +396,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
     Scene::Camera *active_camera;
     if (player->in_cam_view) {
         active_camera = player->player_camera->scene_camera;
-    }
-    else {
+    } else {
         active_camera = player->camera;
     }
 
@@ -402,11 +419,9 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         //hemisphere light is 1
         light_type.emplace_back(1);
         light_cutoff.emplace_back(1.0f);
-        light_location.emplace_back(glm::vec3(0, 0, 100));
         //sun/moon is 2
         light_type.emplace_back(3);
         light_cutoff.emplace_back(1.0f);
-        light_location.emplace_back(glm::vec3(0, 0, 100));
 
 
 		// calculate brightness of sun/moon based in time of day
@@ -452,9 +467,11 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         //push calculated sky lighting uniforms
         light_direction.emplace_back(glm::vec3(0, 0, -1.f));
         light_energy.emplace_back(ambient_color);
+        light_location.emplace_back(glm::vec3(0, 0, 100));
         //push calculated sun lighting uniforms
         light_direction.emplace_back(sun_angle);
         light_energy.emplace_back(sun_color);
+        light_location.emplace_back(player->transform->position - sun_angle * 50.f);
 
         //other lights setup
         for (auto const &light : scene.lights) {
@@ -498,21 +515,69 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3_array, lights, glm::value_ptr(light_direction[0]));
         glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3_array, lights, glm::value_ptr(light_energy[0]));
         glUniform1fv(lit_color_texture_program->LIGHT_CUTOFF_float_array, lights, light_cutoff.data());
+
+        GL_ERRORS();
+
+
+        //Draw scene to shadow map for spotlight, adapted from https://github.com/ixchow/15-466-f18-base3
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.shadow_fb);
+        glViewport(0, 0, framebuffers.shadow_size.x, framebuffers.shadow_size.y);
+
+        glClearColor(1.0f, 0.0f, 1.0f, 0.0f); //clear color for shadow buffer
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
+
+        //render only back faces to shadow map (prevent shadow speckles on fronts of objects):
+        glCullFace(GL_FRONT);
+        glEnable(GL_CULL_FACE);
+
+        //get sun "position" to be the sun's angle away from the player in order to use it to create transformation matrix
+        //from https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
+        glm::vec3 sun_pos = player->transform->position - glm::normalize(sun_angle) * 10.f;
+        glm::mat4 lightView = glm::lookAt(sun_pos, player->transform->position, glm::vec3(0.f, 1.f, 0.f));//TODO: set sun distance correctly, check if correct firection & probably change angle
+        glm::mat4 orthographic_projection = glm::ortho(-10.f, 10.f, -10.f, 10.f, 0.01f, 100.f);
+        glm::mat4 const world_to_clip = orthographic_projection * lightView;
+
+        glm::mat4 world_to_spot =
+                //This matrix converts from the spotlight's clip space ([-1,1]^3) into depth map texture coordinates ([0,1]^2) and depth map Z values ([0,1]):
+                glm::mat4(
+                        0.5f, 0.0f, 0.0f, 0.0f,
+                        0.0f, 0.5f, 0.0f, 0.0f,
+                        0.0f, 0.0f, 0.5f, 0.0f,
+                        0.5f, 0.5f, 0.5f+0.00001f /* <-- bias */, 1.0f
+                )
+                //this is the world-to-clip matrix used when rendering the shadow map:
+                * world_to_clip;
+        glUniformMatrix4fv(lit_color_texture_program->LIGHT_TO_SPOT_mat4, 1, GL_FALSE, glm::value_ptr(world_to_spot));
         glUseProgram(0);
 
+        scene.draw(Scene::Drawable::ProgramTypeShadow, world_to_clip, glm::mat4x3(1.0f));
 
+        glDisable(GL_CULL_FACE);
 
-		// Set "sky" (clear color)
-		glClearColor(sky_color.x, sky_color.y, sky_color.z, 1.0f);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        GL_ERRORS(); //now texture is already in framebuffers.shadow_depth_tex
+
+        // Set "sky" (clear color)
+        glClearColor(sky_color.x, sky_color.y, sky_color.z, 1.0f);
+
 	}
 	
 	// Draw scene to multisampled framebuffer
 	{
 		// Based on: https://github.com/15-466/15-466-f20-framebuffer
 		// Make sure framebuffers are the same size as the window:
-		framebuffers.realloc(drawable_size);
+		framebuffers.realloc(drawable_size, glm::vec2(512, 512));
 
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.ms_fb);
+        glViewport(0, 0, drawable_size.x, drawable_size.y);
+
+        for( Scene::Drawable &drawable : scene.drawables) { //I seem to have to set this every frame, seems avoidable but unsure
+            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].texture = framebuffers.shadow_depth_tex;
+            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].target = GL_TEXTURE_2D;
+        }
 
 		// set clear depth, testing criteria, and the like
 		glClearDepth(1.0f); // 1.0 is the default value to clear the depth buffer to, but you can change it
@@ -520,6 +585,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		                                                    // clears color to clearColor set above (sky_color) and clearDepth set above (1.0)
 		glEnable(GL_DEPTH_TEST); // enable depth testing
 		glDepthFunc(GL_LEQUAL); // set criteria for depth test
+//        glcompa
 
 		// TODO: implement blending, currently doesn't work because objects are being rendered in arbitrary order
 		// glEnable(GL_BLEND);
