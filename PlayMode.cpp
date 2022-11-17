@@ -390,6 +390,10 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		player->player_camera->scene_camera->aspect = float(drawable_size.x) / float(drawable_size.y);
 		player->camera->drawable_size = drawable_size;
 		player->player_camera->scene_camera->drawable_size = drawable_size;
+
+        // Based on: https://github.com/15-466/15-466-f20-framebuffer
+        // Make sure framebuffers are the same size as the window:
+        framebuffers.realloc(drawable_size, glm::vec2(512, 512));
 	}
 
     //set active camera
@@ -536,7 +540,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         //from https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
         glm::vec3 sun_pos = player->transform->position - glm::normalize(sun_angle) * 10.f;
         glm::mat4 lightView = glm::lookAt(sun_pos, player->transform->position, glm::vec3(0.f, 1.f, 0.f));//TODO: set sun distance correctly, check if correct firection & probably change angle
-        glm::mat4 orthographic_projection = glm::ortho(-10.f, 10.f, -10.f, 10.f, 0.01f, 100.f);
+        glm::mat4 orthographic_projection = glm::ortho(-20.f, 20.f, -20.f, 20.f, 0.01f, 100.f);
         glm::mat4 const world_to_clip = orthographic_projection * lightView;
 
         glm::mat4 world_to_spot =
@@ -550,6 +554,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
                 //this is the world-to-clip matrix used when rendering the shadow map:
                 * world_to_clip;
         glUniformMatrix4fv(lit_color_texture_program->LIGHT_TO_SPOT_mat4, 1, GL_FALSE, glm::value_ptr(world_to_spot));
+//        glUniformMatrix4fv(depth_program->OBJECT_TO_CLIP_mat4, 1, GL_FALSE, glm::value_ptr(world_to_spot));
         glUseProgram(0);
 
         scene.draw(Scene::Drawable::ProgramTypeShadow, world_to_clip, glm::mat4x3(1.0f));
@@ -559,6 +564,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         GL_ERRORS(); //now texture is already in framebuffers.shadow_depth_tex
+//        framebuffers.tone_map();
 
         // Set "sky" (clear color)
         glClearColor(sky_color.x, sky_color.y, sky_color.z, 1.0f);
@@ -568,8 +574,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	// Draw scene to multisampled framebuffer
 	{
 		// Based on: https://github.com/15-466/15-466-f20-framebuffer
-		// Make sure framebuffers are the same size as the window:
-		framebuffers.realloc(drawable_size, glm::vec2(512, 512));
 
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.ms_fb);
         glViewport(0, 0, drawable_size.x, drawable_size.y);

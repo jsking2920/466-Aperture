@@ -230,6 +230,7 @@ void Framebuffers::tone_map() {
     glBindVertexArray(empty_vao);
 
     glActiveTexture(GL_TEXTURE0);
+//    glBindTexture(GL_TEXTURE_2D, shadow_color_tex);
     glBindTexture(GL_TEXTURE_2D, screen_texture);
 
     glDrawArrays(GL_TRIANGLES, 0, 3);

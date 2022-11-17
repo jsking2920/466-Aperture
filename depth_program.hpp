@@ -8,7 +8,7 @@ struct DepthProgram {
 	GLuint program = 0;
 
 	//uniform locations:
-	GLuint object_to_clip_mat4 = -1U;
+	GLuint OBJECT_TO_CLIP_mat4 = -1U;
 
 	DepthProgram();
 };

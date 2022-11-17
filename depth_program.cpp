@@ -13,7 +13,7 @@ DepthProgram::DepthProgram() {
 		"in vec3 Normal;\n" //DEBUG
 		"out vec3 color;\n" //DEBUG
 		"void main() {\n"
-		"	gl_Position = object_to_clip * Position;\n"
+		"	gl_Position = mat4(object_to_clip) * Position;\n"
 		"	color = 0.5 + 0.5 * Normal;\n" //DEBUG
 		"}\n"
 		,
@@ -26,9 +26,12 @@ DepthProgram::DepthProgram() {
 		"}\n"
 	);
 
-	object_to_clip_mat4 = glGetUniformLocation(program, "object_to_clip");
+    OBJECT_TO_CLIP_mat4 = glGetUniformLocation(program, "object_to_clip");
 }
 
 Load< DepthProgram > depth_program(LoadTagEarly, [](){
-	return new DepthProgram();
+	DepthProgram *ret = new DepthProgram();
+    depth_program_pipeline.OBJECT_TO_CLIP_mat4 = ret->OBJECT_TO_CLIP_mat4;
+    depth_program_pipeline.program = ret->program;
+    return ret;
 });

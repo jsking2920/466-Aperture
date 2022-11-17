@@ -143,12 +143,8 @@ LitColorTextureProgram::LitColorTextureProgram() {
             "		} else { //(TYPE == 3) //directional light \n"
             "			l = -DIRECTION;\n"
             "			float shadow = textureProj(DIRECTIONAL_DEPTH_TEX, spotPosition);\n"
-//            "           if(shadow == 0.0) {\n" //Shadow currently always returning 1
-//            "               discard;\n"
-//            "           }\n"
             "			h = normalize(l+v) * shadow;\n"
-//            "			e = max(0.0, dot(n,l)) * ENERGY * shadow;\n"
-            "			e = vec3(spotPosition.xyz/10.f);\n"
+            "			e = max(0.0, dot(n,l)) * ENERGY * shadow;\n"
             "		}\n"
             "		vec3 reflectance =\n"
             "			albedo.rgb / 3.1415926 //Lambertian Diffuse\n"
@@ -156,10 +152,9 @@ LitColorTextureProgram::LitColorTextureProgram() {
             "			  * (shininess + 2.0) / (8.0) //normalization factor\n"
             "			  * mix(0.04, 1.0, pow(1.0 - max(0.0, dot(h, v)), 5.0)) //Schlick's approximation for Fresnel reflectance\n"
             "		;\n"
-            "		total = e;\n"
+            "		total += e * reflectance;\n"
             "	}\n"
-//            "	fragColor = vec4(total, albedo.a);\n"
-            "	fragColor = vec4(spotPosition.xyz, albedo.a);\n"
+            "	fragColor = vec4(total, albedo.a);\n"
             "}\n"
     );
 
