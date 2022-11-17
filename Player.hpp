@@ -45,6 +45,8 @@ struct Player {
 	WalkPoint at;
 
 	float speed = 6.0f;
+
+	float base_cam_z;
 	float crouch_offset = 0.8f;
 	bool is_crouched = false;
 	
@@ -57,7 +59,7 @@ struct Player {
 	// List of pics player has taken
 	std::list<Picture> *pictures; // TODO: add an album view in game to look at these
 	
-	void ToggleCrouch(); // Adjusts z pos of player's cameras so it looks like they crouched
+	void SetCrouch(bool is_crouched); // Adjusts z pos of player's cameras so it looks like they crouched
 	void Move(glm::vec2 direction, float elapsed); // un-normalized, cardinal directions such as (-1.0f, 0.0f) -> left button only held, (1.0f, 1.0f) -> right and up buttons held, etc. 
 	void OnMouseMotion(glm::vec2 mouse_motion);
     float get_speed(); //for halving speed in cam mode

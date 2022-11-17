@@ -72,7 +72,7 @@ void PlayerCamera::TakePicture(Scene &scene) {
         //populate frag counts by summing over all labeled parts
         creature_info.frag_count = 0;
         std::for_each(stats.frag_counts.begin(), stats.frag_counts.end(), [&](auto pair) {
-            if(pair.first.transform->name.substr(0, 6)
+            if (pair.first.transform->name.substr(0, 6)
                     == creature_info.creature->get_code_and_number()) {
             creature_info.frag_count += pair.second;
             }
@@ -128,6 +128,8 @@ Player::Player(Scene::Transform* _transform, WalkMesh const* _walk_mesh, Scene::
 	camera->transform->parent = transform;
 	camera->fovy = 3.14159265358979323846f / 3.0f; // 60 degree vertical fov
 	camera->near = 0.01f;
+
+	base_cam_z = camera->transform->position.z;
 	
 	// Start player walking at nearest walk point
 	at = walk_mesh->nearest_walk_point(transform->position);
@@ -221,15 +223,15 @@ void Player::Move(glm::vec2 direction, float elapsed) {
 	transform->position = walk_mesh->to_world_point(at);
 }
 
-void Player::ToggleCrouch() {
+void Player::SetCrouch(bool _is_crouched) {
 
-	if (is_crouched) {
-		camera->transform->position.z += crouch_offset;
+	if (_is_crouched) {
+		camera->transform->position.z = base_cam_z - crouch_offset;
 	}
 	else {
-		camera->transform->position.z -= crouch_offset;
+		camera->transform->position.z = base_cam_z;
 	}
-	is_crouched = !is_crouched;
+	is_crouched = _is_crouched;
 }
 
 float Player::get_speed() {
