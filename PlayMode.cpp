@@ -500,7 +500,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
             }
 
             //skip remaining lights if maximum light count reached:
-            if (light_type.size() == lights) break;
+            if (light_type.size() == (long unsigned int)lights) break;
         }
 
         GL_ERRORS();
