@@ -26,7 +26,7 @@ struct LitColorTextureProgram {
 	//lighting: based on https://github.com/15-466/15-466-f19-base6/blob/master/BasicMaterialForwardProgram.hpp
     GLuint EYE_vec3 = -1U; //camera position in lighting space
     GLuint LIGHTS_uint = -1U;
-    GLfloat ROUGHNESS_float = -1U;
+    GLuint ROUGHNESS_float = -1U;
 
     GLuint LIGHT_TYPE_int_array = -1U;
     GLuint LIGHT_LOCATION_vec3_array = -1U;
