@@ -102,7 +102,8 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 
         drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].texture = framebuffers.shadow_depth_tex;
         drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].target = GL_TEXTURE_2D;
-	});
+
+    });
 });
 
 Load< WalkMeshes > main_walkmeshes(LoadTagDefault, []() -> WalkMeshes const * {
@@ -393,7 +394,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
         // Based on: https://github.com/15-466/15-466-f20-framebuffer
         // Make sure framebuffers are the same size as the window:
-        framebuffers.realloc(drawable_size, glm::vec2(512, 512));
+        framebuffers.realloc(drawable_size, glm::vec2(1024, 1024));
 	}
 
     //set active camera
@@ -538,9 +539,9 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
         //get sun "position" to be the sun's angle away from the player in order to use it to create transformation matrix
         //from https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
-        glm::vec3 sun_pos = player->transform->position - glm::normalize(sun_angle) * 10.f;
+        glm::vec3 sun_pos = player->transform->position - glm::normalize(sun_angle) * 50.f;
         glm::mat4 lightView = glm::lookAt(sun_pos, player->transform->position, glm::vec3(0.f, 1.f, 0.f));//TODO: set sun distance correctly, check if correct firection & probably change angle
-        glm::mat4 orthographic_projection = glm::ortho(-20.f, 20.f, -20.f, 20.f, 0.01f, 100.f);
+        glm::mat4 orthographic_projection = glm::ortho(-20.f, 20.f, -20.f, 20.f, 0.01f, 500.f);
         glm::mat4 const world_to_clip = orthographic_projection * lightView;
 
         glm::mat4 world_to_spot =
@@ -564,7 +565,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         GL_ERRORS(); //now texture is already in framebuffers.shadow_depth_tex
-//        framebuffers.tone_map();
 
         // Set "sky" (clear color)
         glClearColor(sky_color.x, sky_color.y, sky_color.z, 1.0f);

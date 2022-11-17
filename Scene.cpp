@@ -236,21 +236,6 @@ void Scene::render_drawable(Scene::Drawable const &drawable, Scene::Drawable::Pr
         glm::mat3 normal_to_light = glm::inverse(glm::transpose(glm::mat3(object_to_light)));
         glUniformMatrix3fv(pipeline.NORMAL_TO_LIGHT_mat3, 1, GL_FALSE, glm::value_ptr(normal_to_light));
     }
-
-    //LIGHT_TO_SPOT takes objects in light space to spot (place in depth buffer wrt directional light)
-//    if (pipeline.LIGHT_TO_SPOT_mat4 != -1U) {
-//        glm::mat4 world_to_spot =
-//                //This matrix converts from the spotlight's clip space ([-1,1]^3) into depth map texture coordinates ([0,1]^2) and depth map Z values ([0,1]):
-//                glm::mat4(
-//                        0.5f, 0.0f, 0.0f, 0.0f,
-//                        0.0f, 0.5f, 0.0f, 0.0f,
-//                        0.0f, 0.0f, 0.5f, 0.0f,
-//                        0.5f, 0.5f, 0.5f+0.00001f /* <-- bias */, 1.0f
-//                )
-//                //this is the world-to-clip matrix used when rendering the shadow map:
-//                * world_to_clip;
-//        glUniformMatrix4fv(pipeline.LIGHT_TO_SPOT_mat4, 1, GL_FALSE, glm::value_ptr(world_to_spot));
-//    }
     GL_ERRORS();
 
     //set uses vertex color uniform
