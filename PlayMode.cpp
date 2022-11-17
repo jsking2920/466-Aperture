@@ -532,6 +532,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
+        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 
         //render only back faces to shadow map (prevent shadow speckles on fronts of objects):
         glCullFace(GL_FRONT);
@@ -561,6 +562,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         scene.draw(Scene::Drawable::ProgramTypeShadow, world_to_clip, glm::mat4x3(1.0f));
 
         glDisable(GL_CULL_FACE);
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -589,7 +591,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		                                                    // clears color to clearColor set above (sky_color) and clearDepth set above (1.0)
 		glEnable(GL_DEPTH_TEST); // enable depth testing
 		glDepthFunc(GL_LEQUAL); // set criteria for depth test
-//        glcompa
 
 		// TODO: implement blending, currently doesn't work because objects are being rendered in arbitrary order
 		// glEnable(GL_BLEND);
@@ -640,6 +641,9 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        //add bloom
+//        framebuffers.add_bloom();
 
 		// Copy framebuffer to main window:
 		framebuffers.tone_map();

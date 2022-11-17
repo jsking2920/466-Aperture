@@ -29,7 +29,7 @@ struct Framebuffers {
 
     //This framebuffer is used for shadow maps, from https://github.com/ixchow/15-466-f18-base3
     glm::uvec2 shadow_size = glm::uvec2(0,0);
-    GLuint shadow_color_tex = 0; //DEBUG
+//    GLuint shadow_color_tex = 0; //DEBUG
     GLuint shadow_depth_tex = 0;
     GLuint shadow_fb = 0;
 
