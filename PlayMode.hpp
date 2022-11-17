@@ -45,10 +45,14 @@ struct PlayMode : Mode {
 	} left, right, down, up, lmb, rmb, lctrl, tab, enter;
 	struct Mouse {
 		glm::vec2 mouse_motion = glm::vec2(0, 0);
-		bool moved = false;
+		uint8_t moves = 0;
 		int32_t wheel_y = 0;
 		bool scrolled = false;
 	} mouse;
+
+	// Player Settings
+	// TODO: should make a config file for player to be able to edit for these
+	float mouse_sensitivity = 0.5f;
 
 	// Local copy of the game scene
 	Scene scene;

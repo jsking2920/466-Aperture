@@ -301,8 +301,9 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 		}
 	} else if (evt.type == SDL_MOUSEMOTION) {
 		if (SDL_GetRelativeMouseMode() == SDL_TRUE) {
-			mouse.mouse_motion = glm::vec2(evt.motion.xrel / float(window_size.y), -evt.motion.yrel / float(window_size.y));
-			mouse.moved = true;
+			// Can be multiple of these events per frame, so sum them all up
+			mouse.mouse_motion += glm::vec2(evt.motion.xrel / float(window_size.y), -evt.motion.yrel / float(window_size.y));
+			mouse.moves += 1;
 			return true;
 		}
 	} else if (evt.type == SDL_MOUSEWHEEL && player->in_cam_view) {
@@ -352,7 +353,8 @@ void PlayMode::update(float elapsed) {
 	tab.downs = 0;
 	enter.downs = 0;
 
-	mouse.moved = false;
+	mouse.moves = 0;
+	mouse.mouse_motion = glm::vec2(0, 0);
 	mouse.scrolled = false;
 }
 
@@ -599,7 +601,7 @@ void PlayMode::menu_update(float elapsed) {
 
 void PlayMode::menu_draw_ui(glm::uvec2 const& drawable_size) {
 
-	display_text->draw("APERTURE", 0.4f * float(drawable_size.x), 0.5f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+	display_text->draw("APERTURE", 0.3f * float(drawable_size.x), 0.5f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 	body_text->draw("press enter to start", 0.35f * float(drawable_size.x), 0.4f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 }
 
@@ -655,8 +657,8 @@ void PlayMode::playing_update(float elapsed) {
 	// Player camera logic 
 	{
 		// First person looking around on mouse movement
-		if (mouse.moved) {
-			player->OnMouseMotion(mouse.mouse_motion);
+		if (mouse.moves > 0) {
+			player->OnMouseMotion(mouse.mouse_motion * mouse_sensitivity);
 		}
 
 		// Toggle player view on right click
