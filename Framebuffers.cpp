@@ -10,7 +10,7 @@
 
 Framebuffers framebuffers;
 
-void Framebuffers::realloc(glm::uvec2 const &drawable_size) {
+void Framebuffers::realloc(glm::uvec2 const &drawable_size, glm::uvec2 const &new_shadow_size) {
 
     // return early if resizing is not needed
     if (drawable_size == size) return;
@@ -34,6 +34,7 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size) {
    
     // Resize ms_depth_rb
     {
+
         //name renderbuffer if not yet named:
         if (ms_depth_rb == 0) glGenRenderbuffers(1, &ms_depth_rb);
 
@@ -131,6 +132,46 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size) {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
+    //allocate shadow map framebuffer, from https://github.com/ixchow/15-466-f18-base3
+    if (shadow_size != new_shadow_size) {
+        shadow_size = new_shadow_size;
+
+        //for debug shadow color
+//        if (shadow_color_tex == 0) glGenTextures(1, &shadow_color_tex);
+//        glBindTexture(GL_TEXTURE_2D, shadow_color_tex);
+//        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, shadow_size.x, shadow_size.y, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+//        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+//        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+//        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+//        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+//        glBindTexture(GL_TEXTURE_2D, 0);
+
+
+        if (shadow_depth_tex == 0) glGenTextures(1, &shadow_depth_tex);
+        glBindTexture(GL_TEXTURE_2D, shadow_depth_tex);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, shadow_size.x, shadow_size.y, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        //border color method from https://learnopengl.com/Getting-started/Textures
+        float border_color[] = { 1.0, 0.0, 0.0, 0.0 };
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LESS);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        if (shadow_fb == 0) glGenFramebuffers(1, &shadow_fb);
+        glBindFramebuffer(GL_FRAMEBUFFER, shadow_fb);
+//        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, shadow_color_tex, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadow_depth_tex, 0);
+        gl_check_fb();
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        GL_ERRORS();
+    }
+
     // Check for gl errors
     GL_ERRORS();
 }
@@ -194,6 +235,7 @@ void Framebuffers::tone_map() {
     glBindVertexArray(empty_vao);
 
     glActiveTexture(GL_TEXTURE0);
+//    glBindTexture(GL_TEXTURE_2D, shadow_color_tex);
     glBindTexture(GL_TEXTURE_2D, screen_texture);
 
     glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -367,7 +409,8 @@ void Framebuffers::add_bloom() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // blur blur_x_tex in the Y direction, store back into screen_texture
-    glBindFramebuffer(GL_FRAMEBUFFER, screen_texture);
+    glBindFramebuffer(GL_FRAMEBUFFER, pp_fb);
+    GL_ERRORS();
 
     glEnable(GL_BLEND);
     glBlendEquation(GL_FUNC_ADD);

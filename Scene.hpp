@@ -68,6 +68,12 @@ struct Scene {
         bool occluded = false; //for later use in object occlusion
         bool uses_vertex_color = false;
 
+        //program info:
+        enum ProgramType : uint32_t {
+            ProgramTypeDefault = 0,
+            ProgramTypeShadow = 1,
+            ProgramTypes //count of program types
+        };
 		//Contains all the data needed to run the OpenGL pipeline:
 		struct Pipeline {
 			GLuint program = 0; //shader program; passed to glUseProgram
@@ -83,6 +89,7 @@ struct Scene {
 			GLuint OBJECT_TO_CLIP_mat4 = -1U; //uniform location for object to clip space matrix
 			GLuint OBJECT_TO_LIGHT_mat4x3 = -1U; //uniform location for object to light space (== world space) matrix
 			GLuint NORMAL_TO_LIGHT_mat3 = -1U; //uniform location for normal to light space (== world space) matrix
+            GLuint LIGHT_TO_SPOT_mat4 = -1U;
             GLuint USES_VERTEX_COLOR = -1U;
 
 			std::function< void() > set_uniforms = [&] {
@@ -95,7 +102,7 @@ struct Scene {
 				GLuint texture = 0;
 				GLenum target = GL_TEXTURE_2D;
 			} textures[TextureCount];
-		} pipeline;
+		} pipeline[ProgramTypes];
 	};
 
 	struct Camera {
@@ -145,14 +152,17 @@ struct Scene {
 	//The "draw" function provides a convenient way to pass all the things in a scene to OpenGL:
 	void draw(Camera const &camera) const;
 
+    //Version of draw function for different render modes:
+    void draw(Camera const &camera, Scene::Drawable::ProgramType program_type) const;
+
 	//..sometimes, you want to draw with a custom projection matrix and/or light space:
-	void draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light = glm::mat4x3(1.0f)) const;
+	void draw(Scene::Drawable::ProgramType program_type, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light = glm::mat4x3(1.0f)) const;
 
     //render picture, return reference to buffer and also fill in results. tex_buffer should be an allocated texture buffer
     void render_picture(Camera const &camera, std::list<std::pair<Scene::Drawable &, GLuint>> &occlusion_results, std::vector<GLfloat> &data);
 
     //extrapolated for use in render_picture
-    void render_drawable(Drawable const &drawable, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light) const;
+    void render_drawable(Drawable const &drawable, Scene::Drawable::ProgramType program_type, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light) const;
 
     //for checking focal points
     void test_focal_points(const Scene::Camera &camera, std::vector< Scene::Drawable *> &focal_points, std::vector< bool > &results);
