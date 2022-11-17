@@ -33,8 +33,13 @@ struct Framebuffers {
     GLuint shadow_depth_tex = 0;
     GLuint shadow_fb = 0;
 
-    void tone_map(); //copy ms_color_tex to screen with tone mapping applied
+    //Objects for depth effects
+    GLuint depth_effect_fb = 0;
+    GLuint depth_effect_tex = 0;
+
+    void tone_map_to_screen(GLuint texture); //copy ms_color_tex to screen with tone mapping applied
     void add_bloom(); //do a basic bloom effect on the screen_texture
+    void add_depth_effects(float fog_intensity, float fog_exp, glm::vec3 fog_color);
 };
 
 // the actual storage

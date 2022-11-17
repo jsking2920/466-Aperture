@@ -6,6 +6,7 @@
 #include "gl_check_fb.hpp"
 #include "gl_errors.hpp"
 
+#include <glm/gtc/type_ptr.hpp>
 #include <array>
 
 Framebuffers framebuffers;
@@ -30,31 +31,34 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size, glm::uvec2 const &ne
             GL_TRUE //<-- use identical sample locations and the same number of samples per texel
         );
         glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+        GL_ERRORS();
     }
    
     // Resize ms_depth_rb
     {
 
         //name renderbuffer if not yet named:
-        if (ms_depth_rb == 0) glGenRenderbuffers(1, &ms_depth_rb);
+        if (ms_depth_rb == 0) glGenTextures(1, &ms_depth_rb);
 
         //resize renderbuffer:
-        glBindRenderbuffer(GL_RENDERBUFFER, ms_depth_rb);
-        glRenderbufferStorageMultisample(GL_RENDERBUFFER,
+        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, ms_depth_rb);
+        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE,
             msaa_samples, // number of samples per pixel
             GL_DEPTH_COMPONENT24, //<-- storage will be 24-bit fixed point depth values
-            size.x, size.y);
-        glBindRenderbuffer(GL_RENDERBUFFER, 0);
+            size.x, size.y, GL_TRUE);
+        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+        GL_ERRORS();
     }
     
     // Resize ms_fb
     {
+//        glTexImage2DM(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, shadow_size.x, shadow_size.y, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
         //set up ms_fb if not yet named:
         if (ms_fb == 0) {
             glGenFramebuffers(1, &ms_fb);
             glBindFramebuffer(GL_FRAMEBUFFER, ms_fb);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, ms_color_tex, 0);
-            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, ms_depth_rb);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, ms_depth_rb, 0);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
 
@@ -62,6 +66,45 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size, glm::uvec2 const &ne
         glBindFramebuffer(GL_FRAMEBUFFER, ms_fb);
         gl_check_fb(); //<-- helper function to check framebuffer completeness
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        GL_ERRORS();
+    }
+
+    // Resize depth_effect_tex
+    {
+        //name texture if not yet named:
+        if (depth_effect_tex == 0) glGenTextures(1, &depth_effect_tex);
+
+        //resize texture:
+        glBindTexture(GL_TEXTURE_2D, depth_effect_tex);
+        glTexImage2D(GL_TEXTURE_2D, 0,
+                     GL_RGB16F, //<-- storage will be RGB 16-bit half-float
+                     size.x, size.y, 0, //width, height, border
+                     GL_RGB, GL_FLOAT, //<-- source data (if we were uploading it) would be floating point RGB
+                     nullptr //<-- don't upload data, just allocate on-GPU storage
+        );
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        GL_ERRORS();
+    }
+
+    // Resize depth_effect_fb
+    {
+        //set up ms_fb if not yet named:
+        if (depth_effect_fb == 0) {
+            glGenFramebuffers(1, &depth_effect_fb);
+            glBindFramebuffer(GL_FRAMEBUFFER, depth_effect_fb);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, depth_effect_tex, 0);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+
+        // make sure ms_fb isn't borked
+        glBindFramebuffer(GL_FRAMEBUFFER, depth_effect_fb);
+        gl_check_fb(); //<-- helper function to check framebuffer completeness
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        GL_ERRORS();
     }
     
     // Resize screen_texture
@@ -82,6 +125,7 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size, glm::uvec2 const &ne
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glBindTexture(GL_TEXTURE_2D, 0);
+        GL_ERRORS();
     }
 
     // Resize pp_fb
@@ -97,6 +141,7 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size, glm::uvec2 const &ne
         glBindFramebuffer(GL_FRAMEBUFFER, pp_fb);
         gl_check_fb(); //<-- helper function to check framebuffer completeness
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        GL_ERRORS();
     }
     
     // Resize blur textures
@@ -130,6 +175,7 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size, glm::uvec2 const &ne
         glBindFramebuffer(GL_FRAMEBUFFER, blur_x_fb);
         gl_check_fb(); //<-- helper function to check framebuffer completeness
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        GL_ERRORS();
     }
 
     //allocate shadow map framebuffer, from https://github.com/ixchow/15-466-f18-base3
@@ -223,11 +269,11 @@ struct ToneMapProgram {
 
 GLuint empty_vao = 0;
 Load< ToneMapProgram > tone_map_program(LoadTagEarly, []() -> ToneMapProgram const * {
-    glGenVertexArrays(1, &empty_vao);
+    if(empty_vao == 0) glGenVertexArrays(1, &empty_vao);
     return new ToneMapProgram();
 });
 
-void Framebuffers::tone_map() {
+void Framebuffers::tone_map_to_screen(GLuint texture) {
     glDisable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
 
@@ -236,7 +282,7 @@ void Framebuffers::tone_map() {
 
     glActiveTexture(GL_TEXTURE0);
 //    glBindTexture(GL_TEXTURE_2D, shadow_color_tex);
-    glBindTexture(GL_TEXTURE_2D, screen_texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
 
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -431,6 +477,106 @@ void Framebuffers::add_bloom() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     glDisable(GL_BLEND);
+
+    GL_ERRORS();
+}
+
+struct DepthEffectsProgram {
+    DepthEffectsProgram() {
+        program = gl_compile_program(
+                //vertex shader -- draws a fullscreen triangle using no attribute streams
+                "#version 330\n"
+                "void main() {\n"
+                "	gl_Position = vec4(4 * (gl_VertexID & 1) - 1,  2 * (gl_VertexID & 2) - 1, 0.0, 1.0);\n"
+                "}\n"
+                ,
+                //fragment shader -- add color based on depth
+                "#version 330\n"
+                "uniform sampler2D TEX;\n"
+                "uniform sampler2DMS DEPTH_TEX;\n"
+                "uniform float FOG_EXP;\n"
+                "uniform float FOG_INTENSITY;\n"
+                "uniform vec3 FOG_COLOR;\n"
+                "out vec4 fragColor;\n"
+                "void main() {\n"
+                "	ivec2 c = ivec2(gl_FragCoord.xy);\n"
+                "	vec4 color = texelFetch(TEX, c, 0);\n"
+                "   float depth = pow((texelFetch(DEPTH_TEX, c, 0).r + texelFetch(DEPTH_TEX, c, 1).r + texelFetch(DEPTH_TEX, c, 2).r + texelFetch(DEPTH_TEX, c, 3).r)/4.0, FOG_EXP);\n"
+                "   float intensity = depth * FOG_INTENSITY;\n"
+//                "   fragColor = vec4(vec3(intensity), 1.0);\n"
+                "	fragColor = vec4(mix(color.rgb, FOG_COLOR, intensity), 1.0);\n"
+                "}\n"
+        );
+
+        glUseProgram(program);
+
+        //set uniform locaitons:
+        FOG_EXP_float = glGetUniformLocation(program, "FOG_EXP");
+        FOG_INTENSITY_float = glGetUniformLocation(program, "FOG_INTENSITY");
+        FOG_COLOR_vec3 = glGetUniformLocation(program, "FOG_COLOR");
+
+        //set TEX to texture unit 0:
+        GLuint TEX_sampler2D = glGetUniformLocation(program, "TEX");
+        GLuint DEPTH_TEX_sampler2D = glGetUniformLocation(program, "DEPTH_TEX");
+
+        glUniform1i(TEX_sampler2D, 0);
+        glUniform1i(DEPTH_TEX_sampler2D, 1); //set DEPTH_TEX to sample from GL_TEXTURE1
+
+        glUseProgram(0);
+
+        GL_ERRORS();
+    }
+
+    GLuint program = 0;
+
+    //uniforms:
+    GLuint FOG_EXP_float = -1U;
+    GLuint FOG_INTENSITY_float = -1U;
+    GLuint FOG_COLOR_vec3 = -1U;
+
+    //textures:
+    //texture0 -- texture to copy
+};
+
+Load< DepthEffectsProgram > depth_effects_program(LoadTagEarly, []() -> DepthEffectsProgram const * {
+    if (empty_vao == 0) glGenVertexArrays(1, &empty_vao);
+    return new DepthEffectsProgram();
+});
+
+void Framebuffers::add_depth_effects(float fog_intensity, float fog_exp, glm::vec3 fog_color) {
+    glDisable(GL_BLEND);
+    glDisable(GL_DEPTH_TEST);
+    glDepthMask(GL_FALSE);
+
+    // blur screen_texture in the X direction, store into blur_x_tex:
+    glBindFramebuffer(GL_FRAMEBUFFER, depth_effect_fb);
+
+    glUseProgram(depth_effects_program->program);
+    glBindVertexArray(empty_vao);
+
+    //set up uniforms
+    glUniform1f(depth_effects_program->FOG_INTENSITY_float, fog_intensity);
+    glUniform1f(depth_effects_program->FOG_EXP_float, fog_exp);
+    glUniform3fv(depth_effects_program->FOG_COLOR_vec3, 1, glm::value_ptr(fog_color));
+
+    //bind color texture to tex0
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, screen_texture);
+
+    //bind multisampled depth texture to tex1
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, ms_depth_rb);
+
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glBindVertexArray(0);
+    glUseProgram(0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glDepthMask(GL_TRUE);
 
     GL_ERRORS();
 }

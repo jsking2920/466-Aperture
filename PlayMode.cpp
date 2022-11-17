@@ -575,10 +575,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.ms_fb);
         glViewport(0, 0, drawable_size.x, drawable_size.y);
 
-        for( Scene::Drawable &drawable : scene.drawables) { //I seem to have to set this every frame, seems avoidable but unsure
-            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].texture = framebuffers.shadow_depth_tex;
-            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].target = GL_TEXTURE_2D;
-        }
+        glActiveTexture(GL_TEXTURE5);
+        glBindTexture(GL_TEXTURE_2D, framebuffers.shadow_depth_tex);
 
 		// set clear depth, testing criteria, and the like
 		glClearDepth(1.0f); // 1.0 is the default value to clear the depth buffer to, but you can change it
@@ -586,6 +584,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		                                                    // clears color to clearColor set above (sky_color) and clearDepth set above (1.0)
 		glEnable(GL_DEPTH_TEST); // enable depth testing
 		glDepthFunc(GL_LEQUAL); // set criteria for depth test
+        glDepthMask(GL_TRUE);
 
 		// TODO: implement blending, currently doesn't work because objects are being rendered in arbitrary order (maybe?)
 		// glEnable(GL_BLEND);
@@ -593,6 +592,10 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 		// Draw based on active camera (Player's "eyes" or their PlayerCamera)
 		scene.draw(*active_camera);
+
+        //unbind textures
+        glActiveTexture(GL_TEXTURE5);
+        glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
 	// Debugging code
@@ -625,9 +628,14 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		*/
 	}
 
-	// Resolve mulstisampled buffer to screen and perform post processing
+    //perform depth effects on multisampled buffer, if performance issues then move to be after downsampling
+    {
+
+    }
+
+	// Resolve depth effect buffer to screen and perform post processing
 	{
-		// blit multisampled buffer to the normal, intermediate post_processing buffer. Image is stored in screen_texture
+		// blit depth effect buffer to the normal, intermediate post_processing buffer. Image is stored in screen_texture
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffers.ms_fb);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffers.pp_fb);
 
@@ -637,11 +645,14 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+        //add fog
+        framebuffers.add_depth_effects(0.4f, 2000.0f, glm::vec3(1.0f, 1.0f, 1.0f));
+
         //add bloom
 //        framebuffers.add_bloom();
 
 		// Copy framebuffer to main window:
-		framebuffers.tone_map();
+		framebuffers.tone_map_to_screen(framebuffers.depth_effect_tex);
 	}
 	
 	// Draw UI

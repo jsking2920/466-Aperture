@@ -80,6 +80,7 @@ LitColorTextureProgram::LitColorTextureProgram() {
             //fragment shader:
             "#version 330\n"
             "uniform sampler2D TEX;\n"
+            "uniform sampler2D DEPTH_TEX;\n"
             "uniform sampler2DShadow DIRECTIONAL_DEPTH_TEX;\n"
             "uniform float ROUGHNESS;\n"
             "uniform uint LIGHTS;\n"
@@ -200,7 +201,7 @@ LitColorTextureProgram::LitColorTextureProgram() {
 	glUseProgram(program); //bind program -- glUniform* calls refer to this program now
 
 	glUniform1i(TEX_sampler2D, 0); //set TEX to sample from GL_TEXTURE0
-    glUniform1i(DIRECTIONAL_DEPTH_TEX_sampler2D, 1); //set DIRECTIONAL_DEPTH_TEX_sampler2D to sample from GL_TEXTURE0
+    glUniform1i(DIRECTIONAL_DEPTH_TEX_sampler2D, 5); //set DIRECTIONAL_DEPTH_TEX_sampler2D to sample from GL_TEXTURE5 (1-4 reserved for per-drawable textures)
 
 	glUseProgram(0); //unbind program -- glUniform* calls refer to ??? now
 }

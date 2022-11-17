@@ -152,7 +152,7 @@ void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scen
     //run query for each drawable
     glEnable(GL_DEPTH_TEST);
     //bind renderbuffers for rendering
-    glBindRenderbuffer(GL_RENDERBUFFER, framebuffers.ms_depth_rb);
+//    glBindRenderbuffer(GL_RENDERBUFFER, framebuffers.ms_depth_rb);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.ms_fb);
 
     glClear(GL_COLOR_BUFFER_BIT);
@@ -254,7 +254,6 @@ void Scene::render_drawable(Scene::Drawable const &drawable, Scene::Drawable::Pr
     //set up textures:
     for (uint32_t i = 0; i < Drawable::Pipeline::TextureCount; ++i) {
         if (pipeline.textures[i].texture != 0) {
-//            std::cout << i << std::endl;
             glActiveTexture(GL_TEXTURE0 + i);
             glBindTexture(pipeline.textures[i].target, pipeline.textures[i].texture);
         }
@@ -283,7 +282,7 @@ void Scene::test_focal_points(const Camera &camera, std::vector< Scene::Drawable
     results.resize(focal_points.size());
 
     //bind renderbuffers for rendering
-    glBindRenderbuffer(GL_RENDERBUFFER, framebuffers.ms_depth_rb);
+//    glBindRenderbuffer(GL_RENDERBUFFER, framebuffers.ms_depth_rb);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.ms_fb);
 
     //disable writing color & depth
