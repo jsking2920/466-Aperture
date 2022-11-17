@@ -87,6 +87,8 @@ struct PlayMode : Mode {
 	// Text Rendering
 	TextRenderer* display_text = nullptr;
 	uint8_t display_font_size = 96;
+	TextRenderer* handwriting_text = nullptr;
+	uint8_t handwriting_font_size = 48;
 	TextRenderer* body_text = nullptr;
 	uint8_t body_font_size = 48;
 	TextRenderer* barcode_text = nullptr;

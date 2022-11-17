@@ -133,7 +133,8 @@ PlayMode::PlayMode() : scene(*main_scene) {
 	
 	// Set up text renderers
 	display_text = new TextRenderer(data_path("assets/fonts/Audiowide-Regular.ttf"), display_font_size);
-	body_text = new TextRenderer(data_path("assets/fonts/Audiowide-Regular.ttf"), body_font_size);
+	handwriting_text = new TextRenderer(data_path("assets/fonts/PoorStory-Regular.ttf"), handwriting_font_size);
+	body_text = new TextRenderer(data_path("assets/fonts/Sono-Regular.ttf"), body_font_size);
 	barcode_text = new TextRenderer(data_path("assets/fonts/LibreBarcode128Text-Regular.ttf"), barcode_font_size);
 
     //load audio samples
@@ -721,15 +722,18 @@ void PlayMode::playing_draw_ui(glm::uvec2 const& drawable_size) {
 
 		// Zoom level readout
 		uint8_t zoom = (uint8_t)(std::round(player->player_camera->cur_zoom * 10.0f));
-		body_text->draw("x" + std::to_string(zoom / 10) + "." + std::to_string(zoom % 10), ((2.0f / 3.0f) - 0.04f) * float(drawable_size.x), ((1.0f / 3.0f) - 0.05f) * float(drawable_size.y), 0.5f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		display_text->draw("x" + std::to_string(zoom / 10) + "." + std::to_string(zoom % 10), ((2.0f / 3.0f) - 0.04f) * float(drawable_size.x), ((1.0f / 3.0f) - 0.05f) * float(drawable_size.y), 0.25f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 
 		// Battery readout
 		float battery = (float)player->player_camera->cur_battery / (float)player->player_camera->max_battery;
-		body_text->draw("Battery: " + TextRenderer::format_percentage(battery), 0.025f * float(drawable_size.x), 0.925f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
-
+		display_text->draw("Battery: " + TextRenderer::format_percentage(battery), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 0.25f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 		// Creature in frame text
 		// TODO: implement this feature (need to check for creatures each frame)
 		barcode_text->draw("FLOATER", (1.0f / 3.0f) * float(drawable_size.x), ((1.0f / 3.0f) - 0.05f) * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		// Some assorted DSLR type viewport readouts
+		// TODO: replace these with other functional things
+		display_text->draw("AUTO", 0.45f * float(drawable_size.x), 0.025f * float(drawable_size.y), 0.25f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		display_text->draw("[2.9.020]", 0.9f * float(drawable_size.x), 0.025f * float(drawable_size.y), 0.25f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 	}
 	else {
 		// Draw clock
@@ -749,7 +753,7 @@ void PlayMode::playing_draw_ui(glm::uvec2 const& drawable_size) {
 void PlayMode::journal_update(float elapsed) {
 
 	// swap to night state at end of day, even if in journal
-	if (time_of_day == end_day_time) {
+	if (time_of_day >= end_day_time) {
 		time_scale = 8.0f; // zoom through night
 		cur_state = night;
 		return;
@@ -765,9 +769,14 @@ void PlayMode::journal_update(float elapsed) {
 
 void PlayMode::journal_draw_ui(glm::uvec2 const& drawable_size) {
 
-	body_text->draw("JOURNAL", 0.45f * float(drawable_size.x), 0.85f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
-	// Draw clock
-	body_text->draw(TextRenderer::format_time_of_day(time_of_day, day_length), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+	handwriting_text->draw("JOURNAL", 0.45f * float(drawable_size.x), 0.85f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+
+	float offset = 0.8f / (player->pictures->size() + 1.0f);
+	int i = 1;
+	for (auto p = player->pictures->begin(); p != player->pictures->end(); ++p) {
+		handwriting_text->draw(p->title, 0.35f * float(drawable_size.x), (0.8f - (offset * i)) * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		i++;
+	}
 }
 
 // -------- Nightime functions -----------
