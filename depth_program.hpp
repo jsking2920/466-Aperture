@@ -10,6 +10,9 @@ struct DepthProgram {
 	//uniform locations:
 	GLuint OBJECT_TO_CLIP_mat4 = -1U;
 
+    //textures
+    //0 - object texture
+
 	DepthProgram();
 };
 
