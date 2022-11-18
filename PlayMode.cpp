@@ -339,7 +339,7 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 
 void PlayMode::update(float elapsed) {
 
-	time_of_day += elapsed * time_scale;
+	time_of_day += elapsed * time_scale * time_scale_debug;
 
 	switch (cur_state) {
 
@@ -463,6 +463,9 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
             ambient_color = night_ambient_color * sin + sunset_ambient_color * std::pow( 1 - sin, 2.f );
 		}
         sun_color *= brightness;
+
+        fog_intensity = 0.4f + 0.4f * (1 - brightness);
+        fog_color = glm::vec3(0.8f) + 0.2f * sky_color;
 
         //push calculated sky lighting uniforms
         light_direction.emplace_back(glm::vec3(0, 0, -1.f));
@@ -628,11 +631,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		*/
 	}
 
-    //perform depth effects on multisampled buffer, if performance issues then move to be after downsampling
-    {
-
-    }
-
 	// Resolve depth effect buffer to screen and perform post processing
 	{
 		// blit depth effect buffer to the normal, intermediate post_processing buffer. Image is stored in screen_texture
@@ -646,7 +644,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         //add fog
-        framebuffers.add_depth_effects(0.4f, 2000.0f, glm::vec3(1.0f, 1.0f, 1.0f));
+        framebuffers.add_depth_effects(fog_intensity, 1800.0f, fog_color);
 
         //add bloom
 //        framebuffers.add_bloom();
