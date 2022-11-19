@@ -167,7 +167,7 @@ void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scen
             glGenQueries(1, &query);
         }
         glBeginQuery(GL_SAMPLES_PASSED, query);
-        render_drawable(drawable, Scene::Drawable::ProgramTypeDefault, world_to_clip, world_to_light);
+        render_drawable(drawable, Scene::Drawable::ProgramTypeShadow, world_to_clip, world_to_light);
         glEndQuery(GL_SAMPLES_PASSED);
 
 

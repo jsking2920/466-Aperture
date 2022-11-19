@@ -27,7 +27,7 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
     PictureCreatureInfo subject_info = stats.creatures_in_frame.front();
 
     //grade subject
-    {   
+    {
         //Magnificence
         score_elements.emplace_back(subject_info.creature->name, subject_info.creature->score);
         auto result = score_creature(subject_info, stats);
