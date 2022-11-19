@@ -22,14 +22,12 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size, glm::uvec2 const &ne
         if(oc_depth_rb == 0) glGenTextures(1, &oc_depth_rb);
 
         glBindTexture(GL_TEXTURE_2D, oc_depth_rb);
-        GL_ERRORS();
         glTexImage2D(GL_TEXTURE_2D, 0,
                      GL_DEPTH_COMPONENT24,
                      size.x, size.y, 0, //width, height, border
                      GL_DEPTH_COMPONENT, GL_FLOAT, //<-- source data (if we were uploading it) would be floating point RGB
                      nullptr //<-- don't upload data, just allocate on-GPU storage
         );
-        GL_ERRORS();
         glBindTexture(GL_TEXTURE_2D, 0);
         GL_ERRORS();
     }
