@@ -50,4 +50,6 @@ struct Picture {
     uint32_t get_total_score();
     std::string get_scoring_string();
     void save_picture_png(); // saves picture as a png to dist/album/ (creating folder if needed)
+
+    static const std::string adjectives[];
 };
