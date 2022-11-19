@@ -94,35 +94,32 @@ glm::mat4 Scene::Camera::make_projection() const {
 
 //-------------------------
 
-void Scene::draw(Camera const &camera) const {
-    assert(camera.transform);
-    draw(camera, Scene::Drawable::ProgramTypeDefault);
-}
-
-void Scene::draw(Camera const &camera, Scene::Drawable::ProgramType program_type) const {
+void Scene::draw(Camera const &camera, Drawable::PassType pass_type) const {
 	assert(camera.transform);
-    assert(program_type < Scene::Drawable::ProgramTypes);
 	glm::mat4 world_to_clip = camera.make_projection() * glm::mat4(camera.transform->make_world_to_local());
 	glm::mat4x3 world_to_light = glm::mat4x3(1.0f);
-	draw(program_type, world_to_clip, world_to_light);
+	draw(pass_type, world_to_clip, world_to_light);
 }
 
-void Scene::draw(Scene::Drawable::ProgramType program_type, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light) const {
+void Scene::draw(Drawable::PassType pass_type, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light) const {
+    assert(pass_type < Scene::Drawable::PassTypes);
 
-    if(program_type == Drawable::ProgramTypeShadow) {
-        //Iterate through all drawables, sending each one to OpenGL:
-        for (auto const &drawable: drawables) {
-            if (drawable.render_to_screen) {
-                render_drawable(drawable, program_type, world_to_clip, world_to_light);
-            }
-        }
-    } else {
+    if (pass_type == Drawable::PassTypeDefault || pass_type == Drawable::PassTypeInCamera){
         //Iterate through all drawables that aren't marked as occluded, sending each one to OpenGL:
         for (auto const &drawable: drawables) {
             if (drawable.render_to_screen && !drawable.occluded) {
-                render_drawable(drawable, program_type, world_to_clip, world_to_light);
+                render_drawable(drawable, Drawable::ProgramTypeDefault, world_to_clip, world_to_light);
             }
         }
+    } else if(pass_type == Drawable::PassTypeShadow) {
+        //Iterate through all drawables, to render depth map for shadows:
+        for (auto const &drawable: drawables) {
+            if (drawable.render_to_screen) {
+                render_drawable(drawable, Drawable::ProgramTypeShadow, world_to_clip, world_to_light);
+            }
+        }
+    } else if(pass_type == Drawable::PassTypeOcclusion) {
+        //Iterate through all drawables
     }
 
 	glUseProgram(0);

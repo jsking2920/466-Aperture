@@ -557,7 +557,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 //        glUniformMatrix4fv(depth_program->OBJECT_TO_CLIP_mat4, 1, GL_FALSE, glm::value_ptr(world_to_spot));
         glUseProgram(0);
 
-        scene.draw(Scene::Drawable::ProgramTypeShadow, world_to_clip, glm::mat4x3(1.0f));
+        scene.draw(Scene::Drawable::PassTypeShadow, world_to_clip, glm::mat4x3(1.0f));
 
         glDisable(GL_CULL_FACE);
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -594,7 +594,11 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		// glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		// Draw based on active camera (Player's "eyes" or their PlayerCamera)
-		scene.draw(*active_camera);
+        if(player->in_cam_view) {
+            scene.draw(*active_camera, Scene::Drawable::PassTypeInCamera);
+        } else {
+            scene.draw(*active_camera, Scene::Drawable::PassTypeDefault);
+        }
 
         //unbind textures
         glActiveTexture(GL_TEXTURE5);
