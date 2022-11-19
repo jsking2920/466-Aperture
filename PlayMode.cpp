@@ -570,6 +570,34 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         glClearColor(sky_color.x, sky_color.y, sky_color.z, 1.0f);
 
 	}
+    //run occlusion query
+        {
+            //run query for each drawable
+            glEnable(GL_DEPTH_TEST);
+            glViewport(0, 0, drawable_size.x, drawable_size.y);
+            //bind renderbuffers for rendering
+            glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.oc_fb);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clears currently bound framebuffer's (framebuffers.ms_fb )color and depth info
+
+            glClearDepth(1.0);
+            //disable writing
+            glDepthMask(GL_TRUE);
+            glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+            //render with occlusion pass
+            scene.draw(*active_camera, Scene::Drawable::PassTypeOcclusion);
+
+            //reenable writing
+            glDepthMask(GL_TRUE);
+            glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+            glUseProgram(0);
+            glBindVertexArray(0);
+
+            GL_ERRORS();
+        }
 	
 	// Draw scene to multisampled framebuffer
 	{
@@ -578,6 +606,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.ms_fb);
         glViewport(0, 0, drawable_size.x, drawable_size.y);
 
+        //bind generated shadow texture
         glActiveTexture(GL_TEXTURE5);
         glBindTexture(GL_TEXTURE_2D, framebuffers.shadow_depth_tex);
 

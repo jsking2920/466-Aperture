@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-ShowSceneMode::ShowSceneMode(Scene const &scene_) : scene(scene_) {
+ShowSceneMode::ShowSceneMode(Scene &scene_) : scene(scene_) {
 
 	//Set up camera-only scene:
 	{ //create a single camera:

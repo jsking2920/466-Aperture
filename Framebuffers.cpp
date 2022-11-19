@@ -17,6 +17,38 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size, glm::uvec2 const &ne
     if (drawable_size == size) return;
     size = drawable_size;
 
+    //Resize oc_depth_rb
+    {
+        if(oc_depth_rb == 0) glGenTextures(1, &oc_depth_rb);
+
+        glBindTexture(GL_TEXTURE_2D, oc_depth_rb);
+        GL_ERRORS();
+        glTexImage2D(GL_TEXTURE_2D, 0,
+                     GL_DEPTH_COMPONENT24,
+                     size.x, size.y, 0, //width, height, border
+                     GL_DEPTH_COMPONENT, GL_FLOAT, //<-- source data (if we were uploading it) would be floating point RGB
+                     nullptr //<-- don't upload data, just allocate on-GPU storage
+        );
+        GL_ERRORS();
+        glBindTexture(GL_TEXTURE_2D, 0);
+        GL_ERRORS();
+    }
+
+    //Resize oc_fb
+    {
+        if (oc_fb == 0) {
+            glGenFramebuffers(1, &oc_fb);
+            glBindFramebuffer(GL_FRAMEBUFFER, oc_fb);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, oc_depth_rb, 0);
+        }
+
+        // make sure pp_fb isn't borked
+        glBindFramebuffer(GL_FRAMEBUFFER, oc_fb);
+        gl_check_fb(); //<-- helper function to check framebuffer completeness
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        GL_ERRORS();
+    }
+
     // Resize ms_color_tex
     {
         //name texture if not yet named:
@@ -38,10 +70,10 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size, glm::uvec2 const &ne
     {
 
         //name renderbuffer if not yet named:
-        if (ms_depth_rb == 0) glGenTextures(1, &ms_depth_rb);
+        if (ms_depth_tex == 0) glGenTextures(1, &ms_depth_tex);
 
         //resize renderbuffer:
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, ms_depth_rb);
+        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, ms_depth_tex);
         glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE,
             msaa_samples, // number of samples per pixel
             GL_DEPTH_COMPONENT24, //<-- storage will be 24-bit fixed point depth values
@@ -58,7 +90,7 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size, glm::uvec2 const &ne
             glGenFramebuffers(1, &ms_fb);
             glBindFramebuffer(GL_FRAMEBUFFER, ms_fb);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, ms_color_tex, 0);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, ms_depth_rb, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, ms_depth_tex, 0);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
 
@@ -565,7 +597,7 @@ void Framebuffers::add_depth_effects(float fog_intensity, float fog_exp, glm::ve
 
     //bind multisampled depth texture to tex1
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, ms_depth_rb);
+    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, ms_depth_tex);
 
     glDrawArrays(GL_TRIANGLES, 0, 3);
 

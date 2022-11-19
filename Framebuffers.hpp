@@ -13,10 +13,14 @@ struct Framebuffers {
     // Current size of framebuffer attachments
     glm::uvec2 size = glm::uvec2(0,0);
 
+    //occlusion checking
+    GLuint oc_fb = 0;
+    GLuint oc_depth_rb = 0;
+
     // MSAA enabled gl objects
     int msaa_samples = 4; // number of samples per pixel for multisample anti-aliasing
     GLuint ms_color_tex = 0; // GL_RGB16F color texture
-    GLuint ms_depth_rb = 0; // GL_DEPTH_COMPONENT24 renderbuffer
+    GLuint ms_depth_tex = 0; // GL_DEPTH_COMPONENT24 renderbuffer
     GLuint ms_fb = 0; // color0: ms_color_tex , depth: ms_depth_rb
 
     // Intermediate post-processing objects

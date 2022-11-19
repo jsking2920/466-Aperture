@@ -65,7 +65,7 @@ struct Scene {
         //conditional drawing
         bool render_to_screen = true;
         bool render_to_picture = true;
-        int occluded = 0; //for later use in object occlusion
+        GLuint frag_count = 0; //for later use in object occlusion
         bool uses_vertex_color = false;
 
         //program info:
@@ -160,10 +160,10 @@ struct Scene {
 	std::list< Light > lights;
 
     //Version of draw function for different render modes:
-    void draw(Camera const &camera, Drawable::PassType pass_type = Drawable::PassTypeDefault) const;
+    void draw(Camera const &camera, Drawable::PassType pass_type = Drawable::PassTypeDefault);
 
 	//..sometimes, you want to draw with a custom projection matrix and/or light space:
-	void draw(Drawable::PassType pass_type, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light = glm::mat4x3(1.0f)) const;
+	void draw(Drawable::PassType pass_type, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light = glm::mat4x3(1.0f)) ;
 
     //render picture, return reference to buffer and also fill in results. tex_buffer should be an allocated texture buffer
     void render_picture(Camera const &camera, std::list<std::pair<Scene::Drawable &, GLuint>> &occlusion_results, std::vector<GLfloat> &data);

@@ -12,7 +12,7 @@
 #include "Mesh.hpp"
 
 struct ShowSceneMode : Mode {
-	ShowSceneMode(Scene const &scene);
+	ShowSceneMode(Scene &scene);
 	virtual ~ShowSceneMode();
 
 	virtual bool handle_event(SDL_Event const &, glm::uvec2 const &window_size) override;
@@ -28,7 +28,7 @@ struct ShowSceneMode : Mode {
 	} camera;
 
 	//Scene being viewed:
-	Scene const &scene;
+	Scene &scene;
 
 	//mode uses a secondary Scene to hold a camera:
 	Scene camera_scene;
