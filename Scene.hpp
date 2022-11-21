@@ -11,6 +11,7 @@
  */
 
 #include "GL.hpp"
+#include "FragCountQueryAsync.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -56,11 +57,11 @@ struct Scene {
 
 	struct Drawable {
 		//a 'Drawable' attaches attribute data to a transform:
-		Drawable(Transform *transform_) : transform(transform_) { assert(transform); }
+		explicit Drawable(Transform *transform_) : transform(transform_), queries(FragCountQueryAsync(5)) { assert(transform);  }
 		Transform * transform;
 
         //for occlusion testing
-        GLuint query = 0;
+        FragCountQueryAsync queries; //implements queue of queries to ensure no blocking
 
         //conditional drawing
         bool render_to_screen = true;

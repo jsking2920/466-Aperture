@@ -109,7 +109,7 @@ void Scene::draw(Drawable::PassType pass_type, glm::mat4 const &world_to_clip, g
         for (auto const &drawable: drawables) {
             if (drawable.render_to_screen && drawable.frag_count) {
                 render_drawable(drawable, Drawable::ProgramTypeDefault, world_to_clip, world_to_light);
-                std::cout << "drawing " << drawable.transform->name << std::endl;
+//                std::cout << "drawing " << drawable.transform->name << std::endl;
             }
         }
     } else if(pass_type == Drawable::PassTypeShadow) {
@@ -123,24 +123,17 @@ void Scene::draw(Drawable::PassType pass_type, glm::mat4 const &world_to_clip, g
         //Iterate through all drawables with quert
         for(Drawable &drawable : drawables) {
             if (drawable.render_to_screen) {
-                GLuint query = drawable.query;
-                //query syntax from https://www.reddit.com/r/opengl/comments/1pv8qe/how_do_occlusion_queries_work/
-                if (!glIsQuery(query)) {
-                    glGenQueries(1, &query);
-                }
-                glBeginQuery(GL_SAMPLES_PASSED, query);
+                drawable.queries.StartQuery();
                 //use shadow pass to ensure no shader effects
                 render_drawable(drawable, Scene::Drawable::ProgramTypeShadow, world_to_clip, world_to_light);
-                glEndQuery(GL_SAMPLES_PASSED);
+                drawable.queries.EndQuery();
 
-                GLuint temp = 0;
-                glGetQueryObjectuiv(query, GL_QUERY_RESULT, &temp);
+                std::optional<GLuint> result = drawable.queries.most_recent_query();
 
-                drawable.frag_count = temp;
-
-//                GLuint has_finished;
-//                glGetQueryObjectuiv(query, GL_QUERY_RESULT_AVAILABLE, &has_finished);
-//                std::cout << drawable.transform->name << "finished: " << has_finished << std::endl;
+                if(result.has_value()) {
+//                    std::cout << "setting frag count for " << drawable.transform->name << "to " << result.value() << std::endl;
+                    drawable.frag_count = result.value();
+                }
             }
         }
     }
@@ -153,8 +146,8 @@ void Scene::draw(Drawable::PassType pass_type, glm::mat4 const &world_to_clip, g
 
 void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scene::Drawable &, GLuint>> &occlusion_results, std::vector<GLfloat> &data) {
     assert(camera.transform);
-    glm::mat4 world_to_clip = camera.make_projection() * glm::mat4(camera.transform->make_world_to_local());
-    glm::mat4x3 world_to_light = glm::mat4x3(1.0f);
+//    glm::mat4 world_to_clip = camera.make_projection() * glm::mat4(camera.transform->make_world_to_local());
+//    glm::mat4x3 world_to_light = glm::mat4x3(1.0f);
 
     //TODO: This gets called BEFORE the frame is drawn. This means that there may be inaccuracies with the frame buffer,
     //and it is possible (but very improbable) that creatures will be detected if they were visible the frame before
@@ -170,47 +163,46 @@ void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scen
     GL_ERRORS();
 
     //run query for each drawable
-    glEnable(GL_DEPTH_TEST);
-    //bind renderbuffers for rendering
-//    glBindRenderbuffer(GL_RENDERBUFFER, framebuffers.ms_depth_rb);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.ms_fb);
-
-    glClear(GL_COLOR_BUFFER_BIT);
+//    glEnable(GL_DEPTH_TEST);
+//    //bind renderbuffers for rendering
+////    glBindRenderbuffer(GL_RENDERBUFFER, framebuffers.ms_depth_rb);
+//    glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.ms_fb);
+//
+//    glClear(GL_COLOR_BUFFER_BIT);
 
     for(auto &drawable : drawables) {
-        GLuint query = drawable.query;
-        if(!drawable.render_to_picture) {
-            continue;
-        }
-        //query syntax from https://www.reddit.com/r/opengl/comments/1pv8qe/how_do_occlusion_queries_work/
-        if(!glIsQuery(query)) {
-            glGenQueries(1, &query);
-        }
-        glBeginQuery(GL_SAMPLES_PASSED, query);
-        render_drawable(drawable, Scene::Drawable::ProgramTypeShadow, world_to_clip, world_to_light);
-        glEndQuery(GL_SAMPLES_PASSED);
+//        GLuint query = drawable.query;
+//        if(!drawable.render_to_picture) {
+//            continue;
+//        }
+//        //query syntax from https://www.reddit.com/r/opengl/comments/1pv8qe/how_do_occlusion_queries_work/
+//        if(!glIsQuery(query)) {
+//            glGenQueries(1, &query);
+//        }
+//        glBeginQuery(GL_SAMPLES_PASSED, query);
+//        render_drawable(drawable, Scene::Drawable::ProgramTypeShadow, world_to_clip, world_to_light);
+//        glEndQuery(GL_SAMPLES_PASSED);
+//
+//
+//        GLuint samples_passed = 0;
+//        glGetQueryObjectuiv(query, GL_QUERY_RESULT, &samples_passed);
+//
+////        GLuint has_finished;
+////        glGetQueryObjectuiv(query, GL_QUERY_RESULT_AVAILABLE, &has_finished);
+////        std::cout << drawable.transform->name << "finished: " << has_finished << std::endl;
 
-
-        GLuint samples_passed = 0;
-        glGetQueryObjectuiv(query, GL_QUERY_RESULT, &samples_passed);
-
-//        GLuint has_finished;
-//        glGetQueryObjectuiv(query, GL_QUERY_RESULT_AVAILABLE, &has_finished);
-//        std::cout << drawable.transform->name << "finished: " << has_finished << std::endl;
-
-        if(samples_passed> 0) {
+        if(drawable.frag_count> 0) {
             occlusion_results.emplace_back(drawable, drawable.frag_count);
-            std::cout << "I can see " << drawable.transform->name;
         }
     }
 
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    glUseProgram(0);
-    glBindVertexArray(0);
-
-    GL_ERRORS();
+//    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+//    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+//
+//    glUseProgram(0);
+//    glBindVertexArray(0);
+//
+//    GL_ERRORS();
 
 }
 
@@ -237,7 +229,6 @@ void Scene::render_drawable(Scene::Drawable const &drawable, Scene::Drawable::Pr
     //the object-to-world matrix is used in all three of these uniforms:
     assert(drawable.transform); //drawables *must* have a transform
     glm::mat4x3 object_to_world = drawable.transform->make_local_to_world();
-    GL_ERRORS();
 
     //OBJECT_TO_CLIP takes vertices from object space to clip space:
     if (pipeline.OBJECT_TO_CLIP_mat4 != -1U) {
@@ -312,19 +303,13 @@ void Scene::test_focal_points(const Camera &camera, std::vector< Scene::Drawable
 
     for(size_t i = 0; i < focal_points.size(); i++) {
         auto &drawable = focal_points.at(i);
-        GLuint query = drawable->query;
-        //query syntax from https://www.reddit.com/r/opengl/comments/1pv8qe/how_do_occlusion_queries_work/
-        if(!glIsQuery(query)) {
-            glGenQueries(1, &query);
-        }
-        glBeginQuery(GL_ANY_SAMPLES_PASSED, query);
+        drawable->queries.StartQuery();
         //use shadow to compute because doesn't require lighting
         render_drawable(*drawable, Drawable::ProgramTypeShadow, world_to_clip, world_to_light);
-        glEndQuery(GL_ANY_SAMPLES_PASSED);
+        drawable->queries.EndQuery();
 
 
-        GLuint passed = 0;
-        glGetQueryObjectuiv(query, GL_QUERY_RESULT, &passed);
+        GLuint passed = drawable->queries.wait_for_query();
 
 //        GLuint has_finished;
 //        glGetQueryObjectuiv(query, GL_QUERY_RESULT_AVAILABLE, &has_finished);
@@ -554,3 +539,4 @@ void Scene::set(Scene const &other, std::unordered_map< Transform const *, Trans
 		l.transform = transform_to_transform.at(l.transform);
 	}
 }
+
