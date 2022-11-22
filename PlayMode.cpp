@@ -569,6 +569,83 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 	}
 
+    //run depth pre-pass for occlusion query, and write position buffer for post-processing
+    {
+        //run query for each drawable
+        glViewport(0, 0, drawable_size.x, drawable_size.y);
+        //bind renderbuffers for rendering
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.oc_fb);
+
+        // set clear depth, testing criteria, and the like
+        glClearDepth(1.0f); // 1.0 is the default value to clear the depth buffer to, but you can change it
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clears currently bound framebuffer's color and depth info
+        // clears color to clearColor set above (sky_color) and clearDepth set above (1.0)
+        glEnable(GL_DEPTH_TEST); // enable depth testing
+        glDepthFunc(GL_LEQUAL); // set criteria for depth test
+        GL_ERRORS();
+
+        //render with occlusion pass
+        scene.draw(  *active_camera, Scene::Drawable::PassTypePrepass);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        glUseProgram(0);
+        glBindVertexArray(0);
+
+        GL_ERRORS();
+
+//        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffers.oc_position_tex);
+//        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffers.screen_texture);
+//
+//        glBlitFramebuffer(0, 0, drawable_size.x, drawable_size.y, 0, 0, drawable_size.x, drawable_size.y,
+//                          GL_COLOR_BUFFER_BIT, GL_LINEAR); // Bilinear interpolation for anti aliasing
+//
+//        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+//        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+//        GL_ERRORS();
+    }
+
+    //run occlusion query using prepass sample buffer
+    {
+        //run query for each drawable
+        glViewport(0, 0, drawable_size.x, drawable_size.y);
+        //bind renderbuffers for rendering
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.oc_fb);
+
+        // set clear depth, testing criteria, and the like
+        glClearDepth(1.0f); // 1.0 is the default value to clear the depth buffer to, but you can change it
+//        glClear(GL_COLOR_BUFFER_BIT ); // clears currently bound framebuffer's color and depth info
+        // clears color to clearColor set above (sky_color) and clearDepth set above (1.0)
+        glEnable(GL_DEPTH_TEST); // enable depth testing
+        glDepthFunc(GL_LEQUAL); // set criteria for depth test
+        glDepthMask(GL_FALSE); //depth buffer should be already filled
+//        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+        GL_ERRORS();
+
+        //render with occlusion pass
+        scene.draw(  *active_camera, Scene::Drawable::PassTypeOcclusion);
+
+        //reenable writing
+        glDepthMask(GL_TRUE);
+//        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        glUseProgram(0);
+        glBindVertexArray(0);
+
+        GL_ERRORS();
+
+//        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffers.oc_position_tex);
+//        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffers.screen_texture);
+//
+//        glBlitFramebuffer(0, 0, drawable_size.x, drawable_size.y, 0, 0, drawable_size.x, drawable_size.y,
+//                          GL_COLOR_BUFFER_BIT, GL_LINEAR); // Bilinear interpolation for anti aliasing
+//
+//        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+//        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+//        GL_ERRORS();
+    }
+
 	
 	// Draw scene to multisampled framebuffer
 	{
@@ -644,43 +721,10 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
         glBlitFramebuffer(0, 0, drawable_size.x, drawable_size.y, 0, 0, drawable_size.x, drawable_size.y,
                           GL_COLOR_BUFFER_BIT, GL_LINEAR); // Bilinear interpolation for anti aliasing
-        glBlitFramebuffer(0, 0, drawable_size.x, drawable_size.y, 0, 0, drawable_size.x, drawable_size.y,
-                          GL_DEPTH_BUFFER_BIT, GL_NEAREST); // Nearest for depth buffer
 
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        GL_ERRORS();
-    }
-
-    //run occlusion query using blitted sample buffer, and write position buffer for post-processing
-    {
-        //run query for each drawable
-        glViewport(0, 0, drawable_size.x, drawable_size.y);
-        //bind renderbuffers for rendering
-        glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.oc_fb);
-
-        // set clear depth, testing criteria, and the like
-        glClearDepth(1.0f); // 1.0 is the default value to clear the depth buffer to, but you can change it
-        glClear(GL_COLOR_BUFFER_BIT ); // clears currently bound framebuffer's color and depth info
-        // clears color to clearColor set above (sky_color) and clearDepth set above (1.0)
-        glEnable(GL_DEPTH_TEST); // enable depth testing
-        glDepthFunc(GL_LEQUAL); // set criteria for depth test
-        glDepthMask(GL_FALSE); //depth buffer should be already filled
-//        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-        GL_ERRORS();
-
-        //render with occlusion pass
-        scene.draw(*active_camera, Scene::Drawable::PassTypeOcclusion);
-
-        //reenable writing
-        glDepthMask(GL_TRUE);
-//        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        glUseProgram(0);
-        glBindVertexArray(0);
-
         GL_ERRORS();
     }
 

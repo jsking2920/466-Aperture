@@ -109,9 +109,8 @@ void Scene::draw(Drawable::PassType pass_type, glm::mat4 const &world_to_clip, g
         for (auto const &drawable: drawables) {
             if (drawable.render_to_screen && drawable.frag_count) {
                 render_drawable(drawable, Drawable::ProgramTypeDefault, world_to_clip, world_to_light);
-//                std::cout << "drawing " << drawable.transform->name << std::endl;
+                std::cout << "drawing " << drawable.transform->name << std::endl;
             }
-
         }
     } else if(pass_type == Drawable::PassTypeShadow) {
         //Iterate through all drawables, to render depth map for shadows:
@@ -135,6 +134,13 @@ void Scene::draw(Drawable::PassType pass_type, glm::mat4 const &world_to_clip, g
 //                    std::cout << "setting frag count for " << drawable.transform->name << "to " << result.value() << std::endl;
                     drawable.frag_count = result.value();
                 }
+            }
+        }
+    } else if(pass_type == Drawable::PassTypePrepass) {
+        //Render all visible objects only to depth buffer & vertex buffer
+        for (auto const &drawable: drawables) {
+            if (drawable.render_to_screen && drawable.frag_count) {
+                render_drawable(drawable, Drawable::ProgramTypeShadow, world_to_clip, world_to_light);
             }
         }
     }
