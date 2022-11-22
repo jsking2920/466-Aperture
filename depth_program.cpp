@@ -7,6 +7,7 @@
 Scene::Drawable::Pipeline depth_program_pipeline;
 
 DepthProgram::DepthProgram() {
+    //note: returns world position
 	program = gl_compile_program(
 		"#version 330\n"
 		"uniform mat4 object_to_clip;\n"
@@ -15,8 +16,10 @@ DepthProgram::DepthProgram() {
         "in vec2 TexCoord;\n"
 //		"out vec3 color;\n" //DEBUG
         "out vec2 texCoord;\n"
+        "out vec4 position;\n"
 		"void main() {\n"
 		"	gl_Position = mat4(object_to_clip) * Position;\n"
+        "   position = Position;\n"
         "   texCoord = TexCoord;\n"
 //		"	color = 0.5 + 0.5 * Normal;\n" //DEBUG
 		"}\n"
@@ -24,14 +27,15 @@ DepthProgram::DepthProgram() {
 		"#version 330\n"
 //		"in vec3 color;\n" //DEBUG
         "in vec2 texCoord;\n"
+        "in vec4 position;\n"
 		"uniform sampler2D TEX;\n"
-//		"out vec4 fragColor;\n"
+		"out vec4 fragColor;\n"
 		"void main() {\n"
         "   vec4 albedo = texture(TEX, texCoord);\n"
         "   if(albedo.a < 0.5) {\n"
         "       discard;\n"
         "   }\n"
-//		"	fragColor = vec4(1.0, 1.0, 1.0, 1.0);\n"
+		"	fragColor = position;\n"
 		"}\n"
 	);
 

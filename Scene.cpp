@@ -111,6 +111,7 @@ void Scene::draw(Drawable::PassType pass_type, glm::mat4 const &world_to_clip, g
                 render_drawable(drawable, Drawable::ProgramTypeDefault, world_to_clip, world_to_light);
 //                std::cout << "drawing " << drawable.transform->name << std::endl;
             }
+
         }
     } else if(pass_type == Drawable::PassTypeShadow) {
         //Iterate through all drawables, to render depth map for shadows:

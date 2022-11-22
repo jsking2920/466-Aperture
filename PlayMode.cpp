@@ -501,8 +501,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
             if (light_type.size() == (uint32_t)lights) break;
         }
 
-        GL_ERRORS();
-
 
         // Set up sky lighting uniforms for lit_color_texture_program:
         glUseProgram(lit_color_texture_program->program);
@@ -637,30 +635,47 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		*/
 	}
 
-    //run occlusion query
+    // Resolve multisampled buffer to screen
+    {
+
+        // blit multisampled buffer to the normal, intermediate post_processing buffer. Image is stored in screen_texture, depth in pp_depth
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffers.ms_fb);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffers.pp_fb);
+
+        glBlitFramebuffer(0, 0, drawable_size.x, drawable_size.y, 0, 0, drawable_size.x, drawable_size.y,
+                          GL_COLOR_BUFFER_BIT, GL_LINEAR); // Bilinear interpolation for anti aliasing
+        glBlitFramebuffer(0, 0, drawable_size.x, drawable_size.y, 0, 0, drawable_size.x, drawable_size.y,
+                          GL_DEPTH_BUFFER_BIT, GL_NEAREST); // Nearest for depth buffer
+
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        GL_ERRORS();
+    }
+
+    //run occlusion query using blitted sample buffer, and write position buffer for post-processing
     {
         //run query for each drawable
         glViewport(0, 0, drawable_size.x, drawable_size.y);
         //bind renderbuffers for rendering
-        glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.ms_fb);
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.oc_fb);
 
         // set clear depth, testing criteria, and the like
         glClearDepth(1.0f); // 1.0 is the default value to clear the depth buffer to, but you can change it
-//        glClear(GL_COLOR_BUFFER_BIT ); // clears currently bound framebuffer's (framebuffers.ms_fb )color and depth info
+        glClear(GL_COLOR_BUFFER_BIT ); // clears currently bound framebuffer's color and depth info
         // clears color to clearColor set above (sky_color) and clearDepth set above (1.0)
         glEnable(GL_DEPTH_TEST); // enable depth testing
         glDepthFunc(GL_LEQUAL); // set criteria for depth test
-        glDepthMask(GL_FALSE);
-        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-
+        glDepthMask(GL_FALSE); //depth buffer should be already filled
+//        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+        GL_ERRORS();
 
         //render with occlusion pass
         scene.draw(*active_camera, Scene::Drawable::PassTypeOcclusion);
 
         //reenable writing
         glDepthMask(GL_TRUE);
-        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-
+//        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         glUseProgram(0);
@@ -669,19 +684,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         GL_ERRORS();
     }
 
-	// Resolve depth effect buffer to screen and perform post processing
-	{
-		// blit depth effect buffer to the normal, intermediate post_processing buffer. Image is stored in screen_texture
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffers.ms_fb);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffers.pp_fb);
-
-		glBlitFramebuffer(0, 0, drawable_size.x, drawable_size.y, 0, 0, drawable_size.x, drawable_size.y, GL_COLOR_BUFFER_BIT, GL_LINEAR); // Bilinear interpolation for anti aliasing
-
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        //add fog
+    { //postprocessing
+        //add fog, fog uses original multisampled depth buffer so no aliasing
         framebuffers.add_depth_effects(fog_intensity, 1800.0f, fog_color);
 
         //add bloom

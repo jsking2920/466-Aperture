@@ -17,36 +17,6 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size, glm::uvec2 const &ne
     if (drawable_size == size) return;
     size = drawable_size;
 
-    //Resize oc_depth_rb
-    {
-        if(oc_depth_rb == 0) glGenTextures(1, &oc_depth_rb);
-
-        glBindTexture(GL_TEXTURE_2D, oc_depth_rb);
-        glTexImage2D(GL_TEXTURE_2D, 0,
-                     GL_DEPTH_COMPONENT24,
-                     size.x, size.y, 0, //width, height, border
-                     GL_DEPTH_COMPONENT, GL_FLOAT, //<-- source data (if we were uploading it) would be floating point RGB
-                     nullptr //<-- don't upload data, just allocate on-GPU storage
-        );
-        glBindTexture(GL_TEXTURE_2D, 0);
-        GL_ERRORS();
-    }
-
-    //Resize oc_fb
-    {
-        if (oc_fb == 0) {
-            glGenFramebuffers(1, &oc_fb);
-            glBindFramebuffer(GL_FRAMEBUFFER, oc_fb);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, oc_depth_rb, 0);
-        }
-
-        // make sure pp_fb isn't borked
-        glBindFramebuffer(GL_FRAMEBUFFER, oc_fb);
-        gl_check_fb(); //<-- helper function to check framebuffer completeness
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        GL_ERRORS();
-    }
-
     // Resize ms_color_tex
     {
         //name texture if not yet named:
@@ -122,7 +92,7 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size, glm::uvec2 const &ne
 
     // Resize depth_effect_fb
     {
-        //set up ms_fb if not yet named:
+        //set up depth_effect_fb if not yet named:
         if (depth_effect_fb == 0) {
             glGenFramebuffers(1, &depth_effect_fb);
             glBindFramebuffer(GL_FRAMEBUFFER, depth_effect_fb);
@@ -130,7 +100,7 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size, glm::uvec2 const &ne
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
 
-        // make sure ms_fb isn't borked
+        // make sure depth_effect_fb isn't borked
         glBindFramebuffer(GL_FRAMEBUFFER, depth_effect_fb);
         gl_check_fb(); //<-- helper function to check framebuffer completeness
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -158,6 +128,22 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size, glm::uvec2 const &ne
         GL_ERRORS();
     }
 
+
+    //Resize pp_depth
+    {
+        if(pp_depth == 0) glGenTextures(1, &pp_depth);
+
+        glBindTexture(GL_TEXTURE_2D, pp_depth);
+        glTexImage2D(GL_TEXTURE_2D, 0,
+                     GL_DEPTH_COMPONENT24,
+                     size.x, size.y, 0, //width, height, border
+                     GL_DEPTH_COMPONENT, GL_FLOAT,
+                     nullptr //<-- don't upload data, just allocate on-GPU storage
+        );
+        glBindTexture(GL_TEXTURE_2D, 0);
+        GL_ERRORS();
+    }
+
     // Resize pp_fb
     {
         // set up pp_fb if not yet named
@@ -165,10 +151,51 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size, glm::uvec2 const &ne
             glGenFramebuffers(1, &pp_fb);
             glBindFramebuffer(GL_FRAMEBUFFER, pp_fb);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, screen_texture, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, pp_depth, 0);
         }
 
         // make sure pp_fb isn't borked
         glBindFramebuffer(GL_FRAMEBUFFER, pp_fb);
+        gl_check_fb(); //<-- helper function to check framebuffer completeness
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        GL_ERRORS();
+    }
+
+    //Resize oc_position_rb
+    {
+        if(oc_position_tex == 0) glGenTextures(1, &oc_position_tex);
+
+        glBindTexture(GL_TEXTURE_2D, oc_position_tex);
+        glTexImage2D(GL_TEXTURE_2D, 0,
+                     GL_RGBA32F,
+                     size.x, size.y, 0, //width, height, border
+                     GL_RGBA, GL_FLOAT, //<-- source data (if we were uploading it) would be floating point RGBA
+                     nullptr //<-- don't upload data, just allocate on-GPU storage
+        );
+//        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE,
+//                                  4, // number of samples per pixel
+//                                GL_RGBA32F, //<-- storage will be RGBA 32-bit float
+//                                  size.x, size.y, //width, height
+//                                  GL_TRUE //<-- use identical sample locations and the same number of samples per texel
+//        );
+        glBindTexture(GL_TEXTURE_2D, 0);
+        GL_ERRORS();
+    }
+
+    //Resize oc_fb
+    {
+        if (oc_fb == 0) {
+            glGenFramebuffers(1, &oc_fb);
+            glBindFramebuffer(GL_FRAMEBUFFER, oc_fb);
+            //rgba texture to hold positions
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, oc_position_tex, 0);
+            //depth texture for querying for occlusion
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, pp_depth, 0); //comes pre-filled from blitting (used for occlusion)
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+
+        // make sure pp_fb isn't borked
+        glBindFramebuffer(GL_FRAMEBUFFER, oc_fb);
         gl_check_fb(); //<-- helper function to check framebuffer completeness
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         GL_ERRORS();
@@ -578,7 +605,6 @@ void Framebuffers::add_depth_effects(float fog_intensity, float fog_exp, glm::ve
     glDisable(GL_DEPTH_TEST);
     glDepthMask(GL_FALSE);
 
-    // blur screen_texture in the X direction, store into blur_x_tex:
     glBindFramebuffer(GL_FRAMEBUFFER, depth_effect_fb);
 
     glUseProgram(depth_effects_program->program);

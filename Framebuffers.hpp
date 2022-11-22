@@ -15,7 +15,7 @@ struct Framebuffers {
 
     //occlusion checking
     GLuint oc_fb = 0;
-    GLuint oc_depth_rb = 0;
+    GLuint oc_position_tex = 0; //used for occlusion culling
 
     // MSAA enabled gl objects
     int msaa_samples = 4; // number of samples per pixel for multisample anti-aliasing
@@ -25,6 +25,7 @@ struct Framebuffers {
 
     // Intermediate post-processing objects
     GLuint pp_fb = 0; // intermediate between anti-aliased fb and final render
+    GLuint pp_depth = 0;
     GLuint screen_texture = 0;
 
     // Objects for the "bloom" effect
