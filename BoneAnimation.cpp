@@ -162,8 +162,11 @@ BoneAnimationPlayer::BoneAnimationPlayer(BoneAnimation const &banims_, BoneAnima
 
 void BoneAnimationPlayer::update(float elapsed) {
 	position += elapsed * position_per_second;
+	std::cout << "position = " << position << "per second " << position_per_second << std::endl;
+
 	if (loop_or_once == Loop) {
 		position -= std::floor(position);
+		std::cout << "position = " << position << std::endl;
 	} else { //(loop_or_once == Once)
 		position = std::max(std::min(position, 1.0f), 0.0f);
 	}

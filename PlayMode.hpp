@@ -2,6 +2,7 @@
 
 #include "Scene.hpp"
 #include "WalkMesh.hpp"
+#include "BoneAnimation.hpp"
 #include "Sound.hpp"
 #include "TextRenderer.hpp"
 #include "Player.hpp"
@@ -101,4 +102,7 @@ struct PlayMode : Mode {
 	float score_text_popup_timer = 0.0f;
 	float score_text_popup_duration = 2.0f;
 	bool score_text_is_showing = false;
+
+	//animation 
+	std::vector< BoneAnimationPlayer > playing_animations = {};
 };

@@ -1,6 +1,8 @@
 #include "PlayMode.hpp"
 
 #include "LitColorTextureProgram.hpp"
+#include "BoneLitColorTextureProgram.hpp"
+
 #include "depth_program.hpp"
 
 #include "DrawLines.hpp"
@@ -23,11 +25,29 @@
 
 GLuint main_meshes_for_lit_color_texture_program = 0;
 GLuint main_meshes_for_depth_program = 0;
+GLuint main_meshes_for_bone_lit_color_texture_program = 0;
+size_t index_to_test = 0;
 Load< MeshBuffer > main_meshes(LoadTagDefault, []() -> MeshBuffer const * {
 	MeshBuffer const *ret = new MeshBuffer(data_path("assets/proto-world2.pnct"));
 	main_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
     main_meshes_for_depth_program = ret->make_vao_for_program(depth_program->program);
 	return ret;
+});
+
+//testing for bone animations...
+BoneAnimation::Animation const *testAnim = nullptr;
+
+Load< BoneAnimation > test_banims(LoadTagDefault, [](){
+	auto ret = new BoneAnimation(data_path("assets/testanim.banims"));
+	testAnim = &(ret->lookup("Test"));
+	assert(testAnim != nullptr);
+	std::cout << "animation start is " << testAnim->begin << std::endl;
+	std::cout << "animation end is " << testAnim->end << std::endl;
+	return ret;
+});
+
+Load< GLuint > banims_for_bone_lit_color_texture_program(LoadTagDefault, [](){
+	return new GLuint(test_banims->make_vao_for_program(bone_lit_color_texture_program->program));
 });
 
 Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
@@ -42,6 +62,17 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
         drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
         drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = mesh.start;
         drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = mesh.count;
+
+
+		//TODO: for stuff that has animations, add a section where it samples the animation
+		if (transform->name == "FLO_01") {
+			drawable.pipeline[Scene::Drawable::ProgramTypeDefault] = bone_lit_color_texture_program_pipeline;
+			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = *banims_for_bone_lit_color_texture_program;
+			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
+			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = mesh.start;
+			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = mesh.count;
+			index_to_test = scene.drawables.size() - 1;
+		}
 
         //set roughnesses, possibly should be from csv??
         float roughness = 1.0f;
@@ -105,6 +136,7 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 
     });
 });
+
 
 Load< WalkMeshes > main_walkmeshes(LoadTagDefault, []() -> WalkMeshes const * {
 	WalkMeshes *ret = new WalkMeshes(data_path("assets/proto-world2.w"));
@@ -227,6 +259,20 @@ PlayMode::PlayMode() : scene(*main_scene) {
             }
         }
     }
+
+	//animation initialization
+	playing_animations.reserve(1);
+	playing_animations.emplace_back(*test_banims, *testAnim, BoneAnimationPlayer::Loop, 1.0f);
+	
+	BoneAnimationPlayer *test_anim_player = &playing_animations.back();
+	for (Scene::Drawable &draw : scene.drawables) {
+		if (draw.transform->name == "FLO_01") {
+			draw.pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [test_anim_player] () {
+				test_anim_player->set_uniform(bone_lit_color_texture_program->BONES_mat4x3_array);			
+			};
+		}
+	}
+
 }
 
 PlayMode::~PlayMode() {
@@ -360,6 +406,11 @@ void PlayMode::update(float elapsed) {
 	// Loop day timer
 	if (time_of_day > day_length) {
 		time_of_day = 0.0f;
+	}
+
+	//animation 
+	for (auto &anim : playing_animations) {
+		anim.update(elapsed);
 	}
 
 	// Reset button press counters and mouse
@@ -618,17 +669,19 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		}
 		*/
 
-		/* Debug code for visualizing walk mesh
+		//Debug code for visualizing walk mesh
+		/*
 		{
 			glDisable(GL_DEPTH_TEST);
-			DrawLines lines(player.camera->make_projection() * glm::mat4(player.camera->transform->make_world_to_local()));
-			for (auto const &tri : player.walk_mesh->triangles) {
-				lines.draw(player.walk_mesh->vertices[tri.x], player.walk_mesh->vertices[tri.y], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
-				lines.draw(player.walk_mesh->vertices[tri.y], player.walk_mesh->vertices[tri.z], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
-				lines.draw(player.walk_mesh->vertices[tri.z], player.walk_mesh->vertices[tri.x], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
+			DrawLines lines(player->camera->make_projection() * glm::mat4(player->camera->transform->make_world_to_local()));
+			for (auto const &tri : player->walk_mesh->triangles) {
+				lines.draw(player->walk_mesh->vertices[tri.x], player->walk_mesh->vertices[tri.y], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
+				lines.draw(player->walk_mesh->vertices[tri.y], player->walk_mesh->vertices[tri.z], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
+				lines.draw(player->walk_mesh->vertices[tri.z], player->walk_mesh->vertices[tri.x], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
 			}
 		}
 		*/
+		
 	}
 
 	// Resolve depth effect buffer to screen and perform post processing
@@ -693,7 +746,6 @@ void PlayMode::menu_draw_ui(glm::uvec2 const& drawable_size) {
 
 // -------- Playing functions -----------
 void PlayMode::playing_update(float elapsed) {
-
 	// Handle State (return early if state changes)
 	{
 		// open journal on tab, swap to journal state
