@@ -15,7 +15,7 @@ struct Framebuffers {
 
     //occlusion checking
     GLuint oc_fb = 0;
-    GLuint oc_position_tex = 0; //used for occlusion culling
+    GLuint oc_position_tex = 0; //stores positions for each fragment
 
     // MSAA enabled gl objects
     int msaa_samples = 4; // number of samples per pixel for multisample anti-aliasing
@@ -29,8 +29,8 @@ struct Framebuffers {
     GLuint screen_texture = 0;
 
     // Objects for the "bloom" effect
-    GLuint blur_x_tex = 0; //GL_RGB16F color texture for first pass of blur
-    GLuint blur_x_fb = 0; // color0: blur_x_tex
+    GLuint blur_tex = 0; //GL_RGB16F color texture for first pass of blur
+    GLuint blur_fb = 0; // color0: blur_x_tex
 
     //This framebuffer is used for shadow maps, from https://github.com/ixchow/15-466-f18-base3
     glm::uvec2 shadow_size = glm::uvec2(0,0);
@@ -43,7 +43,7 @@ struct Framebuffers {
     GLuint depth_effect_tex = 0;
 
     void tone_map_to_screen(GLuint texture); //copy ms_color_tex to screen with tone mapping applied
-    void add_bloom(); //do a basic bloom effect on the screen_texture
+    void add_depth_of_field(float focal_distance, glm::vec3 player_pos); //do a basic bloom effect on the screen_texture
     void add_depth_effects(float fog_intensity, float fog_exp, glm::vec3 fog_color);
 };
 

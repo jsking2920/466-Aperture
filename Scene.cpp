@@ -6,6 +6,7 @@
 #include "Framebuffers.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 #include <fstream>
 #include <algorithm>
@@ -109,7 +110,7 @@ void Scene::draw(Drawable::PassType pass_type, glm::mat4 const &world_to_clip, g
         for (auto const &drawable: drawables) {
             if (drawable.render_to_screen && drawable.frag_count) {
                 render_drawable(drawable, Drawable::ProgramTypeDefault, world_to_clip, world_to_light);
-                std::cout << "drawing " << drawable.transform->name << std::endl;
+//                std::cout << "drawing " << drawable.transform->name << std::endl;
             }
         }
     } else if(pass_type == Drawable::PassTypeShadow) {

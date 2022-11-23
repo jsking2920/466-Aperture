@@ -11,6 +11,7 @@ DepthProgram::DepthProgram() {
 	program = gl_compile_program(
 		"#version 330\n"
 		"uniform mat4 object_to_clip;\n"
+        "uniform mat4x3 object_to_light;\n"
 		"layout(location=0) in vec4 Position;\n" //note: layout keyword used to make sure that the location-0 attribute is always bound to something
 //		"in vec3 Normal;\n" //DEBUG
         "in vec2 TexCoord;\n"
@@ -19,7 +20,7 @@ DepthProgram::DepthProgram() {
         "out vec4 position;\n"
 		"void main() {\n"
 		"	gl_Position = mat4(object_to_clip) * Position;\n"
-        "   position = Position;\n"
+        "   position = mat4(object_to_light) * Position;\n"
         "   texCoord = TexCoord;\n"
 //		"	color = 0.5 + 0.5 * Normal;\n" //DEBUG
 		"}\n"
@@ -40,6 +41,7 @@ DepthProgram::DepthProgram() {
 	);
 
     OBJECT_TO_CLIP_mat4 = glGetUniformLocation(program, "object_to_clip");
+    OBJECT_TO_LIGHT_mat4x3 = glGetUniformLocation(program, "object_to_light");
     GLuint TEX_sampler2D = glGetUniformLocation(program, "TEX");
 
 
@@ -52,6 +54,7 @@ DepthProgram::DepthProgram() {
 Load< DepthProgram > depth_program(LoadTagEarly, [](){
 	DepthProgram *ret = new DepthProgram();
     depth_program_pipeline.OBJECT_TO_CLIP_mat4 = ret->OBJECT_TO_CLIP_mat4;
+    depth_program_pipeline.OBJECT_TO_LIGHT_mat4x3 = ret->OBJECT_TO_LIGHT_mat4x3;
     depth_program_pipeline.program = ret->program;
 
     //make a 1-pixel white texture to bind by default:

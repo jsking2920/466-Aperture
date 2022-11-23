@@ -178,6 +178,10 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size, glm::uvec2 const &ne
 //                                  size.x, size.y, //width, height
 //                                  GL_TRUE //<-- use identical sample locations and the same number of samples per texel
 //        );
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glBindTexture(GL_TEXTURE_2D, 0);
         GL_ERRORS();
     }
@@ -204,10 +208,10 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size, glm::uvec2 const &ne
     // Resize blur textures
     {
         // set up tex if not yet named
-        if (blur_x_tex == 0) glGenTextures(1, &blur_x_tex);
+        if (blur_tex == 0) glGenTextures(1, &blur_tex);
 
         // resize texture
-        glBindTexture(GL_TEXTURE_2D, blur_x_tex);
+        glBindTexture(GL_TEXTURE_2D, blur_tex);
         glTexImage2D(GL_TEXTURE_2D, 0,
             GL_RGB16F, //<-- storage will be RGB 16-bit half-float
             size.x, size.y, 0, //width, height, border
@@ -221,15 +225,15 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size, glm::uvec2 const &ne
         glBindTexture(GL_TEXTURE_2D, 0);
 
         // set up framebuffer if not yet named
-        if (blur_x_fb == 0) {
-            glGenFramebuffers(1, &blur_x_fb);
-            glBindFramebuffer(GL_FRAMEBUFFER, blur_x_fb);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, blur_x_tex, 0);
+        if (blur_fb == 0) {
+            glGenFramebuffers(1, &blur_fb);
+            glBindFramebuffer(GL_FRAMEBUFFER, blur_fb);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, blur_tex, 0);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
 
         // make sure blur_x_fb isn't borked
-        glBindFramebuffer(GL_FRAMEBUFFER, blur_x_fb);
+        glBindFramebuffer(GL_FRAMEBUFFER, blur_fb);
         gl_check_fb(); //<-- helper function to check framebuffer completeness
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         GL_ERRORS();
@@ -324,6 +328,8 @@ struct ToneMapProgram {
     //texture0 -- texture to copy
 };
 
+//Tone Map & Blur program adjusted from https://github.com/15-466/15-466-f20-framebuffer
+
 GLuint empty_vao = 0;
 Load< ToneMapProgram > tone_map_program(LoadTagEarly, []() -> ToneMapProgram const * {
     if(empty_vao == 0) glGenVertexArrays(1, &empty_vao);
@@ -392,20 +398,20 @@ struct BlurXProgram {
                 "#version 330\n"
                 "uniform sampler2D TEX;\n"
                 "const int KERNEL_RADIUS = " + std::to_string(KERNEL_RADIUS) + ";\n"
-                                                                               "uniform float KERNEL[KERNEL_RADIUS];\n"
-                                                                               "out vec4 fragColor;\n"
-                                                                               "void main() {\n"
-                                                                               "	ivec2 c = ivec2(gl_FragCoord.xy);\n"
-                                                                               "	int limit = textureSize(TEX, 0).x-1;\n"
-                                                                               "	vec3 acc = KERNEL[0] * texelFetch(TEX, c, 0).rgb;\n"
-                                                                               "	for (int ofs = 1; ofs < KERNEL_RADIUS; ++ofs) {\n"
-                                                                               "		acc += KERNEL[ofs] * (\n"
-                                                                               "			  texelFetch(TEX, ivec2(min(c.x+ofs, limit), c.y), 0).rgb\n"
-                                                                               "			+ texelFetch(TEX, ivec2(max(c.x-ofs, 0), c.y), 0).rgb\n"
-                                                                               "		);\n"
-                                                                               "	}\n"
-                                                                               "	fragColor = vec4(acc,1.0);\n"
-                                                                               "}\n"
+               "uniform float KERNEL[KERNEL_RADIUS];\n"
+               "out vec4 fragColor;\n"
+               "void main() {\n"
+               "	ivec2 c = ivec2(gl_FragCoord.xy);\n"
+               "	int limit = textureSize(TEX, 0).x-1;\n"
+               "	vec3 acc = KERNEL[0] * texelFetch(TEX, c, 0).rgb;\n"
+               "	for (int ofs = 1; ofs < KERNEL_RADIUS; ++ofs) {\n"
+               "		acc += KERNEL[ofs] * (\n"
+               "			  texelFetch(TEX, ivec2(min(c.x+ofs, limit), c.y), 0).rgb\n"
+               "			+ texelFetch(TEX, ivec2(max(c.x-ofs, 0), c.y), 0).rgb\n"
+               "		);\n"
+               "	}\n"
+               "	fragColor = vec4(acc,1.0);\n"
+               "}\n"
         );
 
         glUseProgram(program);
@@ -448,20 +454,20 @@ struct BlurYProgram {
                 "#version 330\n"
                 "uniform sampler2D TEX;\n"
                 "const int KERNEL_RADIUS = " + std::to_string(KERNEL_RADIUS) + ";\n"
-                                                                               "uniform float KERNEL[KERNEL_RADIUS];\n"
-                                                                               "out vec4 fragColor;\n"
-                                                                               "void main() {\n"
-                                                                               "	ivec2 c = ivec2(gl_FragCoord.xy);\n"
-                                                                               "	int limit = textureSize(TEX, 0).y-1;\n"
-                                                                               "	vec3 acc = KERNEL[0] * texelFetch(TEX, c, 0).rgb;\n"
-                                                                               "	for (int ofs = 1; ofs < KERNEL_RADIUS; ++ofs) {\n"
-                                                                               "		acc += KERNEL[ofs] * (\n"
-                                                                               "			  texelFetch(TEX, ivec2(c.x, min(c.y+ofs, limit)), 0).rgb\n"
-                                                                               "			+ texelFetch(TEX, ivec2(c.x, max(c.y-ofs, 0)), 0).rgb\n"
-                                                                               "		);\n"
-                                                                               "	}\n"
-                                                                               "	fragColor = vec4(acc,0.1);\n" //<-- alpha here controls strength of effect, because blending used on this pass
-                                                                               "}\n"
+               "uniform float KERNEL[KERNEL_RADIUS];\n"
+               "out vec4 fragColor;\n"
+               "void main() {\n"
+               "	ivec2 c = ivec2(gl_FragCoord.xy);\n"
+               "	int limit = textureSize(TEX, 0).y-1;\n"
+               "	vec3 acc = KERNEL[0] * texelFetch(TEX, c, 0).rgb;\n"
+               "	for (int ofs = 1; ofs < KERNEL_RADIUS; ++ofs) {\n"
+               "		acc += KERNEL[ofs] * (\n"
+               "			  texelFetch(TEX, ivec2(c.x, min(c.y+ofs, limit)), 0).rgb\n"
+               "			+ texelFetch(TEX, ivec2(c.x, max(c.y-ofs, 0)), 0).rgb\n"
+               "		);\n"
+               "	}\n"
+               "	fragColor = vec4(acc,1.0);\n" //<-- alpha here controls strength of effect, because blending used on this pass
+               "}\n"
         );
 
         glUseProgram(program);
@@ -490,14 +496,108 @@ struct BlurYProgram {
 
 Load< BlurYProgram > blur_y_program(LoadTagEarly);
 
-void Framebuffers::add_bloom() {
+//assisted by this tutorial https://lettier.github.io/3d-game-shaders-for-beginners/depth-of-field.html
+struct DepthOfFieldProgram {
+    DepthOfFieldProgram() {
+        program = gl_compile_program(
+                //vertex shader -- draws a fullscreen triangle using no attribute streams
+                "#version 330\n"
+                "void main() {\n"
+                "	gl_Position = vec4(4 * (gl_VertexID & 1) - 1,  2 * (gl_VertexID & 2) - 1, 0.0, 1.0);\n"
+                "}\n"
+                ,
+                //fragment shader -- blur in X direction with a given kernel
+                "#version 330\n"
+                "uniform sampler2D TEX;\n"
+                "uniform sampler2D POS_TEX;\n"
+                "uniform sampler2D BLUR_TEX;\n"
+                "uniform vec3 PLAYER_POS;\n"
+                "uniform float FOCAL_DISTANCE;\n"
+                "out vec4 fragColor;\n"
+                "void main() {\n"
+                "	ivec2 c = ivec2(gl_FragCoord.xy);\n"
+                "	vec3 location = vec3(texelFetch(POS_TEX, c, 0));\n"
+                "	float distance = abs(distance(PLAYER_POS, location));\n"
+                "	float blur = smoothstep(3.0f, FOCAL_DISTANCE, abs(FOCAL_DISTANCE - distance));\n" //returns 0-1, first arg can be changed to increase "in focus" range
+                "	fragColor = mix(texelFetch(TEX, c, 0), texelFetch(BLUR_TEX, c, 0), blur);\n"
+//                "	fragColor = texelFetch(POS_TEX, c, 0);\n"
+//                "   if(texelFetch(POS_TEX, c, 0).x < 0) {\n"
+//                "       fragColor = vec4(1.0, 0.0, 0.0, 1.0);\n"
+//                "   } else {\n"
+//                "       fragColor = vec4(0.0, 0.0, 1.0, 1.0);\n"
+//                "   }\n"
+                "}\n"
+        );
+
+        glUseProgram(program);
+
+        //set uniforms
+        PLAYER_POS_vec3 = glGetUniformLocation(program, "PLAYER_POS");
+        FOCAL_DISTANCE_float = glGetUniformLocation(program, "FOCAL_DISTANCE");
+
+        //set TEX to texture unit 0:
+        GLuint TEX_sampler2D = glGetUniformLocation(program, "TEX");
+        glUniform1i(TEX_sampler2D, 0);
+
+        //set POS_TEX to texture unit 1:
+        GLuint POS_TEX_sampler2D = glGetUniformLocation(program, "POS_TEX");
+        glUniform1i(POS_TEX_sampler2D, 1);
+
+        GLuint BLUR_TEX_sampler2D = glGetUniformLocation(program, "BLUR_TEX");
+        glUniform1i(BLUR_TEX_sampler2D, 2);
+
+        glUseProgram(0);
+
+        GL_ERRORS();
+    }
+
+    GLuint program = 0;
+
+    //uniforms:
+    GLuint PLAYER_POS_vec3 = -1U;
+    GLuint FOCAL_DISTANCE_float = -1U;
+
+    //textures:
+    //texture0 -- texture to copy
+    //texture1 -- position texture
+    //texture2 -- blurred texture
+};
+
+Load< DepthOfFieldProgram > depth_of_field(LoadTagEarly, []() -> DepthOfFieldProgram const * {
+    if (empty_vao == 0) glGenVertexArrays(1, &empty_vao);
+    return new DepthOfFieldProgram();
+});
+
+void Framebuffers::add_depth_of_field(float focal_distance, glm::vec3 player_pos) {
     glDisable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
 
-    // blur screen_texture in the X direction, store into blur_x_tex:
-    glBindFramebuffer(GL_FRAMEBUFFER, blur_x_fb);
+    // blur depth_effect_tex in the X direction, store into screen_texture:
+    glBindFramebuffer(GL_FRAMEBUFFER, pp_fb);
 
     glUseProgram(blur_x_program->program);
+    glBindVertexArray(empty_vao);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, depth_effect_tex);
+
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glBindVertexArray(0);
+    glUseProgram(0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // blur screen_texture in the Y direction, store into blur_tex
+    glBindFramebuffer(GL_FRAMEBUFFER, blur_fb);
+
+    //blending disabled?
+//    glEnable(GL_BLEND);
+//    glBlendEquation(GL_FUNC_ADD);
+//    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glUseProgram(blur_y_program->program);
     glBindVertexArray(empty_vao);
 
     glActiveTexture(GL_TEXTURE0);
@@ -511,29 +611,44 @@ void Framebuffers::add_bloom() {
     glUseProgram(0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    // blur blur_x_tex in the Y direction, store back into screen_texture
-    glBindFramebuffer(GL_FRAMEBUFFER, pp_fb);
+//    glDisable(GL_BLEND);
     GL_ERRORS();
 
-    glEnable(GL_BLEND);
-    glBlendEquation(GL_FUNC_ADD);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    glUseProgram(blur_y_program->program);
+
+    //Add depth of field, store into pp_fb/screen_texture
+    glBindFramebuffer(GL_FRAMEBUFFER, pp_fb);
+
+    glUseProgram(depth_of_field->program);
     glBindVertexArray(empty_vao);
 
+    //set uniforms
+    glUniform1f(depth_of_field->FOCAL_DISTANCE_float, focal_distance );
+    glUniform3fv(depth_of_field->PLAYER_POS_vec3, 1, glm::value_ptr(player_pos));
+
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, blur_x_tex);
+    glBindTexture(GL_TEXTURE_2D, depth_effect_tex);
+
+    //texture1 is vertex position texture
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, oc_position_tex);
+
+    //texture2 is blurred texture
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, blur_tex);
 
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
+    //unbind textures
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, 0);
 
     glBindVertexArray(0);
     glUseProgram(0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    glDisable(GL_BLEND);
 
     GL_ERRORS();
 }

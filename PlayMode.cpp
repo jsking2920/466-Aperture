@@ -60,6 +60,7 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
         drawable.pipeline[Scene::Drawable::ProgramTypeShadow].count = mesh.count;
 
         drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_CLIP_mat4 = depth_program_pipeline.OBJECT_TO_CLIP_mat4;
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_LIGHT_mat4x3 = depth_program_pipeline.OBJECT_TO_LIGHT_mat4x3;
 
         GLuint tex;
         glGenTextures(1, &tex);
@@ -439,10 +440,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			// increase amplitude of curve so that middle of the day is all at or above max brightness
 			brightness *= 1.3f;
             float color_sin = std::clamp(brightness, 0.0f, 1.0f);
-			// lerp brightness value from 0.15 to 1.5 so that it's never completely dark
-			//brightness = ((1.0f - brightness) * 0.15f) + brightness;
 			// clamp brightness to [0.1f, 1.0f], which creates a "plateau" in the curve at midday
-			brightness = brightness > 1.0f ? 1.0f : brightness;
+//			brightness = brightness > 1.0f ? 1.0f : brightness;
 
             sun_color = glm::vec3(1.0f, 1.0f, 0.95f); // slightly warm light (less blue)
             sun_angle = glm::vec3(0, -std::cos(((time_of_day - sunrise) / (sunset - sunrise)) * float(M_PI)) / std::sqrt(2),
@@ -582,11 +581,11 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         // clears color to clearColor set above (sky_color) and clearDepth set above (1.0)
         glEnable(GL_DEPTH_TEST); // enable depth testing
         glDepthFunc(GL_LEQUAL); // set criteria for depth test
+        glDisable(GL_BLEND);
         GL_ERRORS();
 
         //render with occlusion pass
         scene.draw(  *active_camera, Scene::Drawable::PassTypePrepass);
-
     }
 
     //run occlusion query using prepass sample buffer
@@ -594,13 +593,18 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         // clears color to clearColor set above (sky_color) and clearDepth set above (1.0)
         glDepthMask(GL_FALSE); //depth buffer should be already filled
         GL_ERRORS();
+        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 
         //render with occlusion pass
         scene.draw(  *active_camera, Scene::Drawable::PassTypeOcclusion);
 
+//        float pixels[4];
+//        glReadPixels(0, 0, 1, 1, GL_RGBA, GL_FLOAT, &pixels);
+//        std::cout << pixels[0] << ", " << pixels[1] << ", " << pixels[2] << ", " << pixels[3] << std::endl;
+
         //reenable writing
         glDepthMask(GL_TRUE);
-//        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         glUseProgram(0);
@@ -696,10 +700,10 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         framebuffers.add_depth_effects(fog_intensity, 1800.0f, fog_color);
 
         //add bloom
-//        framebuffers.add_bloom();
-
+        framebuffers.add_depth_of_field(4.0f, active_camera->transform->make_local_to_world() * glm::vec4(active_camera->transform->position, 1.0f));
+//        std::cout << glm::to_string(active_camera->transform->make_local_to_world() * glm::vec4(active_camera->transform->position, 1.0f) ) << std::endl;
 		// Copy framebuffer to main window:
-		framebuffers.tone_map_to_screen(framebuffers.depth_effect_tex);
+		framebuffers.tone_map_to_screen(framebuffers.screen_texture);
 	}
 	
 	// Draw UI
