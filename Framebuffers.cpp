@@ -517,15 +517,18 @@ struct DepthOfFieldProgram {
                 "void main() {\n"
                 "	ivec2 c = ivec2(gl_FragCoord.xy);\n"
                 "	vec3 location = vec3(texelFetch(POS_TEX, c, 0));\n"
-                "	float distance = abs(distance(PLAYER_POS, location));\n"
-                "	float blur = smoothstep(3.0f, FOCAL_DISTANCE, abs(FOCAL_DISTANCE - distance));\n" //returns 0-1, first arg can be changed to increase "in focus" range
+                "   float blur;"
+                "   if(location == vec3(0, 0, 0)) {\n"
+                "       blur = 1.0f;\n"
+                "   } else {\n"
+                "	    float distance = distance(PLAYER_POS, location);\n"
+                "       float range = 1.0f;\n"
+                "       float offset = FOCAL_DISTANCE/2;\n"
+                "	    blur = clamp((abs(offset + FOCAL_DISTANCE - distance) - range)/(offset), 0, 1);\n" //returns 0-1, first arg can be changed to increase "in focus" range
+                "   }\n"
                 "	fragColor = mix(texelFetch(TEX, c, 0), texelFetch(BLUR_TEX, c, 0), blur);\n"
-//                "	fragColor = texelFetch(POS_TEX, c, 0);\n"
-//                "   if(texelFetch(POS_TEX, c, 0).x < 0) {\n"
-//                "       fragColor = vec4(1.0, 0.0, 0.0, 1.0);\n"
-//                "   } else {\n"
-//                "       fragColor = vec4(0.0, 0.0, 1.0, 1.0);\n"
-//                "   }\n"
+//                "	fragColor = vec4(blur, blur, blur, 1.0);\n"
+//                "	fragColor = texelFetch(TEX, c, 0);\n"
                 "}\n"
         );
 

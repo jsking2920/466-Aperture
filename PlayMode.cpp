@@ -429,7 +429,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         //Fix "jump" at day/night switch over, by letting brightnesses reach zero and turning up ambient lighting
         //Maybe displace sunset and sunrise to be more during the daytime so that sun angles make more sense during sunrise/set
         //make sunrise less orange probably
-        glm::vec3 sky_color;
         glm::vec3 ambient_color;
 		float brightness;
         glm::vec3 sun_angle;
@@ -563,8 +562,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
         GL_ERRORS(); //now texture is already in framebuffers.shadow_depth_tex
 
-        // Set "sky" (clear color)
-        glClearColor(sky_color.x, sky_color.y, sky_color.z, 1.0f);
 
 	}
 
@@ -577,6 +574,10 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
         // set clear depth, testing criteria, and the like
         glClearDepth(1.0f); // 1.0 is the default value to clear the depth buffer to, but you can change it
+        //set sky bits to be far away from the camera
+//        glm::vec4 distant = active_camera->transform->make_local_to_world() * glm::vec4(active_camera->transform->position, 1.0f) + glm::vec4(1000.f, 1000.f, 1000.f, 0.0f);
+//        glClearColor(distant.r, distant.g, distant.b, distant.a);
+        glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clears currently bound framebuffer's color and depth info
         // clears color to clearColor set above (sky_color) and clearDepth set above (1.0)
         glEnable(GL_DEPTH_TEST); // enable depth testing
@@ -620,6 +621,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.ms_fb);
         glViewport(0, 0, drawable_size.x, drawable_size.y);
+        // Set "sky" (clear color)
+        glClearColor(sky_color.x, sky_color.y, sky_color.z, 1.0f);
 
         //bind generated shadow texture
         glActiveTexture(GL_TEXTURE5);
@@ -700,7 +703,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         framebuffers.add_depth_effects(fog_intensity, 1800.0f, fog_color);
 
         //add bloom
-        framebuffers.add_depth_of_field(4.0f, active_camera->transform->make_local_to_world() * glm::vec4(active_camera->transform->position, 1.0f));
+        framebuffers.add_depth_of_field(7.0f, active_camera->transform->make_local_to_world() * glm::vec4(active_camera->transform->position, 1.0f));
 //        std::cout << glm::to_string(active_camera->transform->make_local_to_world() * glm::vec4(active_camera->transform->position, 1.0f) ) << std::endl;
 		// Copy framebuffer to main window:
 		framebuffers.tone_map_to_screen(framebuffers.screen_texture);
