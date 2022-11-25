@@ -7,6 +7,7 @@ import bpy
 import struct
 import bmesh
 import mathutils
+import math
 import re;
 
 args = []
@@ -101,6 +102,9 @@ def write_bone(bone):
 
 	#bind matrix inverse as 3-row, 4-column matrix:
 	transform = bone.matrix_local.copy()
+	#rotate 90 degrees around x-axis to match blender's coordinate system:
+	transform = mathutils.Matrix.Rotation(math.radians(-90), 4, 'X') @ transform
+	print("bone '" + bone.name + "' matrix_local: \n" + str(transform))
 	transform.invert()
 	#Note: store *column-major*:
 	bone_data += struct.pack('3f', transform[0].x, transform[1].x, transform[2].x)
@@ -137,10 +141,13 @@ def write_frame(pose, root_xf=mathutils.Matrix()):
 		pose_bone = pose.bones[name]
 		if pose_bone.parent:
 			to_parent = pose_bone.parent.matrix.copy()
+			#rotate 90 degrees around x-axis to match blender's coordinate system:
 			to_parent.invert()
 			local_to_parent = to_parent @ pose_bone.matrix
 		else:
-			local_to_parent = root_xf @ pose_bone.matrix
+			local_to_parent = pose_bone.matrix
+			#roatate 90 degrees around x-axis to match blender's coordinate system:
+			local_to_parent = root_xf @ local_to_parent
 
 		trs = local_to_parent.decompose()
 		frame_data += struct.pack('3f', trs[0].x, trs[0].y, trs[0].z)
@@ -324,6 +331,8 @@ for obj in objs:
 	mesh.calc_normals_split()
 
 	obj_to_arm = armature.matrix_world.copy()
+	#rotate 90 degrees around x-axis with 3x3 matrix:
+	#obj_to_arm = mathutils.Matrix.Rotation(math.radians(-90), 4, 'X') @ obj_to_arm
 	obj_to_arm.invert()
 	obj_to_arm = obj_to_arm @ obj.matrix_world
 

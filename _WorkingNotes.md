@@ -1,24 +1,23 @@
 
 ## Helpful
-"C:\Program Files\Blender Foundation\Blender 3.3\blender.exe" --background --python export-scene.py -- proto-world.blend proto-world.scene
+"C:\Program Files\Blender Foundation\Blender 3.3\blender.exe" --background --python scenes\export-scene.py -- scenes\proto-world2.blend dist\assets\proto-world2.scene
 
 
-"C:\Program Files\Blender Foundation\Blender 3.3\blender.exe" --background --python export-meshes.py -- proto-world.blend proto-world.pnct
+"C:\Program Files\Blender Foundation\Blender 3.3\blender.exe" --background --python scenes\export-meshes.py -- scenes\proto-world2.blend dist\assets\proto-world2.pnct
 
-"C:\Program Files\Blender Foundation\Blender 3.3\blender.exe" --background --python export-walkmeshes.py -- proto-world.blend:WalkMeshes proto-world.w
+"C:\Program Files\Blender Foundation\Blender 3.3\blender.exe" --background --python scenes\export-walkmeshes.py -- scenes\proto-world2.blend:WalkMeshes dist\assets\proto-world2.w
 
-
-"C:\Program Files\Blender Foundation\Blender 3.3\blender.exe" --background --python export-scene.py -- proto-world2.blend proto-world2.scene
-
-
-"C:\Program Files\Blender Foundation\Blender 3.3\blender.exe" --background --python export-meshes.py -- proto-world2.blend proto-world2.pnct
-
-"C:\Program Files\Blender Foundation\Blender 3.3\blender.exe" --background --python export-walkmeshes.py -- proto-world2.blend:WalkMeshes proto-world2.w
+//big ass command
+"C:\Program Files\Blender Foundation\Blender 3.3\blender.exe" --background --python scenes\export-scene.py -- scenes\proto-world2.blend dist\assets\proto-world2.scene && "C:\Program Files\Blender Foundation\Blender 3.3\blender.exe" --background --python scenes\export-meshes.py -- scenes\proto-world2.blend dist\assets\proto-world2.pnct && "C:\Program Files\Blender Foundation\Blender 3.3\blender.exe" --background --python scenes\export-walkmeshes.py -- scenes\proto-world2.blend:WalkMeshes dist\assets\proto-world2.w
 
 //export animation 
-"C:\Program Files\Blender Foundation\Blender 3.3\blender.exe" --background --python scenes/export-bone-animations.py -- scenes/proto-world2.blend Armature [0,60]Test!local testanim.character
+"C:\Program Files\Blender Foundation\Blender 3.3\blender.exe" --background --python scenes\export-bone-animations.py -- scenes\proto-world2.blend Armature [0,60]Test!first dist\assets\testanim.banims
+
+"C:\Program Files\Blender Foundation\Blender 3.3\blender.exe" --background --python scenes\export-bone-animations.py -- scenes\proto-world2.blend ARM_FLO_02 [0,40]Test!local dist\assets\testanim.banims
 
 
+
+"C:\Program Files\Blender Foundation\Blender 3.3\blender.exe" --background --python scenes\export-bone-animations.py -- scenes\proto-world2.blend Fuck [0,30]Test!global dist\assets\testanim.banims
 
 
 blender --background --python export-bone-animations.py -- <infile.blend> <object> <action[;action2][;...]> <outfile.character>
@@ -30,3 +29,11 @@ blender --background --python scenes/export-meshes.py -- scenes/proto-world.blen
 blender --background --python scenes/export-walkmeshes.py -- scenes/proto-world.blend:WalkMeshes dist/proto-world.w 
 
 C:\Program Files\Blender Foundation\Blender 3.3
+
+thinking about... importing animations
+Ideally we want the animation to be binded to the creatures, such that we can play them at will...
+Alternatively, we have a huge look up table that's creature to animation...
+Each animation file corresponds with one skeleton -- can they share animations?
+
+there's a list of currently playing animations, getting updated
+Each 

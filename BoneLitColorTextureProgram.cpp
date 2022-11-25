@@ -31,7 +31,7 @@ Load< BoneLitColorTextureProgram > bone_lit_color_texture_program(LoadTagEarly, 
 
 	bone_lit_color_texture_program_pipeline.textures[0].texture = tex;
 	bone_lit_color_texture_program_pipeline.textures[0].target = GL_TEXTURE_2D;
-
+	std::cout << glGetError() << std::endl; // returns 0 (no error)
 	return ret;
 });
 
@@ -133,6 +133,7 @@ BoneLitColorTextureProgram::BoneLitColorTextureProgram() {
 	glUniform1i(TEX_sampler2D, 0); //set TEX to sample from GL_TEXTURE0
 
 	glUseProgram(0); //unbind program -- glUniform* calls refer to ??? now
+	std::cout << glGetError() << std::endl;
 }
 
 BoneLitColorTextureProgram::~BoneLitColorTextureProgram() {

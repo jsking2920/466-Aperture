@@ -26,7 +26,6 @@
 GLuint main_meshes_for_lit_color_texture_program = 0;
 GLuint main_meshes_for_depth_program = 0;
 GLuint main_meshes_for_bone_lit_color_texture_program = 0;
-size_t index_to_test = 0;
 Load< MeshBuffer > main_meshes(LoadTagDefault, []() -> MeshBuffer const * {
 	MeshBuffer const *ret = new MeshBuffer(data_path("assets/proto-world2.pnct"));
 	main_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
@@ -71,7 +70,7 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = mesh.start;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = mesh.count;
-			index_to_test = scene.drawables.size() - 1;
+			std::cout << "found " << transform->name << std::endl;
 		}
 
         //set roughnesses, possibly should be from csv??
@@ -263,12 +262,13 @@ PlayMode::PlayMode() : scene(*main_scene) {
 	//animation initialization
 	playing_animations.reserve(1);
 	playing_animations.emplace_back(*test_banims, *testAnim, BoneAnimationPlayer::Loop, 1.0f);
-	
+
 	BoneAnimationPlayer *test_anim_player = &playing_animations.back();
 	for (Scene::Drawable &draw : scene.drawables) {
-		if (draw.transform->name == "FLO_01") {
+		if (draw.transform->name == "FLO_01" ) {
+			std::cout << "found " << draw.transform->name << std::endl;		
 			draw.pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [test_anim_player] () {
-				test_anim_player->set_uniform(bone_lit_color_texture_program->BONES_mat4x3_array);			
+				test_anim_player->set_uniform(bone_lit_color_texture_program->BONES_mat4x3_array);	
 			};
 		}
 	}
@@ -418,7 +418,7 @@ void PlayMode::update(float elapsed) {
 	right.downs = 0;
 	up.downs = 0;
 	down.downs = 0;
-	lmb.downs = 0;
+	lmb.downs = 0; 
 	rmb.downs = 0;
 	lctrl.downs = 0;
 	tab.downs = 0;
