@@ -101,4 +101,6 @@ struct PlayMode : Mode {
 	float score_text_popup_timer = 0.0f;
 	float score_text_popup_duration = 2.0f;
 	bool score_text_is_showing = false;
+
+
 };

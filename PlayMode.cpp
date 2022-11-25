@@ -338,7 +338,7 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 }
 
 void PlayMode::update(float elapsed) {
-
+	
 	time_of_day += elapsed * time_scale * time_scale_debug;
 
 	switch (cur_state) {
@@ -379,7 +379,6 @@ void PlayMode::update(float elapsed) {
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
-
 	// Update camera aspect ratios for drawable
 	{
 		player->camera->aspect = float(drawable_size.x) / float(drawable_size.y);
@@ -518,7 +517,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3_array, lights, glm::value_ptr(light_direction[0]));
         glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3_array, lights, glm::value_ptr(light_energy[0]));
         glUniform1fv(lit_color_texture_program->LIGHT_CUTOFF_float_array, lights, light_cutoff.data());
-
         GL_ERRORS();
 
 

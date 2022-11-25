@@ -9,8 +9,13 @@
 
 #include <fstream>
 #include <algorithm>
+#include <chrono>
 
 //-------------------------
+//behold! terrible practice!
+auto start_time = std::chrono::high_resolution_clock::now();
+//program time
+float ptime = 0.0f;
 
 glm::mat4x3 Scene::Transform::make_local_to_parent() const {
 	//compute:
@@ -216,6 +221,9 @@ void Scene::render_drawable(Scene::Drawable const &drawable, Scene::Drawable::Pr
     //the object-to-world matrix is used in all three of these uniforms:
     assert(drawable.transform); //drawables *must* have a transform
     glm::mat4x3 object_to_world = drawable.transform->make_local_to_world();
+	//update time for Vertex shader
+	auto current_time = std::chrono::high_resolution_clock::now();
+	ptime = std::chrono::duration<float>(current_time - start_time).count();
 
     //OBJECT_TO_CLIP takes vertices from object space to clip space:
     if (pipeline.OBJECT_TO_CLIP_mat4 != -1U) {
@@ -247,6 +255,8 @@ void Scene::render_drawable(Scene::Drawable const &drawable, Scene::Drawable::Pr
         glUniform1ui(pipeline.USES_VERTEX_COLOR, uses_vertex_color);
     }
     GL_ERRORS();
+	glUniform1f(pipeline.TIME, ptime * 5.f);
+	GL_ERRORS();
 
     //set any requested custom uniforms:
     if (pipeline.set_uniforms) pipeline.set_uniforms();

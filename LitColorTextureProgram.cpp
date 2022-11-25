@@ -15,6 +15,8 @@ Load< LitColorTextureProgram > lit_color_texture_program(LoadTagEarly, []() -> L
 	lit_color_texture_program_pipeline.OBJECT_TO_LIGHT_mat4x3 = ret->OBJECT_TO_LIGHT_mat4x3;
 	lit_color_texture_program_pipeline.NORMAL_TO_LIGHT_mat3 = ret->NORMAL_TO_LIGHT_mat3;
     lit_color_texture_program_pipeline.LIGHT_TO_SPOT_mat4 = ret->LIGHT_TO_SPOT_mat4;
+    
+    lit_color_texture_program_pipeline.TIME = ret->TIME_float;
 
     lit_color_texture_program_pipeline.USES_VERTEX_COLOR = ret->USES_VERTEX_COLOR_bool;
 
@@ -59,6 +61,7 @@ LitColorTextureProgram::LitColorTextureProgram() {
             "uniform mat4x3 OBJECT_TO_LIGHT;\n"
             "uniform mat3 NORMAL_TO_LIGHT;\n"
             "uniform mat4 LIGHT_TO_SPOT;\n"
+            "uniform float TIME;\n"
             "in vec4 Position;\n"
             "in vec3 Normal;\n"
             "in vec4 Color;\n"
@@ -69,8 +72,9 @@ LitColorTextureProgram::LitColorTextureProgram() {
             "out vec2 texCoord;\n"
             "out vec4 spotPosition;\n"
             "void main() {\n"
-            "	gl_Position = OBJECT_TO_CLIP * Position;\n"
-            "	position = OBJECT_TO_LIGHT * Position;\n"
+            "   vec4 test = vec4(TIME, 0.0, 0.0, 0.0);\n" //now cast this to vec4 
+            "	gl_Position = OBJECT_TO_CLIP * (Position + test);\n"
+            "	position = OBJECT_TO_LIGHT * (Position + test);\n"
             "   spotPosition = LIGHT_TO_SPOT * vec4(position, 1.0f); \n"
             "	normal = NORMAL_TO_LIGHT * Normal;\n"
             "	color = Color;\n"
@@ -175,11 +179,15 @@ LitColorTextureProgram::LitColorTextureProgram() {
 	Color_vec4 = glGetAttribLocation(program, "Color");
 	TexCoord_vec2 = glGetAttribLocation(program, "TexCoord");
 
+    GL_ERRORS(); //PARANOIA: print errors just in case we did something wrong.
+
 	//look up the locations of uniforms:
 	OBJECT_TO_CLIP_mat4 = glGetUniformLocation(program, "OBJECT_TO_CLIP");
 	OBJECT_TO_LIGHT_mat4x3 = glGetUniformLocation(program, "OBJECT_TO_LIGHT");
 	NORMAL_TO_LIGHT_mat3 = glGetUniformLocation(program, "NORMAL_TO_LIGHT");
     LIGHT_TO_SPOT_mat4 = glGetUniformLocation(program, "LIGHT_TO_SPOT");
+    TIME_float = glGetUniformLocation(program, "TIME");
+
 
     ROUGHNESS_float = glGetUniformLocation(program, "ROUGHNESS");
     EYE_vec3 = glGetUniformLocation(program, "EYE");

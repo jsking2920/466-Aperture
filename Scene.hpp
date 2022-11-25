@@ -91,6 +91,7 @@ struct Scene {
 			GLuint NORMAL_TO_LIGHT_mat3 = -1U; //uniform location for normal to light space (== world space) matrix
             GLuint LIGHT_TO_SPOT_mat4 = -1U;
             GLuint USES_VERTEX_COLOR = -1U;
+			GLuint TIME = -1U; //uniform location for time
 
 			std::function< void() > set_uniforms = [&] {
 
