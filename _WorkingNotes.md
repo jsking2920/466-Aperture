@@ -20,3 +20,7 @@ blender --background --python scenes/export-meshes.py -- scenes/proto-world.blen
 blender --background --python scenes/export-walkmeshes.py -- scenes/proto-world.blend:WalkMeshes dist/proto-world.w
 
 C:\Program Files\Blender Foundation\Blender 3.3
+
+thoughts on going from here for vertex shader:
+need a local to world matrix, to guarentee movement in world space
+idk what's next, will find out tomorrow
