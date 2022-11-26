@@ -60,6 +60,7 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
         drawable.pipeline[Scene::Drawable::ProgramTypeShadow].count = mesh.count;
 
         drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_CLIP_mat4 = depth_program_pipeline.OBJECT_TO_CLIP_mat4;
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_LIGHT_mat4x3 = depth_program_pipeline.OBJECT_TO_LIGHT_mat4x3;
 
         GLuint tex;
         glGenTextures(1, &tex);
@@ -428,7 +429,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         //Fix "jump" at day/night switch over, by letting brightnesses reach zero and turning up ambient lighting
         //Maybe displace sunset and sunrise to be more during the daytime so that sun angles make more sense during sunrise/set
         //make sunrise less orange probably
-        glm::vec3 sky_color;
         glm::vec3 ambient_color;
 		float brightness;
         glm::vec3 sun_angle;
@@ -439,10 +439,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			// increase amplitude of curve so that middle of the day is all at or above max brightness
 			brightness *= 1.3f;
             float color_sin = std::clamp(brightness, 0.0f, 1.0f);
-			// lerp brightness value from 0.15 to 1.5 so that it's never completely dark
-			//brightness = ((1.0f - brightness) * 0.15f) + brightness;
 			// clamp brightness to [0.1f, 1.0f], which creates a "plateau" in the curve at midday
-			brightness = brightness > 1.0f ? 1.0f : brightness;
+//			brightness = brightness > 1.0f ? 1.0f : brightness;
 
             sun_color = glm::vec3(1.0f, 1.0f, 0.95f); // slightly warm light (less blue)
             sun_angle = glm::vec3(0, -std::cos(((time_of_day - sunrise) / (sunset - sunrise)) * float(M_PI)) / std::sqrt(2),
@@ -500,8 +498,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
             //skip remaining lights if maximum light count reached:
             if (light_type.size() == (uint32_t)lights) break;
         }
-
-        GL_ERRORS();
 
 
         // Set up sky lighting uniforms for lit_color_texture_program:
@@ -566,10 +562,57 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
         GL_ERRORS(); //now texture is already in framebuffers.shadow_depth_tex
 
-        // Set "sky" (clear color)
-        glClearColor(sky_color.x, sky_color.y, sky_color.z, 1.0f);
 
 	}
+
+    //run depth pre-pass for occlusion query, and write position buffer for post-processing
+    {
+        //run query for each drawable
+        glViewport(0, 0, drawable_size.x, drawable_size.y);
+        //bind renderbuffers for rendering
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.oc_fb);
+
+        // set clear depth, testing criteria, and the like
+        glClearDepth(1.0f); // 1.0 is the default value to clear the depth buffer to, but you can change it
+        //set sky bits to be far away from the camera
+//        glm::vec4 distant = active_camera->transform->make_local_to_world() * glm::vec4(active_camera->transform->position, 1.0f) + glm::vec4(1000.f, 1000.f, 1000.f, 0.0f);
+//        glClearColor(distant.r, distant.g, distant.b, distant.a);
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clears currently bound framebuffer's color and depth info
+        // clears color to clearColor set above (sky_color) and clearDepth set above (1.0)
+        glEnable(GL_DEPTH_TEST); // enable depth testing
+        glDepthFunc(GL_LEQUAL); // set criteria for depth test
+        glDisable(GL_BLEND);
+        GL_ERRORS();
+
+        //render with occlusion pass
+        scene.draw(  *active_camera, Scene::Drawable::PassTypePrepass);
+    }
+
+    //run occlusion query using prepass sample buffer
+    {
+        // clears color to clearColor set above (sky_color) and clearDepth set above (1.0)
+        glDepthMask(GL_FALSE); //depth buffer should be already filled
+        GL_ERRORS();
+        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+        //render with occlusion pass
+        scene.draw(  *active_camera, Scene::Drawable::PassTypeOcclusion);
+
+//        float pixels[4];
+//        glReadPixels(0, 0, 1, 1, GL_RGBA, GL_FLOAT, &pixels);
+//        std::cout << pixels[0] << ", " << pixels[1] << ", " << pixels[2] << ", " << pixels[3] << std::endl;
+
+        //reenable writing
+        glDepthMask(GL_TRUE);
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        glUseProgram(0);
+        glBindVertexArray(0);
+
+        GL_ERRORS();
+    }
 
 	
 	// Draw scene to multisampled framebuffer
@@ -578,6 +621,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.ms_fb);
         glViewport(0, 0, drawable_size.x, drawable_size.y);
+        // Set "sky" (clear color)
+        glClearColor(sky_color.x, sky_color.y, sky_color.z, 1.0f);
 
         //bind generated shadow texture
         glActiveTexture(GL_TEXTURE5);
@@ -637,58 +682,35 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		*/
 	}
 
-    //run occlusion query
+    // Resolve multisampled buffer to screen
     {
-        //run query for each drawable
-        glViewport(0, 0, drawable_size.x, drawable_size.y);
-        //bind renderbuffers for rendering
-        glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.ms_fb);
 
-        // set clear depth, testing criteria, and the like
-        glClearDepth(1.0f); // 1.0 is the default value to clear the depth buffer to, but you can change it
-//        glClear(GL_COLOR_BUFFER_BIT ); // clears currently bound framebuffer's (framebuffers.ms_fb )color and depth info
-        // clears color to clearColor set above (sky_color) and clearDepth set above (1.0)
-        glEnable(GL_DEPTH_TEST); // enable depth testing
-        glDepthFunc(GL_LEQUAL); // set criteria for depth test
-        glDepthMask(GL_FALSE);
-        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+        // blit multisampled buffer to the normal, intermediate post_processing buffer. Image is stored in screen_texture, depth in pp_depth
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffers.ms_fb);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffers.pp_fb);
 
+        glBlitFramebuffer(0, 0, drawable_size.x, drawable_size.y, 0, 0, drawable_size.x, drawable_size.y,
+                          GL_COLOR_BUFFER_BIT, GL_LINEAR); // Bilinear interpolation for anti aliasing
 
-        //render with occlusion pass
-        scene.draw(*active_camera, Scene::Drawable::PassTypeOcclusion);
-
-        //reenable writing
-        glDepthMask(GL_TRUE);
-        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        glUseProgram(0);
-        glBindVertexArray(0);
-
         GL_ERRORS();
     }
 
-	// Resolve depth effect buffer to screen and perform post processing
-	{
-		// blit depth effect buffer to the normal, intermediate post_processing buffer. Image is stored in screen_texture
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffers.ms_fb);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffers.pp_fb);
-
-		glBlitFramebuffer(0, 0, drawable_size.x, drawable_size.y, 0, 0, drawable_size.x, drawable_size.y, GL_COLOR_BUFFER_BIT, GL_LINEAR); // Bilinear interpolation for anti aliasing
-
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        //add fog
+    { //postprocessing
+        //add fog, fog uses original multisampled depth buffer so no aliasing
         framebuffers.add_depth_effects(fog_intensity, 1800.0f, fog_color);
 
-        //add bloom
-//        framebuffers.add_bloom();
-
-		// Copy framebuffer to main window:
-		framebuffers.tone_map_to_screen(framebuffers.depth_effect_tex);
+        if(player->in_cam_view) {
+            //add depth of field
+            framebuffers.add_depth_of_field(7.0f, active_camera->transform->make_local_to_world() *
+                                                  glm::vec4(active_camera->transform->position, 1.0f));
+            // Copy framebuffer to main window:
+            framebuffers.tone_map_to_screen(framebuffers.screen_texture);
+        } else {
+            framebuffers.tone_map_to_screen(framebuffers.depth_effect_tex);
+        }
 	}
 	
 	// Draw UI

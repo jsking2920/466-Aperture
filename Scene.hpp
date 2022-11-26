@@ -82,6 +82,7 @@ struct Scene {
             PassTypeInCamera = 1,
             PassTypeShadow = 2,
             PassTypeOcclusion = 3,
+            PassTypePrepass = 4,
             PassTypes //Count of pass types
         };
 
