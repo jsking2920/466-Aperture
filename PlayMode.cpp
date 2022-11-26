@@ -702,11 +702,15 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         //add fog, fog uses original multisampled depth buffer so no aliasing
         framebuffers.add_depth_effects(fog_intensity, 1800.0f, fog_color);
 
-        //add bloom
-        framebuffers.add_depth_of_field(7.0f, active_camera->transform->make_local_to_world() * glm::vec4(active_camera->transform->position, 1.0f));
-//        std::cout << glm::to_string(active_camera->transform->make_local_to_world() * glm::vec4(active_camera->transform->position, 1.0f) ) << std::endl;
-		// Copy framebuffer to main window:
-		framebuffers.tone_map_to_screen(framebuffers.screen_texture);
+        if(player->in_cam_view) {
+            //add depth of field
+            framebuffers.add_depth_of_field(7.0f, active_camera->transform->make_local_to_world() *
+                                                  glm::vec4(active_camera->transform->position, 1.0f));
+            // Copy framebuffer to main window:
+            framebuffers.tone_map_to_screen(framebuffers.screen_texture);
+        } else {
+            framebuffers.tone_map_to_screen(framebuffers.depth_effect_tex);
+        }
 	}
 	
 	// Draw UI
