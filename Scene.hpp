@@ -11,6 +11,7 @@
  */
 
 #include "GL.hpp"
+#include "FragCountQueryAsync.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -56,16 +57,16 @@ struct Scene {
 
 	struct Drawable {
 		//a 'Drawable' attaches attribute data to a transform:
-		Drawable(Transform *transform_) : transform(transform_) { assert(transform); }
+		explicit Drawable(Transform *transform_) : transform(transform_), queries(FragCountQueryAsync(5)) { assert(transform);  }
 		Transform * transform;
 
         //for occlusion testing
-        GLuint query = 0;
+        FragCountQueryAsync queries; //implements queue of queries to ensure no blocking
 
         //conditional drawing
         bool render_to_screen = true;
         bool render_to_picture = true;
-        bool occluded = false; //for later use in object occlusion
+        GLuint frag_count = 0; //for later use in object occlusion
         bool uses_vertex_color = false;
 
         //program info:
@@ -75,6 +76,17 @@ struct Scene {
 			ProgramTypeAnim = 2,
             ProgramTypes //count of program types
         };
+
+        //pass types:
+        enum PassType : uint32_t {
+            PassTypeDefault = 0,
+            PassTypeInCamera = 1,
+            PassTypeShadow = 2,
+            PassTypeOcclusion = 3,
+            PassTypePrepass = 4,
+            PassTypes //Count of pass types
+        };
+
 		//Contains all the data needed to run the OpenGL pipeline:
 		struct Pipeline {
 			GLuint program = 0; //shader program; passed to glUseProgram
@@ -150,14 +162,11 @@ struct Scene {
 	std::list< Camera > cameras;
 	std::list< Light > lights;
 
-	//The "draw" function provides a convenient way to pass all the things in a scene to OpenGL:
-	void draw(Camera const &camera) const;
-
     //Version of draw function for different render modes:
-    void draw(Camera const &camera, Scene::Drawable::ProgramType program_type) const;
+    void draw(Camera const &camera, Drawable::PassType pass_type = Drawable::PassTypeDefault);
 
 	//..sometimes, you want to draw with a custom projection matrix and/or light space:
-	void draw(Scene::Drawable::ProgramType program_type, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light = glm::mat4x3(1.0f)) const;
+	void draw(Drawable::PassType pass_type, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light = glm::mat4x3(1.0f)) ;
 
     //render picture, return reference to buffer and also fill in results. tex_buffer should be an allocated texture buffer
     void render_picture(Camera const &camera, std::list<std::pair<Scene::Drawable &, GLuint>> &occlusion_results, std::vector<GLfloat> &data);

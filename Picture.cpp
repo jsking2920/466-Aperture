@@ -7,6 +7,8 @@
 #include <filesystem>
 #include <math.h>
 
+const std::string Picture::adjectives[] = { "Majestic", "Beautiful", "Vibrant", "Grand", "Impressive", "Awe-inspiring", "Sublime", "Resplendent", "Striking", "Marvelous", "Alluring", "Gorgeous", "Glamorous", "Divine", "Exquisite", "Stunning", "Beauteous", "Comely", "Pulchritudinous", "Graceful", "Dazzling", "Lovely", "Superb", "Resplendent", "Radiant", "Well-formed", "Great"};
+
 Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.data) {
     if (stats.frag_counts.empty()) {
         title = "Pure Emptiness";
@@ -25,7 +27,7 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
     PictureCreatureInfo subject_info = stats.creatures_in_frame.front();
 
     //grade subject
-    {   
+    {
         //Magnificence
         score_elements.emplace_back(subject_info.creature->name, subject_info.creature->score);
         auto result = score_creature(subject_info, stats);
@@ -43,8 +45,8 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
                       });
     }
 
-    //TODO: make name unique for file saving purposes
-    title = "Magnificent " + subject_info.creature->name;
+
+    title = adjectives[rand() % adjectives->size()] + " " + subject_info.creature->name;
 }
 
 std::list<ScoreElement> Picture::score_creature(PictureCreatureInfo &creature_info, PictureInfo &stats) {

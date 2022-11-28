@@ -1,5 +1,5 @@
 # Aperture
-Joyce Zheng, Scott King, Will Ozeas
+Developed by Joyce Zheng, Scott King, and Will Ozeas for 15-466 at CMU. 
 
 ![Screen Shot](screenshot.png)
 
@@ -13,5 +13,6 @@ Joyce Zheng, Scott King, Will Ozeas
 - "Libre Barcode 128 Text" by Lasse Fister <br>
 	(https://fonts.google.com/specimen/Libre+Barcode+128+Text) is licensed under the Open Font License
 
-This game was built with [NEST](NEST.md) and forked from https://github.com/15-466/15-466-f22-base5
+Built with [NEST](NEST.md) and forked from https://github.com/15-466/15-466-f22-base5
 
+Original source code for Aperture by Joyce Zheng, Scott King, and Will Ozeas provided with the MIT licenses; code taken from other sources may be licensed differently.

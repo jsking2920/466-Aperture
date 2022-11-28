@@ -167,7 +167,8 @@ const common_names = [
 	maek.CPP('load_wav.cpp'),
 	maek.CPP('load_opus.cpp'),
 	maek.CPP('GameObjects.cpp'),
-	maek.CPP('depth_program.cpp')
+	maek.CPP('depth_program.cpp'),
+	maek.CPP('FragCountQueryAsync.cpp')
 ];
 
 const show_meshes_names = [
