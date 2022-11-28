@@ -38,6 +38,7 @@ BoneAnimation::Animation const *testAnim = nullptr;
 
 Load< BoneAnimation > test_banims(LoadTagDefault, [](){
 	auto ret = new BoneAnimation(data_path("assets/testanim.banims"));
+	BoneAnimation::animation_map.emplace(std::make_pair("FLO", *ret));
 	testAnim = &(ret->lookup("Test"));
 	assert(testAnim != nullptr);
 	std::cout << "animation start is " << testAnim->begin << std::endl;
@@ -45,13 +46,13 @@ Load< BoneAnimation > test_banims(LoadTagDefault, [](){
 	return ret;
 });
 
-/*
+
 Load< BoneAnimation > test_banims2(LoadTagDefault, [](){
 	auto ret = new BoneAnimation(data_path("assets/monkey.banims"));
 	BoneAnimation::animation_map.emplace(std::make_pair("monkey", *ret));
 	return ret;
 });
-*/
+
 
 Load< GLuint > banims_for_bone_lit_color_texture_program(LoadTagDefault, [](){
 	return new GLuint(test_banims->make_vao_for_program(bone_lit_color_texture_program->program));
@@ -72,7 +73,7 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 
 
 		//TODO: for stuff that has animations, add a section where it samples the animation
-		if (transform->name == "FLO_01") {
+		if (transform->name == "FLO_01" || transform->name == "FLO_02") {
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault] = bone_lit_color_texture_program_pipeline;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = *banims_for_bone_lit_color_texture_program;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
@@ -266,20 +267,34 @@ PlayMode::PlayMode() : scene(*main_scene) {
             }
         }
     }
+	std::cout << "--------empty?" << Creature::creature_stats_map.size() << std::endl;
+	//print everything in the map
+	for (auto &pair : Creature::creature_stats_map) {
+		std::cout << pair.first << std::endl;
+	}
+	std::cout << "--------empty?" << std::endl;
 
 	//animation initialization
+	playing_animations.reserve(1);
+	Creature *flo = &Creature::creature_map["FLO_01"];
+	assert(flo != nullptr);
+	std::cout << "flo is " << flo->code << std::endl;
+	assert(flo->code == "FLO_01");
+	play_animation(*flo, "Test", true, 1.0f);
+	/*
 	playing_animations.reserve(1);
 	playing_animations.emplace_back(*test_banims, *testAnim, BoneAnimationPlayer::Loop, 1.0f);
 
 	BoneAnimationPlayer *test_anim_player = &playing_animations.back();
 	for (Scene::Drawable &draw : scene.drawables) {
-		if (draw.transform->name == "FLO_01" ) {
+		if (draw.transform->name == "FLO_01" || draw.transform->name == "FLO_02" ) {
 			std::cout << "found " << draw.transform->name << std::endl;		
 			draw.pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [test_anim_player] () {
 				test_anim_player->set_uniform(bone_lit_color_texture_program->BONES_mat4x3_array);	
 			};
 		}
 	}
+	*/
 
 }
 
@@ -946,13 +961,14 @@ void PlayMode::night_draw_ui(glm::uvec2 const& drawable_size) {
 
 void PlayMode::play_animation(Creature &creature, std::string const &anim_name, bool loop, float speed)
 {	
-	/*
+	
 	//if current animation is equal to the one currently playing, do nothing
 	if (anim_name == creature.curr_anim_name)return;
 	//try to retrive creature animation data based on code
 
 	auto animation_set_iter = BoneAnimation::animation_map.find(creature.code);
 	//check if found 
+	/*
 	if (animation_set_iter == BoneAnimation::animation_map.end())
 	{
 		std::cerr << "Error: Animation SET not found for creature: " << creature.code << std::endl;

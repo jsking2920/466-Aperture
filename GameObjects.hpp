@@ -47,6 +47,8 @@ struct Creature {
     std::vector<Scene::Drawable *> focal_points = {};
     //temporarily holds a single animation
     BoneAnimation::Animation const *banim_walk = nullptr;
+    //keep track of animation state
+    std::string curr_anim_name = "none";
 
     //scoring parameters
     int score = 3000;
