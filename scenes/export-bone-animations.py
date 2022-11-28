@@ -103,8 +103,8 @@ def write_bone(bone):
 	#bind matrix inverse as 3-row, 4-column matrix:
 	transform = bone.matrix_local.copy()
 	#rotate 90 degrees around x-axis to match blender's coordinate system:
-	transform = mathutils.Matrix.Rotation(math.radians(-90), 4, 'X') @ transform
-	print("bone '" + bone.name + "' matrix_local: \n" + str(transform))
+	#transform = mathutils.Matrix.Rotation(math.radians(-90), 4, 'X') @ transform
+	#print("bone '" + bone.name + "' matrix_local: \n" + str(transform))
 	transform.invert()
 	#Note: store *column-major*:
 	bone_data += struct.pack('3f', transform[0].x, transform[1].x, transform[2].x)
@@ -138,6 +138,7 @@ def write_frame(pose, root_xf=mathutils.Matrix()):
 		#frame_data += struct.pack('4f', *pose[name].matrix[1])
 		#frame_data += struct.pack('4f', *pose[name].matrix[2])
 		#Store pose as parent-relative TRS: (better for interpolation)
+
 		pose_bone = pose.bones[name]
 		if pose_bone.parent:
 			to_parent = pose_bone.parent.matrix.copy()
@@ -147,6 +148,7 @@ def write_frame(pose, root_xf=mathutils.Matrix()):
 		else:
 			local_to_parent = pose_bone.matrix
 			#roatate 90 degrees around x-axis to match blender's coordinate system:
+			#local_to_parent = mathutils.Matrix.Rotation(math.radians(-90), 4, 'X') @ local_to_parent
 			local_to_parent = root_xf @ local_to_parent
 
 		trs = local_to_parent.decompose()
