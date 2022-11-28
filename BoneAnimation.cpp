@@ -9,6 +9,9 @@
 #include <fstream>
 #include <algorithm>
 
+std::map< std::string, BoneAnimation > BoneAnimation::animation_map = std::map< std::string, BoneAnimation >();
+
+
 BoneAnimation::BoneAnimation(std::string const &filename) {
 	std::cout << "Reading bone-based animation from '" << filename << "'." << std::endl;
 
