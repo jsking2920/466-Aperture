@@ -45,6 +45,14 @@ Load< BoneAnimation > test_banims(LoadTagDefault, [](){
 	return ret;
 });
 
+/*
+Load< BoneAnimation > test_banims2(LoadTagDefault, [](){
+	auto ret = new BoneAnimation(data_path("assets/monkey.banims"));
+	BoneAnimation::animation_map.emplace(std::make_pair("monkey", *ret));
+	return ret;
+});
+*/
+
 Load< GLuint > banims_for_bone_lit_color_texture_program(LoadTagDefault, [](){
 	return new GLuint(test_banims->make_vao_for_program(bone_lit_color_texture_program->program));
 });
@@ -68,8 +76,8 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault] = bone_lit_color_texture_program_pipeline;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = *banims_for_bone_lit_color_texture_program;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
-			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = mesh.start;
-			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = mesh.count;
+			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = test_banims->mesh.start;
+			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = test_banims->mesh.count;
 			std::cout << "found " << transform->name << std::endl;
 		}
 
@@ -934,4 +942,40 @@ void PlayMode::night_draw_ui(glm::uvec2 const& drawable_size) {
 
 	// Draw clock
 	body_text->draw(TextRenderer::format_time_of_day(time_of_day, day_length), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+}
+
+void PlayMode::play_animation(Creature &creature, std::string const &anim_name, bool loop, float speed)
+{	
+	/*
+	//if current animation is equal to the one currently playing, do nothing
+	if (anim_name == creature.curr_anim_name)return;
+	//try to retrive creature animation data based on code
+
+	auto animation_set_iter = BoneAnimation::animation_map.find(creature.code);
+	//check if found 
+	if (animation_set_iter == BoneAnimation::animation_map.end())
+	{
+		std::cerr << "Error: Animation SET not found for creature: " << creature.code << std::endl;
+		return;
+	}
+	
+	//try to retrive animation data based on animation name
+	auto bone_anim_set = animation_set_iter->second;
+	auto animation = bone_anim_set.lookup(anim_name); // <- look up will throw error if faulty
+
+	//looping
+	BoneAnimationPlayer::LoopOrOnce loop_or_once = loop ? BoneAnimationPlayer::LoopOrOnce::Loop : BoneAnimationPlayer::LoopOrOnce::Once;
+
+	//if animation is found, set the current animation to the new one
+	playing_animations.emplace_back(&bone_anim_set, animation, loop_or_once, speed);
+
+	BoneAnimationPlayer *current_anim_player = &playing_animations.back();
+	//For that creature, set the current animation to the new one
+	creature.drawable->pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [current_anim_player] () {
+		current_anim_player->set_uniform(bone_lit_color_texture_program->BONES_mat4x3_array);
+	};
+
+	//update the constants in creature 
+	creature.curr_anim_name = anim_name;
+	*/
 }

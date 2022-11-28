@@ -105,4 +105,7 @@ struct PlayMode : Mode {
 
 	//animation 
 	std::vector< BoneAnimationPlayer > playing_animations = {};
+
+	//play an animation on a specific Creature, throw error if animation not found 
+	void play_animation(Creature &creature, std::string const &anim_name, bool loop = true, float speed = 1.0f);
 };
