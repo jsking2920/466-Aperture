@@ -275,9 +275,12 @@ PlayMode::PlayMode() : scene(*main_scene) {
 
 	//animation initialization
 	{
-		playing_animations.reserve(1);
-		Creature* flo = &Creature::creature_map["FLO_01"];
-		play_animation(*flo, "Idle", true, 1.0f);
+		size_t creature_count = Creature::creature_map.size();
+		playing_animations.reserve(creature_count);
+		for (auto &creature_pair : Creature::creature_map) {
+			Creature* critter = &Creature::creature_map[creature_pair.first];
+			play_animation(*critter, "Idle", true, 1.0f);
+		}
 	}
 }
 
