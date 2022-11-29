@@ -833,9 +833,8 @@ void PlayMode::playing_update(float elapsed) {
 		if (player->in_cam_view && mouse.scrolled) {
             //Change Depth of Field distance if shift is held down
             if(lshift.pressed) {
-                //TODO: make sure this works on windows
                 //on mac, shift + scroll is x
-                if (mouse.wheel_x > 0) {
+                if (mouse.wheel_x > 0 || mouse.wheel_y > 0) {
                     player->player_camera->AdjustFocus(0.25f); // zoom in
                 } else {
                     player->player_camera->AdjustFocus(-0.25f); // zoom out
