@@ -27,6 +27,7 @@
 
 #include "FragCountQueryAsync.h"
 #include "gl_errors.hpp"
+#include <cassert> 
 #include <iostream>
 
 FragCountQueryAsync::FragCountQueryAsync(uint32_t N)

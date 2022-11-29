@@ -268,6 +268,7 @@ PlayMode::PlayMode() : scene(*main_scene) {
             }
         }
     }
+		
 	std::cout << "--------empty?" << Creature::creature_stats_map.size() << std::endl;
 	//print everything in the map
 	for (auto &pair : Creature::creature_stats_map) {
@@ -281,6 +282,8 @@ PlayMode::PlayMode() : scene(*main_scene) {
 	assert(flo != nullptr);
 	std::cout << "flo is " << flo->code << std::endl;
 	assert(flo->code == "FLO_01");
+
+
 	play_animation(*flo, "Test", true, 1.0f);
 	/*
 	playing_animations.reserve(1);
