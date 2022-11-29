@@ -104,8 +104,19 @@ std::list<ScoreElement> Picture::score_creature(PictureCreatureInfo &creature_in
 
     { //Add points for focus
         float distance = glm::length(creature_info.player_to_creature) - creature_info.creature->radius;
-        float diff = abs(distance - (stats.focal_distance + stats.focal_distance / 4));
-        result.emplace_back("Focus", 5000 * pow((stats.focal_distance - diff)/stats.focal_distance, 2));
+        float real_focal_distance = stats.focal_distance * 1.4f;
+        float diff = abs(distance - real_focal_distance);
+        float percent;
+        if(distance > real_focal_distance) {
+            percent = pow(abs(real_focal_distance - diff)/real_focal_distance, 3.f);
+        } else {
+            //focus drops off quicker towards the camera, so percent should also drop off quicker
+            percent = pow(abs(real_focal_distance - diff)/real_focal_distance, 5.f);
+        }
+        float score = std::clamp(8000 * percent, 0.f, 5000.f);
+        if(score > 1500.f) {
+            result.emplace_back("Focus", score);
+        }
     }
 
     return result;
