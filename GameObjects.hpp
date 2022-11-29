@@ -37,6 +37,7 @@ struct Creature {
     //which number of creature it is
     int number = 0;
     std::string description = "missing description";
+    float radius = 0.f; //radius, to be subtracted when calculating focus
     //have a transform which we can query for position and orientation
     Scene::Transform *transform = nullptr;
     //have a drawable for rendering

@@ -35,6 +35,7 @@ void PlayerCamera::TakePicture(Scene &scene) {
     stats.data = std::make_shared<std::vector<GLfloat>>(3 * scene_camera->drawable_size.x * scene_camera->drawable_size.y);
     stats.dimensions = scene_camera->drawable_size;
     stats.angle = eulerAngles(player->camera->transform->rotation);
+    stats.focal_distance = cur_focus;
 
     //get fragment counts for each drawable
     scene.render_picture(*scene_camera, stats.frag_counts, *stats.data);
@@ -77,9 +78,14 @@ void PlayerCamera::TakePicture(Scene &scene) {
             }
         });
         //vector from player to creature
-        glm::vec3 worldpos = creature_info.creature->transform->make_local_to_world() * glm::vec4(creature_info.creature->transform->position, 1.0f);
-        glm::vec3 camera_worldpos = player->camera->transform->make_local_to_world() * glm::vec4(player->camera->transform->position, 1.0f);
+        glm::vec3 worldpos = creature_info.creature->transform->make_local_to_world() * glm::vec4(0, 0, 0, 1.0f);
+        glm::vec3 camera_worldpos = player->player_camera->scene_camera->transform->make_local_to_world() * glm::vec4(0, 0, 0, 1.0f);
+        std::cout << glm::to_string(creature_info.creature->transform->make_local_to_world()) <<std::endl;
+        std::cout << glm::to_string(glm::vec4(creature_info.creature->transform->position, 1.0f)) <<std::endl;
+        std::cout << glm::to_string(camera_worldpos) <<std::endl;
+        std::cout << glm::to_string(worldpos) <<std::endl;
         creature_info.player_to_creature = worldpos - camera_worldpos;
+        std::cout << glm::to_string(creature_info.player_to_creature) <<std::endl;
         //std::cout << glm::to_string(worldpos) << ",  " << glm::to_string(camera_worldpos);
     }
 

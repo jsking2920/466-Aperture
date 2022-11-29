@@ -10,10 +10,11 @@ Creature::Creature(std::string code_, int number_) : code(code_), number(number_
     //populate metadata based on creature_stats
     std::vector < std::string > &creature_stats = creature_stats_map[code];
     assert(code == creature_stats[0]);
-    assert(creature_stats.size() == 4); //if assert fails, you probably added a field to the csv that must be added here!
+    assert(creature_stats.size() == 5); //if assert fails, you probably added a field to the csv that must be added here!
     name = creature_stats[1];
     description = creature_stats[2];
     score = std::stoi(creature_stats[3]);
+    radius = std::stof(creature_stats[4]);
 }
 
 //add to constructor?

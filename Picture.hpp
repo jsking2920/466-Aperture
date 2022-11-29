@@ -27,6 +27,7 @@ struct PictureInfo {
     glm::vec2 dimensions;
     std::shared_ptr<std::vector<GLfloat>> data;
 
+    float focal_distance;
     glm::vec3 angle;
     uint32_t total_frag_count;
     std::list< std::pair<Scene::Drawable&, GLuint > > frag_counts;

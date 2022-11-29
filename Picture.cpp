@@ -101,6 +101,13 @@ std::list<ScoreElement> Picture::score_creature(PictureCreatureInfo &creature_in
             result.emplace_back("Angle", (uint32_t) (std::pow(normalized_dot, exponent) * 3000.0f));
         }
     }
+
+    { //Add points for focus
+        float distance = glm::length(creature_info.player_to_creature) - creature_info.creature->radius;
+        float diff = abs(distance - (stats.focal_distance + stats.focal_distance / 4));
+        result.emplace_back("Focus", 5000 * pow((stats.focal_distance - diff)/stats.focal_distance, 2));
+    }
+
     return result;
 }
 

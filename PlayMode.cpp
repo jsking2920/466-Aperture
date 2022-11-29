@@ -723,7 +723,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         if(player->in_cam_view) {
             //add depth of field
             framebuffers.add_depth_of_field(player->player_camera->cur_focus, active_camera->transform->make_local_to_world() *
-                                                  glm::vec4(active_camera->transform->position, 1.0f));
+                                                  glm::vec4(0, 0, 0, 1.0f));
             // Copy framebuffer to main window:
             framebuffers.tone_map_to_screen(framebuffers.screen_texture);
         } else {
