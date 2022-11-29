@@ -2,6 +2,7 @@
 
 #include "Mode.hpp"
 #include "Scene.hpp"
+#include "BoneAnimation.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
@@ -45,8 +46,10 @@ struct Creature {
     //have a list of objects to sample
     //If we want to assign points/names to each focal point, make this into a list of focal point objects
     std::vector<Scene::Drawable *> focal_points = {};
-    //have an array of body parts
-    //std::vector< Scene::Transform > body_parts = {};
+    //temporarily holds a single animation
+    BoneAnimation::Animation const *banim_walk = nullptr;
+    //keep track of animation state
+    std::string curr_anim_name = "none";
 
     //scoring parameters
     int score = 3000;

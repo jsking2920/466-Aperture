@@ -24,7 +24,6 @@ void Creature::init_transforms (Scene &scene) {
     for (auto &draw : scene.drawables) {
         Scene::Transform &trans = *draw.transform;
         std::string full_code = get_code_and_number();
-
 //        std::cout << trans.name.substr(0, 6) << ", " << full_code << std::endl;
         if (trans.name.substr(0, 6) == full_code) {
 //            std::cout << trans.name.substr(6) <<std::endl;

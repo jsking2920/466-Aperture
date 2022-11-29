@@ -1,6 +1,8 @@
 #include "PlayMode.hpp"
 
 #include "LitColorTextureProgram.hpp"
+#include "BoneLitColorTextureProgram.hpp"
+
 #include "depth_program.hpp"
 
 #include "DrawLines.hpp"
@@ -23,11 +25,31 @@
 
 GLuint main_meshes_for_lit_color_texture_program = 0;
 GLuint main_meshes_for_depth_program = 0;
+GLuint main_meshes_for_bone_lit_color_texture_program = 0;
 Load< MeshBuffer > main_meshes(LoadTagDefault, []() -> MeshBuffer const * {
 	MeshBuffer const *ret = new MeshBuffer(data_path("assets/proto-world2.pnct"));
 	main_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
     main_meshes_for_depth_program = ret->make_vao_for_program(depth_program->program);
 	return ret;
+});
+
+
+Load< BoneAnimation > test_banims(LoadTagDefault, []() -> BoneAnimation const * {
+	auto ret = new BoneAnimation(data_path("assets/testanim.banims"));
+	BoneAnimation::animation_map.emplace(std::make_pair("FLO", ret));
+	return ret;
+});
+
+
+Load< BoneAnimation > test_banims2(LoadTagDefault, [](){
+	auto ret = new BoneAnimation(data_path("assets/monkey.banims"));
+	BoneAnimation::animation_map.emplace(std::make_pair("monkey", ret));
+	return ret;
+});
+
+
+Load< GLuint > banims_for_bone_lit_color_texture_program(LoadTagDefault, [](){
+	return new GLuint(test_banims->make_vao_for_program(bone_lit_color_texture_program->program));
 });
 
 Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
@@ -42,6 +64,17 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
         drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
         drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = mesh.start;
         drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = mesh.count;
+
+
+		//TODO: for stuff that has animations, add a section where it samples the animation
+		if (transform->name == "FLO_01") {
+			drawable.pipeline[Scene::Drawable::ProgramTypeDefault] = bone_lit_color_texture_program_pipeline;
+			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = *banims_for_bone_lit_color_texture_program;
+			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
+			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = test_banims->mesh.start;
+			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = test_banims->mesh.count;
+			std::cout << "found " << transform->name << std::endl;
+		}
 
         //set roughnesses, possibly should be from csv??
         float roughness = 1.0f;
@@ -106,6 +139,7 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 
     });
 });
+
 
 Load< WalkMeshes > main_walkmeshes(LoadTagDefault, []() -> WalkMeshes const * {
 	WalkMeshes *ret = new WalkMeshes(data_path("assets/proto-world2.w"));
@@ -234,6 +268,12 @@ PlayMode::PlayMode() : scene(*main_scene) {
             }
         }
     }
+
+	//animation initialization
+	playing_animations.reserve(1);
+	Creature *flo = &Creature::creature_map["FLO_01"];	
+	play_animation(*flo, "Idle", true, 1.0f);
+
 }
 
 PlayMode::~PlayMode() {
@@ -381,12 +421,17 @@ void PlayMode::update(float elapsed) {
 		time_of_day = 0.0f;
 	}
 
+	//animation 
+	for (auto &anim : playing_animations) {
+		anim.update(elapsed);
+	}
+
 	// Reset button press counters and mouse
 	left.downs = 0;
 	right.downs = 0;
 	up.downs = 0;
 	down.downs = 0;
-	lmb.downs = 0;
+	lmb.downs = 0; 
 	rmb.downs = 0;
 	lctrl.downs = 0;
 	tab.downs = 0;
@@ -687,17 +732,19 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		}
 		*/
 
-		/* Debug code for visualizing walk mesh
+		//Debug code for visualizing walk mesh
+		/*
 		{
 			glDisable(GL_DEPTH_TEST);
-			DrawLines lines(player.camera->make_projection() * glm::mat4(player.camera->transform->make_world_to_local()));
-			for (auto const &tri : player.walk_mesh->triangles) {
-				lines.draw(player.walk_mesh->vertices[tri.x], player.walk_mesh->vertices[tri.y], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
-				lines.draw(player.walk_mesh->vertices[tri.y], player.walk_mesh->vertices[tri.z], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
-				lines.draw(player.walk_mesh->vertices[tri.z], player.walk_mesh->vertices[tri.x], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
+			DrawLines lines(player->camera->make_projection() * glm::mat4(player->camera->transform->make_world_to_local()));
+			for (auto const &tri : player->walk_mesh->triangles) {
+				lines.draw(player->walk_mesh->vertices[tri.x], player->walk_mesh->vertices[tri.y], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
+				lines.draw(player->walk_mesh->vertices[tri.y], player->walk_mesh->vertices[tri.z], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
+				lines.draw(player->walk_mesh->vertices[tri.z], player->walk_mesh->vertices[tri.x], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
 			}
 		}
 		*/
+		
 	}
 
     // Resolve multisampled buffer to screen
@@ -771,7 +818,6 @@ void PlayMode::menu_draw_ui(glm::uvec2 const& drawable_size) {
 
 // -------- Playing functions -----------
 void PlayMode::playing_update(float elapsed) {
-
 	// Handle State (return early if state changes)
 	{
 		// open journal on tab, swap to journal state
@@ -812,10 +858,6 @@ void PlayMode::playing_update(float elapsed) {
 
 		if (move.x != 0.0f || move.y != 0.0f) player->Move(move, elapsed);
 
-		// Hold lctrl to crouch
-		if (lctrl.pressed != player->is_crouched) {
-			player->SetCrouch(lctrl.pressed);
-		}
 	}
 
 	// Player camera logic 
@@ -969,4 +1011,36 @@ void PlayMode::night_draw_ui(glm::uvec2 const& drawable_size) {
 
 	// Draw clock
 	body_text->draw(TextRenderer::format_time_of_day(time_of_day, day_length), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+}
+
+void PlayMode::play_animation(Creature &creature, std::string const &anim_name, bool loop, float speed)
+{	
+	
+	//if current animation is equal to the one currently playing, do nothing
+	if (anim_name == creature.curr_anim_name)return;
+	//try to retrive creature animation data based on code
+
+	auto animation_set_iter = BoneAnimation::animation_map.find(creature.code);
+	//check if found 
+	if (animation_set_iter == BoneAnimation::animation_map.end())
+	{
+		throw std::runtime_error("Error: Animation SET not found for creature: " + creature.code);
+	}
+
+	//try to retrive animation data based on animation name
+	BoneAnimation *bone_anim_set = animation_set_iter->second;
+	BoneAnimation::Animation const * animation = &(bone_anim_set->lookup(anim_name));
+
+	//check looping or not
+	BoneAnimationPlayer::LoopOrOnce loop_or_once = loop ? BoneAnimationPlayer::LoopOrOnce::Loop : BoneAnimationPlayer::LoopOrOnce::Once;
+
+	//if animation is found, set the current animation to the new one
+	playing_animations.emplace_back(*bone_anim_set, *animation, loop_or_once, speed);
+	BoneAnimationPlayer *current_anim_player = &playing_animations.back();
+	//For that creature, set the current animation to the new one
+	creature.drawable->pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [current_anim_player] () {
+		current_anim_player->set_uniform(bone_lit_color_texture_program->BONES_mat4x3_array);
+	};
+	//update the constants in creature 
+	creature.curr_anim_name = anim_name;
 }
