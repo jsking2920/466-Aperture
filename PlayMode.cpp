@@ -33,23 +33,17 @@ Load< MeshBuffer > main_meshes(LoadTagDefault, []() -> MeshBuffer const * {
 	return ret;
 });
 
-//testing for bone animations...
-BoneAnimation::Animation const *testAnim = nullptr;
 
-Load< BoneAnimation > test_banims(LoadTagDefault, [](){
+Load< BoneAnimation > test_banims(LoadTagDefault, []() -> BoneAnimation const * {
 	auto ret = new BoneAnimation(data_path("assets/testanim.banims"));
-	BoneAnimation::animation_map.emplace(std::make_pair("FLO", *ret));
-	testAnim = &(ret->lookup("Test"));
-	assert(testAnim != nullptr);
-	std::cout << "animation start is " << testAnim->begin << std::endl;
-	std::cout << "animation end is " << testAnim->end << std::endl;
+	BoneAnimation::animation_map.emplace(std::make_pair("FLO", ret));
 	return ret;
 });
 
 
 Load< BoneAnimation > test_banims2(LoadTagDefault, [](){
 	auto ret = new BoneAnimation(data_path("assets/monkey.banims"));
-	BoneAnimation::animation_map.emplace(std::make_pair("monkey", *ret));
+	BoneAnimation::animation_map.emplace(std::make_pair("monkey", ret));
 	return ret;
 });
 
@@ -73,7 +67,7 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 
 
 		//TODO: for stuff that has animations, add a section where it samples the animation
-		if (transform->name == "FLO_01" || transform->name == "FLO_02") {
+		if (transform->name == "FLO_01") {
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault] = bone_lit_color_texture_program_pipeline;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = *banims_for_bone_lit_color_texture_program;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
@@ -273,37 +267,11 @@ PlayMode::PlayMode() : scene(*main_scene) {
             }
         }
     }
-		
-	std::cout << "--------empty?" << Creature::creature_stats_map.size() << std::endl;
-	//print everything in the map
-	for (auto &pair : Creature::creature_stats_map) {
-		std::cout << pair.first << std::endl;
-	}
-	std::cout << "--------empty?" << std::endl;
 
 	//animation initialization
 	playing_animations.reserve(1);
-	Creature *flo = &Creature::creature_map["FLO_01"];
-	assert(flo != nullptr);
-	std::cout << "flo is " << flo->code << std::endl;
-	assert(flo->code == "FLO_01");
-
-
-	play_animation(*flo, "Test", true, 1.0f);
-	/*
-	playing_animations.reserve(1);
-	playing_animations.emplace_back(*test_banims, *testAnim, BoneAnimationPlayer::Loop, 1.0f);
-
-	BoneAnimationPlayer *test_anim_player = &playing_animations.back();
-	for (Scene::Drawable &draw : scene.drawables) {
-		if (draw.transform->name == "FLO_01" || draw.transform->name == "FLO_02" ) {
-			std::cout << "found " << draw.transform->name << std::endl;		
-			draw.pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [test_anim_player] () {
-				test_anim_player->set_uniform(bone_lit_color_texture_program->BONES_mat4x3_array);	
-			};
-		}
-	}
-	*/
+	Creature *flo = &Creature::creature_map["FLO_01"];	
+	play_animation(*flo, "Idle", true, 1.0f);
 
 }
 
@@ -877,10 +845,6 @@ void PlayMode::playing_update(float elapsed) {
 
 		if (move.x != 0.0f || move.y != 0.0f) player->Move(move, elapsed);
 
-		// Hold lctrl to crouch
-		if (lctrl.pressed != player->is_crouched) {
-			player->SetCrouch(lctrl.pressed);
-		}
 	}
 
 	// Player camera logic 
@@ -1036,30 +1000,25 @@ void PlayMode::play_animation(Creature &creature, std::string const &anim_name, 
 
 	auto animation_set_iter = BoneAnimation::animation_map.find(creature.code);
 	//check if found 
-	/*
 	if (animation_set_iter == BoneAnimation::animation_map.end())
 	{
-		std::cerr << "Error: Animation SET not found for creature: " << creature.code << std::endl;
-		return;
+		throw std::runtime_error("Error: Animation SET not found for creature: " + creature.code);
 	}
-	
-	//try to retrive animation data based on animation name
-	auto bone_anim_set = animation_set_iter->second;
-	auto animation = bone_anim_set.lookup(anim_name); // <- look up will throw error if faulty
 
-	//looping
+	//try to retrive animation data based on animation name
+	BoneAnimation *bone_anim_set = animation_set_iter->second;
+	BoneAnimation::Animation const * animation = &(bone_anim_set->lookup(anim_name));
+
+	//check looping or not
 	BoneAnimationPlayer::LoopOrOnce loop_or_once = loop ? BoneAnimationPlayer::LoopOrOnce::Loop : BoneAnimationPlayer::LoopOrOnce::Once;
 
 	//if animation is found, set the current animation to the new one
-	playing_animations.emplace_back(&bone_anim_set, animation, loop_or_once, speed);
-
+	playing_animations.emplace_back(*bone_anim_set, *animation, loop_or_once, speed);
 	BoneAnimationPlayer *current_anim_player = &playing_animations.back();
 	//For that creature, set the current animation to the new one
 	creature.drawable->pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [current_anim_player] () {
 		current_anim_player->set_uniform(bone_lit_color_texture_program->BONES_mat4x3_array);
 	};
-
 	//update the constants in creature 
 	creature.curr_anim_name = anim_name;
-	*/
 }

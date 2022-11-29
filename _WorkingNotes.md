@@ -15,7 +15,7 @@
 
 "C:\Program Files\Blender Foundation\Blender 3.3\blender.exe" --background --python scenes\export-bone-animations.py -- scenes\proto-world2.blend ARM_FLO_02 [0,40]Test!global dist\assets\testanim.banims
 
-"C:\Program Files\Blender Foundation\Blender 3.3\blender.exe" --background --python scenes\export-bone-animations.py -- scenes\fixinganimation.blend Armature [0,30]Test!global dist\assets\testanim.banims
+"C:\Program Files\Blender Foundation\Blender 3.3\blender.exe" --background --python scenes\export-bone-animations.py -- scenes\fixinganimation.blend Armature [0,40]Idle!global;[40,80]Action1!global dist\assets\testanim.banims
 
 
 "C:\Program Files\Blender Foundation\Blender 3.3\blender.exe" --background --python scenes\export-bone-animations.py -- scenes\proto-world2.blend Fuck [0,30]Test!global dist\assets\monkey.banims
