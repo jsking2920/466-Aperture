@@ -45,9 +45,9 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 
         //set roughnesses, possibly should be from csv??
         float roughness = 1.0f;
-//        if (transform->name.substr(0, 9) == "Icosphere") {
-//            roughness = (transform->position.y + 10.0f) / 18.0f;
-//        }
+        //if (transform->name.substr(0, 9) == "Icosphere") {
+        //    roughness = (transform->position.y + 10.0f) / 18.0f;
+        //}
         drawable.pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [drawable, roughness](){
             glUniform1f(lit_color_texture_program->ROUGHNESS_float, roughness);
         };
@@ -224,10 +224,10 @@ PlayMode::PlayMode() : scene(*main_scene) {
                 if (trans.name.substr(7, 6) == "foc_00") {
                     creature.focal_point = &trans;
                 }
-//                    std::cout << "found primary focal point:" << trans.name << std::endl;
-//                } else {
-//                    std::cout << "found extra focal point:" << trans.name << std::endl;
-//                }
+                //    std::cout << "found primary focal point:" << trans.name << std::endl;
+                //} else {
+                //    std::cout << "found extra focal point:" << trans.name << std::endl;
+                //}
                 creature.focal_points.push_back(&draw);
                 draw.render_to_screen = false;
                 draw.render_to_picture = false;
