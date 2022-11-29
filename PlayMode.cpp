@@ -33,21 +33,16 @@ Load< MeshBuffer > main_meshes(LoadTagDefault, []() -> MeshBuffer const * {
 	return ret;
 });
 
-
 Load< BoneAnimation > test_banims(LoadTagDefault, []() -> BoneAnimation const * {
-	auto ret = new BoneAnimation(data_path("assets/testanim.banims"));
+	auto ret = new BoneAnimation(data_path("assets/animations/testanim.banims"));
 	BoneAnimation::animation_map.emplace(std::make_pair("FLO", ret));
 	return ret;
 });
-
-
 Load< BoneAnimation > test_banims2(LoadTagDefault, [](){
-	auto ret = new BoneAnimation(data_path("assets/monkey.banims"));
+	auto ret = new BoneAnimation(data_path("assets/animations/monkey.banims"));
 	BoneAnimation::animation_map.emplace(std::make_pair("monkey", ret));
 	return ret;
 });
-
-
 Load< GLuint > banims_for_bone_lit_color_texture_program(LoadTagDefault, [](){
 	return new GLuint(test_banims->make_vao_for_program(bone_lit_color_texture_program->program));
 });
@@ -140,7 +135,6 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
     });
 });
 
-
 Load< WalkMeshes > main_walkmeshes(LoadTagDefault, []() -> WalkMeshes const * {
 	WalkMeshes *ret = new WalkMeshes(data_path("assets/proto-world2.w"));
 	return ret;
@@ -158,7 +152,6 @@ Load< std::map<std::string, Sound::Sample> > audio_samples(LoadTagDefault, []() 
     }
     return sample_map;
 });
-
 
 PlayMode::PlayMode() : scene(*main_scene) {
 	
@@ -270,10 +263,11 @@ PlayMode::PlayMode() : scene(*main_scene) {
     }
 
 	//animation initialization
-	playing_animations.reserve(1);
-	Creature *flo = &Creature::creature_map["FLO_01"];	
-	play_animation(*flo, "Idle", true, 1.0f);
-
+	{
+		playing_animations.reserve(1);
+		Creature* flo = &Creature::creature_map["FLO_01"];
+		play_animation(*flo, "Idle", true, 1.0f);
+	}
 }
 
 PlayMode::~PlayMode() {

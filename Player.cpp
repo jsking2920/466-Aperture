@@ -105,7 +105,7 @@ void PlayerCamera::TakePicture(Scene &scene) {
 	std::cout << picture.get_scoring_string() << std::endl;
 
 	// TODO: move save picture out of here to make it user-prompted
-    picture.save_picture_png();
+    // picture.save_picture_png();
 
 	cur_battery -= 1;
 }
