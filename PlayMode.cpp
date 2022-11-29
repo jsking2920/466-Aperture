@@ -115,16 +115,18 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = test_banims->mesh.start;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = test_banims->mesh.count;
 			std::cout << "found " << transform->name << std::endl;
-		}
+		} else {
+            //TODO:: move back outside once roughness has been added to shaders
+            //set roughnesses, possibly should be from csv??
+            float roughness = 0.9f;
+            //if (transform->name.substr(0, 9) == "Icosphere") {
+            //    roughness = (transform->position.y + 10.0f) / 18.0f;
+            //}
+            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [drawable, roughness](){
+                glUniform1f(lit_color_texture_program->ROUGHNESS_float, roughness);
+            };
+        }
 
-        //set roughnesses, possibly should be from csv??
-        float roughness = 1.0f;
-        //if (transform->name.substr(0, 9) == "Icosphere") {
-        //    roughness = (transform->position.y + 10.0f) / 18.0f;
-        //}
-        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [drawable, roughness](){
-            glUniform1f(lit_color_texture_program->ROUGHNESS_float, roughness);
-        };
 
         //Set up depth program
         drawable.pipeline[Scene::Drawable::ProgramTypeShadow].program = shadow_program_pipeline.program;
