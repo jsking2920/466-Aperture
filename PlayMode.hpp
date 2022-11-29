@@ -42,11 +42,12 @@ struct PlayMode : Mode {
 	struct Button {
 		uint8_t downs = 0;
 		bool pressed = false;
-	} left, right, down, up, lmb, rmb, lctrl, tab, enter;
+	} left, right, down, up, lmb, rmb, lctrl, tab, enter, lshift;
 	struct Mouse {
 		glm::vec2 mouse_motion = glm::vec2(0, 0);
 		uint8_t moves = 0;
 		int32_t wheel_y = 0;
+        int32_t wheel_x = 0;
 		bool scrolled = false;
 	} mouse;
 

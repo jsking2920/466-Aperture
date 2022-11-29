@@ -163,9 +163,9 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size, glm::uvec2 const &ne
 
     //Resize oc_position_rb
     {
-        if(oc_position_tex == 0) glGenTextures(1, &oc_position_tex);
+        if(vertex_position_tex == 0) glGenTextures(1, &vertex_position_tex);
 
-        glBindTexture(GL_TEXTURE_2D, oc_position_tex);
+        glBindTexture(GL_TEXTURE_2D, vertex_position_tex);
         glTexImage2D(GL_TEXTURE_2D, 0,
                      GL_RGBA32F,
                      size.x, size.y, 0, //width, height, border
@@ -192,7 +192,7 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size, glm::uvec2 const &ne
             glGenFramebuffers(1, &oc_fb);
             glBindFramebuffer(GL_FRAMEBUFFER, oc_fb);
             //rgba texture to hold positions
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, oc_position_tex, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, vertex_position_tex, 0);
             //depth texture for querying for occlusion
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, pp_depth, 0); //comes pre-filled from blitting (used for occlusion)
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -301,11 +301,11 @@ struct ToneMapProgram {
                 //exposure-correction-style range compression:
 //                "		color = vec3(log(color.r + 1.0), log(color.g + 1.0), log(color.b + 1.0)) / log(2.0 + 1.0);\n"
                 //weird color effect:
-                //"		color = vec3(color.rg, gl_FragCoord.x/textureSize(TEX,0).x);\n"
+//                "		color = vec3(color.rg, gl_FragCoord.x/textureSize(TEX,0).x);\n"
                 //basic gamma-style range compression:
-                //"		color = vec3(pow(color.r, 0.45), pow(color.g, 0.45), pow(color.b, 0.45));\n"
+//                "		color = vec3(pow(color.r, 0.45), pow(color.g, 0.45), pow(color.b, 0.45));\n"
                 //raw values:
-                "		color = color;\n"
+//                "		color = vec3(color.r - color.r % 0.01, color.r - color.g % 0.01, color.r - color.b % 0.01);\n"
                 "	fragColor = vec4(color, 1.0);\n"
                 "}\n"
         );
@@ -634,7 +634,7 @@ void Framebuffers::add_depth_of_field(float focal_distance, glm::vec3 player_pos
 
     //texture1 is vertex position texture
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, oc_position_tex);
+    glBindTexture(GL_TEXTURE_2D, vertex_position_tex);
 
     //texture2 is blurred texture
     glActiveTexture(GL_TEXTURE2);

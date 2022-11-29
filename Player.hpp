@@ -23,7 +23,11 @@ struct PlayerCamera {
 	float default_fovy = 3.14159265358979323846f / 3.0f; // 60 degree vertical fov
 	float cur_zoom = 1.0f;
 	float min_zoom = 0.5f;
-	float max_zoom = 3.0f; 
+	float max_zoom = 3.0f;
+
+    float cur_focus = 3.0f;
+    float min_focus = 0.2f;
+    float max_focus = 20.f;
 	
 	// Measured in number of possible pictures that can be taken, displayed as a percentage
 	uint8_t cur_battery = 10;
@@ -31,6 +35,7 @@ struct PlayerCamera {
 
 	void TakePicture(Scene &scene); // Adds picture to player.pictures
 	void AdjustZoom(float diff);
+    void AdjustFocus(float diff);
 };
 
 struct Player {

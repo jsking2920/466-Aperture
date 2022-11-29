@@ -115,6 +115,15 @@ void PlayerCamera::AdjustZoom(float diff) {
 	scene_camera->fovy = default_fovy / cur_zoom;
 }
 
+void PlayerCamera::AdjustFocus(float diff) {
+
+    float new_focus = cur_focus + diff;
+    if (new_focus < min_focus - 0.001f || new_focus > max_focus + 0.001f) {
+        return;
+    }
+    cur_focus = new_focus;
+}
+
 // Player
 //========================================
 

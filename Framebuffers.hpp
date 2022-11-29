@@ -15,7 +15,7 @@ struct Framebuffers {
 
     //occlusion checking
     GLuint oc_fb = 0;
-    GLuint oc_position_tex = 0; //stores positions for each fragment
+    GLuint vertex_position_tex = 0; //stores positions for each fragment
 
     // MSAA enabled gl objects
     int msaa_samples = 4; // number of samples per pixel for multisample anti-aliasing

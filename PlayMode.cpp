@@ -223,10 +223,11 @@ PlayMode::PlayMode() : scene(*main_scene) {
             if (trans.name.length() >= 10 && trans.name.substr(7, 3) == "foc") {
                 if (trans.name.substr(7, 6) == "foc_00") {
                     creature.focal_point = &trans;
-                    std::cout << "found primary focal point:" << trans.name << std::endl;
-                } else {
-                    std::cout << "found extra focal point:" << trans.name << std::endl;
                 }
+//                    std::cout << "found primary focal point:" << trans.name << std::endl;
+//                } else {
+//                    std::cout << "found extra focal point:" << trans.name << std::endl;
+//                }
                 creature.focal_points.push_back(&draw);
                 draw.render_to_screen = false;
                 draw.render_to_picture = false;
@@ -276,6 +277,10 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			enter.downs += 1;
 			enter.pressed = true;
 		}
+        else if (evt.key.keysym.sym == SDLK_LSHIFT) {
+            lshift.downs += 1;
+            lshift.pressed = true;
+        }
 	} else if (evt.type == SDL_KEYUP) {
 		if (evt.key.keysym.sym == SDLK_a) {
 			left.pressed = false;
@@ -299,6 +304,9 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 		else if (evt.key.keysym.sym == SDLK_RETURN) {
 			enter.pressed = false;
 		}
+        else if (evt.key.keysym.sym == SDLK_LSHIFT) {
+            lshift.pressed = false;
+        }
 	} else if (evt.type == SDL_MOUSEBUTTONDOWN) {
 		if (SDL_GetRelativeMouseMode() == SDL_FALSE) {
 			SDL_SetRelativeMouseMode(SDL_TRUE);
@@ -338,6 +346,11 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			mouse.scrolled = true;
 			mouse.wheel_y = evt.wheel.y;
 		}
+        if (evt.wheel.x != 0)
+        {
+            mouse.scrolled = true;
+            mouse.wheel_x = evt.wheel.x;
+        }
 	}
 
 	return false;
@@ -709,7 +722,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
         if(player->in_cam_view) {
             //add depth of field
-            framebuffers.add_depth_of_field(7.0f, active_camera->transform->make_local_to_world() *
+            framebuffers.add_depth_of_field(player->player_camera->cur_focus, active_camera->transform->make_local_to_world() *
                                                   glm::vec4(active_camera->transform->position, 1.0f));
             // Copy framebuffer to main window:
             framebuffers.tone_map_to_screen(framebuffers.screen_texture);
@@ -817,14 +830,24 @@ void PlayMode::playing_update(float elapsed) {
 			player->in_cam_view = !player->in_cam_view;
 		}
 
-		// Zoom in and out on mouse wheel scroll when in cam view
 		if (player->in_cam_view && mouse.scrolled) {
-			if (mouse.wheel_y > 0) {
-				player->player_camera->AdjustZoom(0.1f); // zoom in
-			}
-			else {
-				player->player_camera->AdjustZoom(-0.1f); // zoom out
-			}
+            //Change Depth of Field distance if shift is held down
+            if(lshift.pressed) {
+                //TODO: make sure this works on windows
+                //on mac, shift + scroll is x
+                if (mouse.wheel_x > 0) {
+                    player->player_camera->AdjustFocus(0.25f); // zoom in
+                } else {
+                    player->player_camera->AdjustFocus(-0.25f); // zoom out
+                }
+            } else {
+                // Zoom in and out on mouse wheel scroll when in cam view
+                if (mouse.wheel_y > 0) {
+                    player->player_camera->AdjustZoom(0.1f); // zoom in
+                } else {
+                    player->player_camera->AdjustZoom(-0.1f); // zoom out
+                }
+            }
 		}
 
 		// Snap a pic on left click, if in camera view and has remaining battery
