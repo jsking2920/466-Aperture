@@ -205,7 +205,12 @@ PlayMode::PlayMode() : scene(*main_scene) {
     //TODO: make the stats a struct, not a vector of strings (low priority)
     {
         Creature::creature_stats_map.clear();
-        std::ifstream csv ("assets/ApertureNaming - CreatureSheet.csv", std::ifstream::in);
+        std::ifstream csv;
+		csv.open(data_path("assets/ApertureNaming - CreatureSheet.csv"), std::ifstream::in);
+		//verify that we can find this file
+		if (!bool(csv)) {
+			throw std::runtime_error("Could not find ApertureNaming - CreatureSheet.csv, ");
+		}
         std::string buffer;
         getline(csv, buffer); //skip label line
 
