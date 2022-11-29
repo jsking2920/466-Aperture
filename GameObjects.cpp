@@ -55,6 +55,10 @@ void Creature::init_transforms (Scene &scene) {
     assert(focal_points.size() > 0);
 }
 
+void Creature::update(float elapsed) {
+    std::cout << code << std::endl;
+}
+
 glm::vec3 Creature::get_best_angle() const {
     return focal_point->get_front_direction();
 }

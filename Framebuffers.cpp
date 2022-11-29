@@ -288,12 +288,16 @@ struct ToneMapProgram {
         program = gl_compile_program(
                 //vertex shader -- draws a fullscreen triangle using no attribute streams
                 "#version 330\n"
+
                 "void main() {\n"
                 "	gl_Position = vec4(4 * (gl_VertexID & 1) - 1,  2 * (gl_VertexID & 2) - 1, 0.0, 1.0);\n"
                 "}\n"
                 ,
                 //fragment shader -- reads a HDR texture, maps to output pixel colors
                 "#version 330\n"
+                "vec3 adjustContrast(vec3 color, float value) {\n"
+                "  return 0.5 + value * (color - 0.5);\n"
+                "}\n"
                 "uniform sampler2D TEX;\n"
                 "out vec4 fragColor;\n"
                 "void main() {\n"
@@ -306,6 +310,8 @@ struct ToneMapProgram {
 //                "		color = vec3(pow(color.r, 0.45), pow(color.g, 0.45), pow(color.b, 0.45));\n"
                 //raw values:
 //                "		color = vec3(color.r - color.r % 0.01, color.r - color.g % 0.01, color.r - color.b % 0.01);\n"
+//                "		color = vec3(pow(color.r, 2) * 2, pow(color.g, 2)* 2, pow(color.b, 2)* 2);\n"
+                "   color = adjustContrast(color, 1.2f);\n"
                 "	fragColor = vec4(color, 1.0);\n"
                 "}\n"
         );

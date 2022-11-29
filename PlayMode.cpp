@@ -23,13 +23,53 @@
 
 #include <random>
 
+
+
+Load< std::map< std::string, std::vector < std::string > > > creature_stats_map_load(LoadTagEarly, []() -> std::map< std::string, std::vector < std::string > > const* {
+    //Automatically parses Creature csv and puts results in Creature::creature_stats_map
+    //TODO: make the stats a struct, not a vector of strings (low priority)
+    Creature::creature_stats_map.clear();
+    std::ifstream csv;
+    csv.open(data_path("assets/ApertureNaming - CreatureSheet.csv"), std::ifstream::in);
+    //verify that we can find this file
+    if (!bool(csv)) {
+        throw std::runtime_error("Could not find ApertureNaming - CreatureSheet.csv, ");
+    }
+    std::string buffer;
+    getline(csv, buffer); //skip label line
+
+    while (getline(csv, buffer)) {
+        size_t delimiter_pos = 0;
+        //get code
+        delimiter_pos = buffer.find(',');
+        std::string code = buffer.substr(0, delimiter_pos);
+        buffer.erase(0, delimiter_pos + 1);
+
+        Creature::creature_stats_map.emplace(std::piecewise_construct, make_tuple(code), std::make_tuple());
+        std::vector<std::string> &row = Creature::creature_stats_map[code];
+        //row.reserve(buffer.length);
+        row.push_back(code);
+
+        //loop through comma delimited columns
+        //from https://stackoverflow.com/questions/14265581/parse-split-a-string-in-c-using-string-delimiter-standard-c
+        while ((delimiter_pos = buffer.find(',')) != std::string::npos) {
+            row.push_back(buffer.substr(0, delimiter_pos));
+            buffer.erase(0, delimiter_pos + 1);
+        }
+        //run once for last column, not delimited by comma
+        row.push_back(buffer.substr(0, delimiter_pos));
+        buffer.erase(0, delimiter_pos + 1);
+    }
+    return &Creature::creature_stats_map;
+});
+
 GLuint main_meshes_for_lit_color_texture_program = 0;
 GLuint main_meshes_for_depth_program = 0;
 GLuint main_meshes_for_bone_lit_color_texture_program = 0;
 Load< MeshBuffer > main_meshes(LoadTagDefault, []() -> MeshBuffer const * {
 	MeshBuffer const *ret = new MeshBuffer(data_path("assets/proto-world2.pnct"));
 	main_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
-    main_meshes_for_depth_program = ret->make_vao_for_program(depth_program->program);
+    main_meshes_for_depth_program = ret->make_vao_for_program(shadow_program->program);
 	return ret;
 });
 
@@ -60,9 +100,15 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
         drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = mesh.start;
         drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = mesh.count;
 
+        //to find if creature (has anims)
+        auto is_creature = [&](std::pair< std::string, std::vector < std::string > > pair) {
+            return pair.first == transform->name.substr(0, 3);
+        };
 
 		//TODO: for stuff that has animations, add a section where it samples the animation
-		if (transform->name == "FLO_01") {
+        //only change shader if the object has a creature code
+		if (transform->name.length() == 6 &&
+                std::find_if(creature_stats_map_load->begin(), creature_stats_map_load->end(), is_creature) != creature_stats_map_load->end()) {
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault] = bone_lit_color_texture_program_pipeline;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = *banims_for_bone_lit_color_texture_program;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
@@ -81,14 +127,14 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
         };
 
         //Set up depth program
-        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].program = depth_program_pipeline.program;
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].program = shadow_program_pipeline.program;
         drawable.pipeline[Scene::Drawable::ProgramTypeShadow].vao = main_meshes_for_depth_program;
         drawable.pipeline[Scene::Drawable::ProgramTypeShadow].type = mesh.type;
         drawable.pipeline[Scene::Drawable::ProgramTypeShadow].start = mesh.start;
         drawable.pipeline[Scene::Drawable::ProgramTypeShadow].count = mesh.count;
 
-        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_CLIP_mat4 = depth_program_pipeline.OBJECT_TO_CLIP_mat4;
-        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_LIGHT_mat4x3 = depth_program_pipeline.OBJECT_TO_LIGHT_mat4x3;
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_CLIP_mat4 = shadow_program_pipeline.OBJECT_TO_CLIP_mat4;
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_LIGHT_mat4x3 = shadow_program_pipeline.OBJECT_TO_LIGHT_mat4x3;
 
         GLuint tex;
         glGenTextures(1, &tex);
@@ -187,43 +233,6 @@ PlayMode::PlayMode() : scene(*main_scene) {
     //load audio samples
     sample_map = *audio_samples;
     Sound::sample_map = &sample_map; // example access--> Sound::play(Sound::sample_map->at("CameraClick"));
-
-    //Automatically parses Creature csv and puts results in Creature::creature_stats_map
-    //TODO: make the stats a struct, not a vector of strings (low priority)
-    {
-        Creature::creature_stats_map.clear();
-        std::ifstream csv;
-		csv.open(data_path("assets/ApertureNaming - CreatureSheet.csv"), std::ifstream::in);
-		//verify that we can find this file
-		if (!bool(csv)) {
-			throw std::runtime_error("Could not find ApertureNaming - CreatureSheet.csv, ");
-		}
-        std::string buffer;
-        getline(csv, buffer); //skip label line
-
-        while (getline(csv, buffer)) {
-            size_t delimiter_pos = 0;
-            //get code
-            delimiter_pos = buffer.find(',');
-            std::string code = buffer.substr(0, delimiter_pos);
-            buffer.erase(0, delimiter_pos + 1);
-
-            Creature::creature_stats_map.emplace(std::piecewise_construct, make_tuple(code), std::make_tuple());
-            std::vector<std::string> &row = Creature::creature_stats_map[code];
-            //row.reserve(buffer.length);
-            row.push_back(code);
-
-            //loop through comma delimited columns
-            //from https://stackoverflow.com/questions/14265581/parse-split-a-string-in-c-using-string-delimiter-standard-c
-            while ((delimiter_pos = buffer.find(',')) != std::string::npos) {
-                row.push_back(buffer.substr(0, delimiter_pos));
-                buffer.erase(0, delimiter_pos + 1);
-            }
-            //run once for last column, not delimited by comma
-            row.push_back(buffer.substr(0, delimiter_pos));
-            buffer.erase(0, delimiter_pos + 1);
-        }
-    }
 
     // using syntax from https://stackoverflow.com/questions/14075128/mapemplace-with-a-custom-value-type
     // if we use things that need references in the future, change make_tuple to forward_as_tuple
@@ -519,7 +528,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		}
         sun_color *= brightness;
 
-        fog_intensity = 0.4f + 0.4f * (1 - brightness);
+        fog_intensity = 0.6f + 0.4f * (1 - brightness);
         fog_color = glm::vec3(0.8f) + 0.2f * sky_color;
 
         //push calculated sky lighting uniforms

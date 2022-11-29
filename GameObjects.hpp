@@ -54,6 +54,7 @@ struct Creature {
     //scoring parameters
     int score = 3000;
 
+    void update(float elapsed);
 
     //Initialization/parsing function form scene
     void init_transforms(Scene &scene);

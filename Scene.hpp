@@ -73,7 +73,7 @@ struct Scene {
         enum ProgramType : uint32_t {
             ProgramTypeDefault = 0,
             ProgramTypeShadow = 1,
-			ProgramTypeAnim = 2,
+			ProgramTypePrepass = 2,
             ProgramTypes //count of program types
         };
 
