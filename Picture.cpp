@@ -104,18 +104,20 @@ std::list<ScoreElement> Picture::score_creature(PictureCreatureInfo &creature_in
 
     { //Add points for focus
         float distance = glm::length(creature_info.player_to_creature) - creature_info.creature->radius;
-        float real_focal_distance = stats.focal_distance * 1.4f;
-        float diff = abs(distance - real_focal_distance);
+        //calculate blur using same calculation as blur shader in Framebuffers.cpp
         float percent;
-        if (distance > real_focal_distance) {
-            percent = pow(abs(real_focal_distance - diff) / real_focal_distance, 3.0f);
+        if (distance < stats.focal_distance) {
+            percent = 1 - std::clamp(1 - (float)pow(distance/stats.focal_distance, 2), 0.f, 1.f);
         } else {
-            //focus drops off quicker towards the camera, so percent should also drop off quicker
-            percent = pow(abs(real_focal_distance - diff) / real_focal_distance, 5.0f);
+            percent = 1 - std::clamp((abs(stats.focal_distance - distance) - stats.focal_distance)/(2 * stats.focal_distance), 0.f, 1.f);
         }
-        float score = std::clamp(8000.0f * percent, 0.0f, 5000.0f);
-        if (score > 1500.f) {
+        float score = 4000.0f * percent;
+        if (score > 1200.f) {
             result.emplace_back("Focus", (uint32_t)score);
+        }
+        //bonus points for shallow depth of field
+        if(score > 2500.f && stats.focal_distance < 5.f) {
+            result.emplace_back("Depth of Field!", (uint32_t)((5.f - stats.focal_distance) * 500.f));
         }
     }
 
