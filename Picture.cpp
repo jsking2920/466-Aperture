@@ -26,6 +26,9 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
 
     PictureCreatureInfo subject_info = stats.creatures_in_frame.front();
 
+    //trigger on_picture behaviors of subject (could be all creatures in frame)
+    subject_info.creature->on_picture();
+
     //grade subject
     {
         //Magnificence

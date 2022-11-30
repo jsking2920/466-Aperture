@@ -38,6 +38,7 @@ Load< std::map< std::string, std::vector < std::string > > > creature_stats_map_
     std::string buffer;
     getline(csv, buffer); //skip label line
 
+    int index = 0;
     while (getline(csv, buffer)) {
         size_t delimiter_pos = 0;
         //get code
@@ -59,6 +60,8 @@ Load< std::map< std::string, std::vector < std::string > > > creature_stats_map_
         //run once for last column, not delimited by comma
         row.push_back(buffer.substr(0, delimiter_pos));
         buffer.erase(0, delimiter_pos + 1);
+        //push back switch index
+        row.push_back(std::to_string(index));
     }
     return &Creature::creature_stats_map;
 });
@@ -920,6 +923,12 @@ void PlayMode::playing_update(float elapsed) {
 			score_text_popup_timer = 0.0f;
 		}
 	}
+
+    //creature movement updates
+    std::for_each(Creature::creature_map.begin(), Creature::creature_map.end(), [&](std::pair< const std::string, Creature > &pair) {
+        Creature &creature = pair.second;
+        creature.update(elapsed);
+    });
 
 	// UI
 	{

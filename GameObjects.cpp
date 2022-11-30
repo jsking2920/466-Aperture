@@ -10,11 +10,14 @@ Creature::Creature(std::string code_, int number_) : code(code_), number(number_
     //populate metadata based on creature_stats
     std::vector < std::string > &creature_stats = creature_stats_map[code];
     assert(code == creature_stats[0]);
-    assert(creature_stats.size() == 5); //if assert fails, you probably added a field to the csv that must be added here!
+    assert(creature_stats.size() == 6); //if assert fails, you probably added a field to the csv that must be added here!
     name = creature_stats[1];
     description = creature_stats[2];
     score = std::stoi(creature_stats[3]);
     radius = std::stof(creature_stats[4]);
+
+    //must be last
+    switch_index = std::stoi(creature_stats[creature_stats.size() - 1]);
 }
 
 //add to constructor?
@@ -56,7 +59,24 @@ void Creature::init_transforms (Scene &scene) {
 }
 
 void Creature::update(float elapsed) {
-    std::cout << code << std::endl;
+    //in hindsight I probably should have just done a big if statement but this is more efficient i believe
+    switch(switch_index) {
+        case 0: { //FLOATER
+            //floater idle anim
+            if(curr_anim_name == "Idle") {
+
+            }
+        }
+    }
+}
+
+//animations to be triggered when picture is taken of the creature
+void Creature::on_picture() {
+    switch(switch_index) {
+        case 0: { //FLOATER
+            std::cout << code << number << std::endl;
+        }
+    }
 }
 
 glm::vec3 Creature::get_best_angle() const {

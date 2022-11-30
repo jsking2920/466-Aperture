@@ -12,6 +12,7 @@
 /*
 33 characters and then a number
 */
+
 //idea: make a mast struct/class that's the creature
 struct Creature {
     // Reference to the creatures
@@ -50,11 +51,14 @@ struct Creature {
     BoneAnimation::Animation const *banim_walk = nullptr;
     //keep track of animation state
     std::string curr_anim_name = "none";
+    //index for switch statement, bc you can't switch on strings
+    int switch_index = 0;
 
     //scoring parameters
     int score = 3000;
 
     void update(float elapsed);
+    void on_picture();
 
     //Initialization/parsing function form scene
     void init_transforms(Scene &scene);
