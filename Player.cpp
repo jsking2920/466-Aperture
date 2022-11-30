@@ -34,8 +34,8 @@ void PlayerCamera::TakePicture(Scene &scene) {
     PictureInfo stats;
     stats.data = std::make_shared<std::vector<GLfloat>>(3 * scene_camera->drawable_size.x * scene_camera->drawable_size.y);
     stats.dimensions = scene_camera->drawable_size;
-//    stats.data->resize(3 * scene_camera->drawable_size.x * scene_camera->drawable_size.y);
     stats.angle = eulerAngles(player->camera->transform->rotation);
+    stats.focal_distance = cur_focus;
 
     //get fragment counts for each drawable
     scene.render_picture(*scene_camera, stats.frag_counts, *stats.data);
@@ -72,16 +72,21 @@ void PlayerCamera::TakePicture(Scene &scene) {
         //populate frag counts by summing over all labeled parts
         creature_info.frag_count = 0;
         std::for_each(stats.frag_counts.begin(), stats.frag_counts.end(), [&](auto pair) {
-            if(pair.first.transform->name.substr(0, 6)
+            if (pair.first.transform->name.substr(0, 6)
                     == creature_info.creature->get_code_and_number()) {
             creature_info.frag_count += pair.second;
             }
         });
         //vector from player to creature
-        glm::vec3 worldpos = creature_info.creature->transform->make_local_to_world() * glm::vec4(creature_info.creature->transform->position, 1.0f);
-        glm::vec3 camera_worldpos = player->camera->transform->make_local_to_world() * glm::vec4(player->camera->transform->position, 1.0f);
+        glm::vec3 worldpos = creature_info.creature->transform->make_local_to_world() * glm::vec4(0, 0, 0, 1.0f);
+        glm::vec3 camera_worldpos = player->player_camera->scene_camera->transform->make_local_to_world() * glm::vec4(0, 0, 0, 1.0f);
+        std::cout << glm::to_string(creature_info.creature->transform->make_local_to_world()) <<std::endl;
+        std::cout << glm::to_string(glm::vec4(creature_info.creature->transform->position, 1.0f)) <<std::endl;
+        std::cout << glm::to_string(camera_worldpos) <<std::endl;
+        std::cout << glm::to_string(worldpos) <<std::endl;
         creature_info.player_to_creature = worldpos - camera_worldpos;
-//        std::cout << glm::to_string(worldpos) << ",  " << glm::to_string(camera_worldpos);
+        std::cout << glm::to_string(creature_info.player_to_creature) <<std::endl;
+        //std::cout << glm::to_string(worldpos) << ",  " << glm::to_string(camera_worldpos);
     }
 
     // Debug: print how many focal points are in frame
@@ -100,7 +105,9 @@ void PlayerCamera::TakePicture(Scene &scene) {
 	std::cout << picture.get_scoring_string() << std::endl;
 
 	// TODO: move save picture out of here to make it user-prompted
-    picture.save_picture_png();
+    // picture.save_picture_png();
+
+	cur_battery -= 1;
 }
 
 void PlayerCamera::AdjustZoom(float diff) {
@@ -112,6 +119,15 @@ void PlayerCamera::AdjustZoom(float diff) {
 	cur_zoom = new_zoom;
 
 	scene_camera->fovy = default_fovy / cur_zoom;
+}
+
+void PlayerCamera::AdjustFocus(float diff) {
+
+    float new_focus = cur_focus + diff;
+    if (new_focus < min_focus - 0.001f || new_focus > max_focus + 0.001f) {
+        return;
+    }
+    cur_focus = new_focus;
 }
 
 // Player
@@ -126,6 +142,8 @@ Player::Player(Scene::Transform* _transform, WalkMesh const* _walk_mesh, Scene::
 	camera->transform->parent = transform;
 	camera->fovy = 3.14159265358979323846f / 3.0f; // 60 degree vertical fov
 	camera->near = 0.01f;
+
+	base_cam_z = camera->transform->position.z;
 	
 	// Start player walking at nearest walk point
 	at = walk_mesh->nearest_walk_point(transform->position);
@@ -137,7 +155,6 @@ Player::Player(Scene::Transform* _transform, WalkMesh const* _walk_mesh, Scene::
 	player_camera->scene_camera->fovy = camera->fovy;
 
     pictures = new std::list<Picture>();
-
 }
 
 Player::~Player() {
@@ -220,21 +237,23 @@ void Player::Move(glm::vec2 direction, float elapsed) {
 	transform->position = walk_mesh->to_world_point(at);
 }
 
-void Player::ToggleCrouch() {
+void Player::SetCrouch(bool _is_crouched) {
 
-	if (is_crouched) {
-		camera->transform->position.z += crouch_offset;
+	if (_is_crouched) {
+		camera->transform->position.z = base_cam_z - crouch_offset;
 	}
 	else {
-		camera->transform->position.z -= crouch_offset;
+		camera->transform->position.z = base_cam_z;
 	}
-	is_crouched = !is_crouched;
+	is_crouched = _is_crouched;
 }
 
 float Player::get_speed() {
-    if(in_cam_view) {
-        return speed/2;
-    } else {
+
+    if (in_cam_view) {
+        return speed / 2.0f;
+    } 
+	else {
         return speed;
     }
 }

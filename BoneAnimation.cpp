@@ -9,6 +9,9 @@
 #include <fstream>
 #include <algorithm>
 
+std::map< std::string, BoneAnimation * > BoneAnimation::animation_map = std::map< std::string, BoneAnimation * >();
+
+
 BoneAnimation::BoneAnimation(std::string const &filename) {
 	std::cout << "Reading bone-based animation from '" << filename << "'." << std::endl;
 
@@ -162,6 +165,7 @@ BoneAnimationPlayer::BoneAnimationPlayer(BoneAnimation const &banims_, BoneAnima
 
 void BoneAnimationPlayer::update(float elapsed) {
 	position += elapsed * position_per_second;
+	//std::cout << "position = " << position << std::endl;
 	if (loop_or_once == Loop) {
 		position -= std::floor(position);
 	} else { //(loop_or_once == Once)

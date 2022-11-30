@@ -2,6 +2,7 @@
 
 #include "Mode.hpp"
 #include "Scene.hpp"
+#include "BoneAnimation.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
@@ -15,11 +16,11 @@
 struct Creature {
     // Reference to the creatures
     static std::map< std::string, Creature > creature_map;
+    static std::map< std::string, std::vector < std::string > > creature_stats_map;
 
     //constructor
     Creature() = default;
-    Creature(std::string name_, std::string code_, int ID_, int number_)
-            : name(name_), code(code_), number(number_) {}
+    Creature(std::string code_, int number_);
     ~Creature() = default;
 
     //Displaying information to the user --------------------------------------
@@ -36,6 +37,8 @@ struct Creature {
     std::string code = "missing code";
     //which number of creature it is
     int number = 0;
+    std::string description = "missing description";
+    float radius = 0.f; //radius, to be subtracted when calculating focus
     //have a transform which we can query for position and orientation
     Scene::Transform *transform = nullptr;
     //have a drawable for rendering
@@ -43,8 +46,10 @@ struct Creature {
     //have a list of objects to sample
     //If we want to assign points/names to each focal point, make this into a list of focal point objects
     std::vector<Scene::Drawable *> focal_points = {};
-    //have an array of body parts
-    //std::vector< Scene::Transform > body_parts = {};
+    //temporarily holds a single animation
+    BoneAnimation::Animation const *banim_walk = nullptr;
+    //keep track of animation state
+    std::string curr_anim_name = "none";
 
     //scoring parameters
     int score = 3000;
@@ -58,8 +63,6 @@ struct Creature {
     std::string get_code_and_number() const;
     static std::string get_code_and_number(std::string code, int number);
 
-
-    private:
     Scene::Transform *focal_point = nullptr;
 
 

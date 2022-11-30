@@ -1,6 +1,9 @@
 #include "PlayMode.hpp"
 
 #include "LitColorTextureProgram.hpp"
+#include "BoneLitColorTextureProgram.hpp"
+
+#include "depth_program.hpp"
 
 #include "DrawLines.hpp"
 #include "Mesh.hpp"
@@ -11,17 +14,37 @@
 #include "Framebuffers.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <glm/detail/type_mat4x4.hpp>
 #include <filesystem>
+#include <fstream>
+#include <algorithm>
 
 #include <random>
 
 GLuint main_meshes_for_lit_color_texture_program = 0;
-GLuint main_meshes_for_lit_color_program = 0;
+GLuint main_meshes_for_depth_program = 0;
+GLuint main_meshes_for_bone_lit_color_texture_program = 0;
 Load< MeshBuffer > main_meshes(LoadTagDefault, []() -> MeshBuffer const * {
 	MeshBuffer const *ret = new MeshBuffer(data_path("assets/proto-world2.pnct"));
 	main_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
+    main_meshes_for_depth_program = ret->make_vao_for_program(depth_program->program);
 	return ret;
+});
+
+Load< BoneAnimation > test_banims(LoadTagDefault, []() -> BoneAnimation const * {
+	auto ret = new BoneAnimation(data_path("assets/animations/testanim.banims"));
+	BoneAnimation::animation_map.emplace(std::make_pair("FLO", ret));
+	return ret;
+});
+Load< BoneAnimation > test_banims2(LoadTagDefault, [](){
+	auto ret = new BoneAnimation(data_path("assets/animations/monkey.banims"));
+	BoneAnimation::animation_map.emplace(std::make_pair("monkey", ret));
+	return ret;
+});
+Load< GLuint > banims_for_bone_lit_color_texture_program(LoadTagDefault, [](){
+	return new GLuint(test_banims->make_vao_for_program(bone_lit_color_texture_program->program));
 });
 
 Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
@@ -30,12 +53,42 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
         scene.drawables.emplace_back(transform);
         Scene::Drawable &drawable = scene.drawables.back();
 
-        drawable.pipeline = lit_color_texture_program_pipeline;
+        drawable.pipeline[Scene::Drawable::ProgramTypeDefault] = lit_color_texture_program_pipeline;
 
-        drawable.pipeline.vao = main_meshes_for_lit_color_texture_program;
-        drawable.pipeline.type = mesh.type;
-        drawable.pipeline.start = mesh.start;
-        drawable.pipeline.count = mesh.count;
+        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = main_meshes_for_lit_color_texture_program;
+        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
+        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = mesh.start;
+        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = mesh.count;
+
+
+		//TODO: for stuff that has animations, add a section where it samples the animation
+		if (transform->name == "FLO_01") {
+			drawable.pipeline[Scene::Drawable::ProgramTypeDefault] = bone_lit_color_texture_program_pipeline;
+			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = *banims_for_bone_lit_color_texture_program;
+			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
+			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = test_banims->mesh.start;
+			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = test_banims->mesh.count;
+			std::cout << "found " << transform->name << std::endl;
+		}
+
+        //set roughnesses, possibly should be from csv??
+        float roughness = 1.0f;
+        //if (transform->name.substr(0, 9) == "Icosphere") {
+        //    roughness = (transform->position.y + 10.0f) / 18.0f;
+        //}
+        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [drawable, roughness](){
+            glUniform1f(lit_color_texture_program->ROUGHNESS_float, roughness);
+        };
+
+        //Set up depth program
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].program = depth_program_pipeline.program;
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].vao = main_meshes_for_depth_program;
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].type = mesh.type;
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].start = mesh.start;
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].count = mesh.count;
+
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_CLIP_mat4 = depth_program_pipeline.OBJECT_TO_CLIP_mat4;
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_LIGHT_mat4x3 = depth_program_pipeline.OBJECT_TO_LIGHT_mat4x3;
 
         GLuint tex;
         glGenTextures(1, &tex);
@@ -64,15 +117,22 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); // Bilinear filtering for textures close to cam
             glBindTexture(GL_TEXTURE_2D, 0);
 
-            drawable.pipeline.textures[0].texture = tex;
-            drawable.pipeline.textures[0].target = GL_TEXTURE_2D;
+            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[0].texture = tex;
+            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[0].target = GL_TEXTURE_2D;
+
+            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].textures[0].texture = tex;
+            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].textures[0].target = GL_TEXTURE_2D;
 
             GL_ERRORS(); // check for errros
         } else {
             //no texture found, using vertex colors
             drawable.uses_vertex_color = true;
         }
-	});
+
+        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].texture = framebuffers.shadow_depth_tex;
+        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].target = GL_TEXTURE_2D;
+
+    });
 });
 
 Load< WalkMeshes > main_walkmeshes(LoadTagDefault, []() -> WalkMeshes const * {
@@ -115,27 +175,99 @@ PlayMode::PlayMode() : scene(*main_scene) {
 		scene.transforms.emplace_back();
 
 		player = new Player(player_transform, &main_walkmeshes->lookup("WalkMe"), &scene.cameras.back(), &scene.transforms.back());
+		cur_spawn = player->at;
 	}
 	
-	// Set up text renderer
+	// Set up text renderers
 	display_text = new TextRenderer(data_path("assets/fonts/Audiowide-Regular.ttf"), display_font_size);
+	handwriting_text = new TextRenderer(data_path("assets/fonts/PoorStory-Regular.ttf"), handwriting_font_size);
+	body_text = new TextRenderer(data_path("assets/fonts/Sono-Regular.ttf"), body_font_size);
 	barcode_text = new TextRenderer(data_path("assets/fonts/LibreBarcode128Text-Regular.ttf"), barcode_font_size);
 
     //load audio samples
     sample_map = *audio_samples;
-    Sound::sample_map = &sample_map;
-    //example access
-//    Sound::play(Sound::sample_map->at("CameraClick"));
+    Sound::sample_map = &sample_map; // example access--> Sound::play(Sound::sample_map->at("CameraClick"));
 
-	// TODO: 
-	// Load creatures, should eventually loop through codes and/or models
+    //Automatically parses Creature csv and puts results in Creature::creature_stats_map
+    //TODO: make the stats a struct, not a vector of strings (low priority)
+    {
+        Creature::creature_stats_map.clear();
+        std::ifstream csv;
+		csv.open(data_path("assets/ApertureNaming - CreatureSheet.csv"), std::ifstream::in);
+		//verify that we can find this file
+		if (!bool(csv)) {
+			throw std::runtime_error("Could not find ApertureNaming - CreatureSheet.csv, ");
+		}
+        std::string buffer;
+        getline(csv, buffer); //skip label line
+
+        while (getline(csv, buffer)) {
+            size_t delimiter_pos = 0;
+            //get code
+            delimiter_pos = buffer.find(',');
+            std::string code = buffer.substr(0, delimiter_pos);
+            buffer.erase(0, delimiter_pos + 1);
+
+            Creature::creature_stats_map.emplace(std::piecewise_construct, make_tuple(code), std::make_tuple());
+            std::vector<std::string> &row = Creature::creature_stats_map[code];
+            //row.reserve(buffer.length);
+            row.push_back(code);
+
+            //loop through comma delimited columns
+            //from https://stackoverflow.com/questions/14265581/parse-split-a-string-in-c-using-string-delimiter-standard-c
+            while ((delimiter_pos = buffer.find(',')) != std::string::npos) {
+                row.push_back(buffer.substr(0, delimiter_pos));
+                buffer.erase(0, delimiter_pos + 1);
+            }
+            //run once for last column, not delimited by comma
+            row.push_back(buffer.substr(0, delimiter_pos));
+            buffer.erase(0, delimiter_pos + 1);
+        }
+    }
+
     // using syntax from https://stackoverflow.com/questions/14075128/mapemplace-with-a-custom-value-type
     // if we use things that need references in the future, change make_tuple to forward_as_tuple
     // put in constructor??
-    std::string id_code = "FLO_01";
-    Creature::creature_map.emplace(std::piecewise_construct, std::make_tuple(id_code), std::make_tuple("Floater", "FLO", 1, 1));
-    Creature &creature = Creature::creature_map[id_code];
-    creature.init_transforms(scene);
+    for (Scene::Drawable &draw : scene.drawables) {
+        Scene::Transform &trans = *draw.transform;
+        std::string &name = trans.name;
+        std::string id_code = name.substr(0, 6);
+        //if stats exist but creature has not been built yet, initialize creature
+        if (Creature::creature_stats_map.count(name.substr(0,3)) && !Creature::creature_map.count(id_code)) {
+            Creature::creature_map.emplace(std::piecewise_construct,
+				                           std::make_tuple(id_code),
+				                           std::make_tuple(name.substr(0, 3),
+										   std::stoi(name.substr(4, 2))));
+        }
+        //if creature already exists, set up
+        if (Creature::creature_map.count(id_code)) {
+            Creature &creature = Creature::creature_map[id_code];
+            if (trans.name == id_code) {
+                creature.transform = &trans;
+                creature.drawable = &draw;
+            }
+
+            if (trans.name.length() >= 10 && trans.name.substr(7, 3) == "foc") {
+                if (trans.name.substr(7, 6) == "foc_00") {
+                    creature.focal_point = &trans;
+                }
+                //    std::cout << "found primary focal point:" << trans.name << std::endl;
+                //} else {
+                //    std::cout << "found extra focal point:" << trans.name << std::endl;
+                //}
+                creature.focal_points.push_back(&draw);
+                draw.render_to_screen = false;
+                draw.render_to_picture = false;
+            }
+        }
+    }
+
+	//animation initialization
+	{
+		playing_animations.reserve(1);
+		Creature* flo = &Creature::creature_map["FLO_01"];
+		play_animation(*flo, "Idle", true, 1.0f);
+	}
 }
 
 PlayMode::~PlayMode() {
@@ -143,6 +275,7 @@ PlayMode::~PlayMode() {
     Sound::sample_map = nullptr;
 }
 
+// -------- Main functions -----------
 bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size) {
 
 	if (evt.type == SDL_KEYDOWN) {
@@ -170,6 +303,18 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			lctrl.downs += 1;
 			lctrl.pressed = true;
 		}
+		else if (evt.key.keysym.sym == SDLK_TAB) {
+			tab.downs += 1;
+			tab.pressed = true;
+		}
+		else if (evt.key.keysym.sym == SDLK_RETURN) {
+			enter.downs += 1;
+			enter.pressed = true;
+		}
+        else if (evt.key.keysym.sym == SDLK_LSHIFT) {
+            lshift.downs += 1;
+            lshift.pressed = true;
+        }
 	} else if (evt.type == SDL_KEYUP) {
 		if (evt.key.keysym.sym == SDLK_a) {
 			left.pressed = false;
@@ -187,6 +332,15 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 		else if (evt.key.keysym.sym == SDLK_LCTRL) {
 			lctrl.pressed = false;
 		}
+		else if (evt.key.keysym.sym == SDLK_TAB) {
+			tab.pressed = false;
+		}
+		else if (evt.key.keysym.sym == SDLK_RETURN) {
+			enter.pressed = false;
+		}
+        else if (evt.key.keysym.sym == SDLK_LSHIFT) {
+            lshift.pressed = false;
+        }
 	} else if (evt.type == SDL_MOUSEBUTTONDOWN) {
 		if (SDL_GetRelativeMouseMode() == SDL_FALSE) {
 			SDL_SetRelativeMouseMode(SDL_TRUE);
@@ -215,20 +369,22 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 		}
 	} else if (evt.type == SDL_MOUSEMOTION) {
 		if (SDL_GetRelativeMouseMode() == SDL_TRUE) {
-			// Look around on mouse motion
-			mouse_motion = glm::vec2(evt.motion.xrel / float(window_size.y), -evt.motion.yrel / float(window_size.y));
-			player->OnMouseMotion(mouse_motion);
+			// Can be multiple of these events per frame, so sum them all up
+			mouse.mouse_motion += glm::vec2(evt.motion.xrel / float(window_size.y), -evt.motion.yrel / float(window_size.y));
+			mouse.moves += 1;
 			return true;
 		}
 	} else if (evt.type == SDL_MOUSEWHEEL && player->in_cam_view) {
-		if (evt.wheel.y > 0) // scroll up
+		if (evt.wheel.y != 0) // scroll mouse wheel
 		{
-			player->player_camera->AdjustZoom(0.1f); // zoom in
+			mouse.scrolled = true;
+			mouse.wheel_y = evt.wheel.y;
 		}
-		else if (evt.wheel.y < 0) // scroll down
-		{
-			player->player_camera->AdjustZoom(-0.1f); // zoom out
-		}
+        if (evt.wheel.x != 0)
+        {
+            mouse.scrolled = true;
+            mouse.wheel_x = evt.wheel.x;
+        }
 	}
 
 	return false;
@@ -236,63 +392,48 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 
 void PlayMode::update(float elapsed) {
 
-	time_of_day += elapsed;
+	time_of_day += elapsed * time_scale * time_scale_debug;
+
+	switch (cur_state) {
+
+		case menu:
+			menu_update(elapsed);
+			break;
+		case playing:
+			playing_update(elapsed);
+			break;
+		case journal:
+			journal_update(elapsed);
+			break;
+		case night:
+			night_update(elapsed);
+			break;
+	}
+
+	// Loop day timer
 	if (time_of_day > day_length) {
-		// TODO: handle end of day stuff
 		time_of_day = 0.0f;
 	}
-	
-	// Player movement
-	{
-		// WASD to move on walk mesh
-		glm::vec2 move = glm::vec2(0.0f);
-		if (left.pressed && !right.pressed) move.x = -1.0f;
-		if (!left.pressed && right.pressed) move.x = 1.0f;
-		if (down.pressed && !up.pressed) move.y = -1.0f;
-		if (!down.pressed && up.pressed) move.y = 1.0f;
 
-		if (move.x != 0.0f || move.y != 0.0f) player->Move(move, elapsed);
-
-		// Hold lctrl to crouch
-		if (lctrl.pressed != player->is_crouched) {
-			player->ToggleCrouch();
-		}
-	}
-	
-	// Player camera logic 
-	{
-		// Toggle player view on right click
-		if (rmb.downs == 1) {
-			player->in_cam_view = !player->in_cam_view;
-		}
-		// Snap a pic on left click, if in camera view
-		if (player->in_cam_view && lmb.downs == 1) {
-			player->player_camera->TakePicture(scene);
-			score_text_is_showing = true;
-			score_text_popup_timer = 0.0f;
-		}
+	//animation 
+	for (auto &anim : playing_animations) {
+		anim.update(elapsed);
 	}
 
-	// UI
-	{
-		if (score_text_is_showing) {
-			if (score_text_popup_timer >= score_text_popup_duration) {
-				score_text_is_showing = false;
-			}
-			else {
-				score_text_popup_timer += elapsed;
-			}
-		}
-	}
-	
-	//reset button press counters:
+	// Reset button press counters and mouse
 	left.downs = 0;
 	right.downs = 0;
 	up.downs = 0;
 	down.downs = 0;
-	lmb.downs = 0;
+	lmb.downs = 0; 
 	rmb.downs = 0;
 	lctrl.downs = 0;
+	tab.downs = 0;
+	enter.downs = 0;
+
+	mouse.moves = 0;
+	mouse.mouse_motion = glm::vec2(0, 0);
+	mouse.scrolled = false;
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
@@ -303,79 +444,246 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		player->player_camera->scene_camera->aspect = float(drawable_size.x) / float(drawable_size.y);
 		player->camera->drawable_size = drawable_size;
 		player->player_camera->scene_camera->drawable_size = drawable_size;
+
+        // Based on: https://github.com/15-466/15-466-f20-framebuffer
+        // Make sure framebuffers are the same size as the window:
+        framebuffers.realloc(drawable_size, glm::vec2(1024, 1024));
 	}
 
-	// Handle scene lighting
-	{
-		// Set up sky lighting uniforms for lit_color_texture_program:
-		glUseProgram(lit_color_texture_program->program);
-		glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 1); // hemisphere light
+    //set active camera
+    Scene::Camera *active_camera;
+    if (player->in_cam_view) {
+        active_camera = player->player_camera->scene_camera;
+    } else {
+        active_camera = player->camera;
+    }
 
-        glm::vec3 day_sky_color(0.5f, 1.0f, 1.0f);
-        glm::vec3 night_sky_color(0.f, 0.02f, 0.1f);
-        glm::vec3 sunset_sky_color(0.5f, 0.3f, 0.1f);
+	// Handle scene lighting, forward lighting based on https://github.com/15-466/15-466-f19-base6/blob/master/DemoLightingForwardMode.cpp
+	{
+        glm::vec3 eye = active_camera->transform->make_local_to_world()[3];
+
+        //compute light uniforms:
+        GLsizei lights = uint32_t(scene.lights.size() + 2);
+        //clamp lights to maximum lights allowed by shader:
+        lights = std::min< uint32_t >(lights, LitColorTextureProgram::MaxLights);
+
+        //lighting information vectors
+        std::vector< int32_t > light_type; light_type.reserve(lights);
+        std::vector< glm::vec3 > light_location; light_location.reserve(lights);
+        std::vector< glm::vec3 > light_direction; light_direction.reserve(lights);
+        std::vector< glm::vec3 > light_energy; light_energy.reserve(lights);
+        std::vector< float > light_cutoff; light_cutoff.reserve(lights);
+
+        //hemisphere light is 1
+        light_type.emplace_back(1);
+        light_cutoff.emplace_back(1.0f);
+        //sun/moon is 2
+        light_type.emplace_back(3);
+        light_cutoff.emplace_back(1.0f);
+
 
 		// calculate brightness of sun/moon based in time of day
-        //TODO: make this better! Add ambient light to simulate indirect light & prevent it from being all dark ever
         //Fix "jump" at day/night switch over, by letting brightnesses reach zero and turning up ambient lighting
         //Maybe displace sunset and sunrise to be more during the daytime so that sun angles make more sense during sunrise/set
         //make sunrise less orange probably
-        glm::vec3 sky_color;
+        glm::vec3 ambient_color;
 		float brightness;
-        glm::vec3 light_angle;
-		glm::vec3 light_color;
+        glm::vec3 sun_angle;
+		glm::vec3 sun_color;
 		if (time_of_day >= sunrise && time_of_day <= sunset) { // daytime lighting
 			// sinusoidal curve that goes from 0 at sun rise to 1 at the midpoint between sun rise and set to 0 at sun set
 			brightness = std::sin(((time_of_day - sunrise) / (sunset - sunrise)) * float(M_PI));
 			// increase amplitude of curve so that middle of the day is all at or above max brightness
 			brightness *= 1.3f;
-            float color_sin = std::clamp(brightness, 0.f, 1.f);
-			// lerp brightness value from 0.15 to 1.5 so that it's never completely dark
-			brightness = ((1.0f - brightness) * 0.15f) + brightness;
+            float color_sin = std::clamp(brightness, 0.0f, 1.0f);
 			// clamp brightness to [0.1f, 1.0f], which creates a "plateau" in the curve at midday
-			brightness = brightness > 1.0f ? 1.0f : brightness;
-			light_color = glm::vec3(1.0f, 1.0f, 0.95f); // slightly warm light (less blue)
+//			brightness = brightness > 1.0f ? 1.0f : brightness;
 
-            light_angle = glm::vec3( 0, -std::cos(((time_of_day - sunrise) / (sunset - sunrise)) * float(M_PI)) / std::sqrt(2),
+            sun_color = glm::vec3(1.0f, 1.0f, 0.95f); // slightly warm light (less blue)
+            sun_angle = glm::vec3(0, -std::cos(((time_of_day - sunrise) / (sunset - sunrise)) * float(M_PI)) / std::sqrt(2),
                                    -std::sin(((time_of_day - sunrise) / (sunset - sunrise)) * float(M_PI)) / std::sqrt(2));
-
             sky_color = day_sky_color * color_sin + sunset_sky_color * std::pow( 1 - color_sin, 3.f );
+            ambient_color = day_ambient_color * color_sin + sunset_ambient_color * std::pow( 1 - color_sin, 3.f );
 		}
 		else { // nighttime lighting
 			float unwrapped_time = time_of_day < sunset ? day_length + time_of_day : time_of_day; // handle timer wrapping aorund to 0
 			// sinusoidal curve that goes from 0 at sun set to 1 at the midpoint between sun set and rise to 0 at sun rise
 			float sin = std::sin(((unwrapped_time - sunset) / (sunrise + (day_length - sunset))) * float(M_PI));
 			// lerp brightness value from 0.15 to 0.4 so that it's never completely dark but also never quite as bright as day
-			brightness = ((1.0f - sin) * 0.15f) + (sin * 0.4f);
-			light_color = glm::vec3(0.975f, 0.975f, 1.0f); // slightly cool light (more blue) that is also dimmer
-            light_angle = glm::vec3( 0, -std::cos(((unwrapped_time - sunset) / (sunrise + (day_length - sunset))) * float(M_PI)) / std::sqrt(2),
+			brightness = (sin * 0.8f);
+            sun_color = glm::vec3(0.975f, 0.975f, 1.0f); // slightly cool light (more blue) that is also dimmer
+            sun_angle = glm::vec3(0, -std::cos(((unwrapped_time - sunset) / (sunrise + (day_length - sunset))) * float(M_PI)) / std::sqrt(2),
                                      -std::sin(((unwrapped_time - sunset) / (sunrise + (day_length - sunset))) * float(M_PI)) / std::sqrt(2));
-
             sky_color = night_sky_color * sin + sunset_sky_color * std::pow( 1 - sin, 3.f );
+            ambient_color = night_ambient_color * sin + sunset_ambient_color * std::pow( 1 - sin, 2.f );
 		}
-		light_color *= brightness;
+        sun_color *= brightness;
 
-        glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(light_angle));
-		glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(light_color));
-		glUseProgram(0);
+        fog_intensity = 0.4f + 0.4f * (1 - brightness);
+        fog_color = glm::vec3(0.8f) + 0.2f * sky_color;
 
-//		glUseProgram(lit_color_texture_program->program);
-//		glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 1);
-//		glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f, -1.0f)));
-//		glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(glm::vec3(1.0f, 1.0f, 0.95f)));
-//		glUseProgram(0);
+        //push calculated sky lighting uniforms
+        light_direction.emplace_back(glm::vec3(0, 0, -1.f));
+        light_energy.emplace_back(ambient_color);
+        light_location.emplace_back(glm::vec3(0, 0, 100));
+        //push calculated sun lighting uniforms
+        light_direction.emplace_back(sun_angle);
+        light_energy.emplace_back(sun_color);
+        light_location.emplace_back(player->transform->position - sun_angle * 50.f);
 
-		// Set "sky" (clear color)
-		glClearColor(sky_color.x, sky_color.y, sky_color.z, 1.0f);
+        //other lights setup
+        for (auto const &light : scene.lights) {
+            //only one hemisphere & directional light is allowed! otherwise they won't get added
+            if (light.type == Scene::Light::Hemisphere || light.type == Scene::Light::Directional) {
+                continue;
+            }
+
+            glm::mat4 light_to_world = light.transform->make_local_to_world();
+            //set up lighting information for this light:
+            light_location.emplace_back(glm::vec3(light_to_world[3]));
+            light_direction.emplace_back(glm::vec3(-light_to_world[2]));
+            light_energy.emplace_back(light.energy);
+
+            if (light.type == Scene::Light::Point) {
+                light_type.emplace_back(0);
+                light_cutoff.emplace_back(1.0f);
+            } else if (light.type == Scene::Light::Spot) {
+                light_type.emplace_back(2);
+                light_cutoff.emplace_back(std::cos(0.5f * light.spot_fov));
+            }
+
+            //skip remaining lights if maximum light count reached:
+            if (light_type.size() == (uint32_t)lights) break;
+        }
+
+
+        // Set up sky lighting uniforms for lit_color_texture_program:
+        glUseProgram(lit_color_texture_program->program);
+
+        //getting warnings about narrowing conversions, if doesn't compile on windows this is probably why
+        //to solve, cast all the locations to GLint
+        glUniform3fv(lit_color_texture_program->EYE_vec3, 1, glm::value_ptr(eye));
+
+        glUniform1ui(lit_color_texture_program->LIGHTS_uint, (GLuint) lights);
+
+        glUniform1iv(lit_color_texture_program->LIGHT_TYPE_int_array, lights, light_type.data());
+        glUniform3fv(lit_color_texture_program->LIGHT_LOCATION_vec3_array, lights, glm::value_ptr(light_location[0]));
+        glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3_array, lights, glm::value_ptr(light_direction[0]));
+        glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3_array, lights, glm::value_ptr(light_energy[0]));
+        glUniform1fv(lit_color_texture_program->LIGHT_CUTOFF_float_array, lights, light_cutoff.data());
+
+        GL_ERRORS();
+
+
+        //Draw scene to shadow map for spotlight, adapted from https://github.com/ixchow/15-466-f18-base3
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.shadow_fb);
+        glViewport(0, 0, framebuffers.shadow_size.x, framebuffers.shadow_size.y);
+
+        glClearColor(1.0f, 0.0f, 1.0f, 0.0f); //clear color for shadow buffer
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
+        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+        //render only back faces to shadow map (prevent shadow speckles on fronts of objects):
+        glCullFace(GL_FRONT);
+        glEnable(GL_CULL_FACE);
+
+        //get sun "position" to be the sun's angle away from the player in order to use it to create transformation matrix
+        //from https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
+        glm::vec3 sun_pos = player->transform->position - glm::normalize(sun_angle) * 50.f;
+        glm::mat4 lightView = glm::lookAt(sun_pos, player->transform->position, glm::vec3(0.f, 1.f, 0.f));//TODO: set sun distance correctly, check if correct firection & probably change angle
+        glm::mat4 orthographic_projection = glm::ortho(-20.f, 20.f, -20.f, 20.f, 0.01f, 500.f);
+        glm::mat4 const world_to_clip = orthographic_projection * lightView;
+
+        glm::mat4 world_to_spot =
+                //This matrix converts from the spotlight's clip space ([-1,1]^3) into depth map texture coordinates ([0,1]^2) and depth map Z values ([0,1]):
+                glm::mat4(
+                        0.5f, 0.0f, 0.0f, 0.0f,
+                        0.0f, 0.5f, 0.0f, 0.0f,
+                        0.0f, 0.0f, 0.5f, 0.0f,
+                        0.5f, 0.5f, 0.5f+0.00001f /* <-- bias */, 1.0f
+                )
+                //this is the world-to-clip matrix used when rendering the shadow map:
+                * world_to_clip;
+        glUniformMatrix4fv(lit_color_texture_program->LIGHT_TO_SPOT_mat4, 1, GL_FALSE, glm::value_ptr(world_to_spot));
+//        glUniformMatrix4fv(depth_program->OBJECT_TO_CLIP_mat4, 1, GL_FALSE, glm::value_ptr(world_to_spot));
+        glUseProgram(0);
+
+        scene.draw(Scene::Drawable::PassTypeShadow, world_to_clip, glm::mat4x3(1.0f));
+
+        glDisable(GL_CULL_FACE);
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        GL_ERRORS(); //now texture is already in framebuffers.shadow_depth_tex
+
+
 	}
+
+    //run depth pre-pass for occlusion query, and write position buffer for post-processing
+    {
+        //run query for each drawable
+        glViewport(0, 0, drawable_size.x, drawable_size.y);
+        //bind renderbuffers for rendering
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.oc_fb);
+
+        // set clear depth, testing criteria, and the like
+        glClearDepth(1.0f); // 1.0 is the default value to clear the depth buffer to, but you can change it
+        //set sky bits to be far away from the camera
+//        glm::vec4 distant = active_camera->transform->make_local_to_world() * glm::vec4(active_camera->transform->position, 1.0f) + glm::vec4(1000.f, 1000.f, 1000.f, 0.0f);
+//        glClearColor(distant.r, distant.g, distant.b, distant.a);
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clears currently bound framebuffer's color and depth info
+        // clears color to clearColor set above (sky_color) and clearDepth set above (1.0)
+        glEnable(GL_DEPTH_TEST); // enable depth testing
+        glDepthFunc(GL_LEQUAL); // set criteria for depth test
+        glDisable(GL_BLEND);
+        GL_ERRORS();
+
+        //render with occlusion pass
+        scene.draw(  *active_camera, Scene::Drawable::PassTypePrepass);
+    }
+
+    //run occlusion query using prepass sample buffer
+    {
+        // clears color to clearColor set above (sky_color) and clearDepth set above (1.0)
+        glDepthMask(GL_FALSE); //depth buffer should be already filled
+        GL_ERRORS();
+        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+        //render with occlusion pass
+        scene.draw(  *active_camera, Scene::Drawable::PassTypeOcclusion);
+
+//        float pixels[4];
+//        glReadPixels(0, 0, 1, 1, GL_RGBA, GL_FLOAT, &pixels);
+//        std::cout << pixels[0] << ", " << pixels[1] << ", " << pixels[2] << ", " << pixels[3] << std::endl;
+
+        //reenable writing
+        glDepthMask(GL_TRUE);
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        glUseProgram(0);
+        glBindVertexArray(0);
+
+        GL_ERRORS();
+    }
+
 	
 	// Draw scene to multisampled framebuffer
 	{
 		// Based on: https://github.com/15-466/15-466-f20-framebuffer
-		// Make sure framebuffers are the same size as the window:
-		framebuffers.realloc(drawable_size);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.ms_fb);
+        glViewport(0, 0, drawable_size.x, drawable_size.y);
+        // Set "sky" (clear color)
+        glClearColor(sky_color.x, sky_color.y, sky_color.z, 1.0f);
+
+        //bind generated shadow texture
+        glActiveTexture(GL_TEXTURE5);
+        glBindTexture(GL_TEXTURE_2D, framebuffers.shadow_depth_tex);
 
 		// set clear depth, testing criteria, and the like
 		glClearDepth(1.0f); // 1.0 is the default value to clear the depth buffer to, but you can change it
@@ -383,18 +691,22 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		                                                    // clears color to clearColor set above (sky_color) and clearDepth set above (1.0)
 		glEnable(GL_DEPTH_TEST); // enable depth testing
 		glDepthFunc(GL_LEQUAL); // set criteria for depth test
+        glDepthMask(GL_TRUE);
 
-		// TODO: implement blending, currently doesn't work because objects are being rendered in arbitrary order
+		// TODO: implement blending, currently doesn't work because objects are being rendered in arbitrary order (maybe?)
 		// glEnable(GL_BLEND);
 		// glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		// Draw based on active camera (Player's "eyes" or their PlayerCamera)
-		if (player->in_cam_view) {
-			scene.draw(*player->player_camera->scene_camera);
-		}
-		else {
-			scene.draw(*player->camera);
-		}
+        if(player->in_cam_view) {
+            scene.draw(*active_camera, Scene::Drawable::PassTypeInCamera);
+        } else {
+            scene.draw(*active_camera, Scene::Drawable::PassTypeDefault);
+        }
+
+        //unbind textures
+        glActiveTexture(GL_TEXTURE5);
+        glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
 	// Debugging code
@@ -414,77 +726,315 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		}
 		*/
 
-		/* Debug code for visualizing walk mesh
+		//Debug code for visualizing walk mesh
+		/*
 		{
 			glDisable(GL_DEPTH_TEST);
-			DrawLines lines(player.camera->make_projection() * glm::mat4(player.camera->transform->make_world_to_local()));
-			for (auto const &tri : player.walk_mesh->triangles) {
-				lines.draw(player.walk_mesh->vertices[tri.x], player.walk_mesh->vertices[tri.y], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
-				lines.draw(player.walk_mesh->vertices[tri.y], player.walk_mesh->vertices[tri.z], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
-				lines.draw(player.walk_mesh->vertices[tri.z], player.walk_mesh->vertices[tri.x], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
+			DrawLines lines(player->camera->make_projection() * glm::mat4(player->camera->transform->make_world_to_local()));
+			for (auto const &tri : player->walk_mesh->triangles) {
+				lines.draw(player->walk_mesh->vertices[tri.x], player->walk_mesh->vertices[tri.y], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
+				lines.draw(player->walk_mesh->vertices[tri.y], player->walk_mesh->vertices[tri.z], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
+				lines.draw(player->walk_mesh->vertices[tri.z], player->walk_mesh->vertices[tri.x], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
 			}
 		}
 		*/
+		
 	}
 
-	// Resolve mulstisampled buffer to screen and perform post processing
-	{
-		// blit multisampled buffer to the normal, intermediate post_processing buffer. Image is stored in screen_texture
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffers.ms_fb);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffers.pp_fb);
+    // Resolve multisampled buffer to screen
+    {
 
-		glBlitFramebuffer(0, 0, drawable_size.x, drawable_size.y, 0, 0, drawable_size.x, drawable_size.y, GL_COLOR_BUFFER_BIT, GL_LINEAR); // Bilinear interpolation for anti aliasing
+        // blit multisampled buffer to the normal, intermediate post_processing buffer. Image is stored in screen_texture, depth in pp_depth
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffers.ms_fb);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffers.pp_fb);
 
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glBlitFramebuffer(0, 0, drawable_size.x, drawable_size.y, 0, 0, drawable_size.x, drawable_size.y,
+                          GL_COLOR_BUFFER_BIT, GL_LINEAR); // Bilinear interpolation for anti aliasing
 
-		// Copy framebuffer to main window:
-		framebuffers.tone_map();
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        GL_ERRORS();
+    }
+
+    { //postprocessing
+        //add fog, fog uses original multisampled depth buffer so no aliasing
+        framebuffers.add_depth_effects(fog_intensity, 1800.0f, fog_color);
+
+        if(player->in_cam_view) {
+            //add depth of field
+            framebuffers.add_depth_of_field(player->player_camera->cur_focus, active_camera->transform->make_local_to_world() *
+                                                  glm::vec4(0, 0, 0, 1.0f));
+            // Copy framebuffer to main window:
+            framebuffers.tone_map_to_screen(framebuffers.screen_texture);
+        } else {
+            framebuffers.tone_map_to_screen(framebuffers.depth_effect_tex);
+        }
 	}
 	
 	// Draw UI
 	{
-		if (player->in_cam_view) {
-			// Draw viewport grid
-			DrawLines grid(glm::mat4(
-				1.0f, 0.0f, 0.0f, 0.0f,
-				0.0f, 1.0f, 0.0f, 0.0f,
-				0.0f, 0.0f, 1.0f, 0.0f,
-				0.0f, 0.0f, 0.0f, 1.0f
-			));
-
-			// Viewport rule of thirds guidelines
-			grid.draw(glm::vec3(-1.0f / 3.0f, 1.0f / 3.0f, 0), glm::vec3(1.0f / 3.0f, 1.0f / 3.0f, 0), glm::u8vec4(0xff));
-			grid.draw(glm::vec3(-1.0f / 3.0f, -1.0f / 3.0f, 0), glm::vec3(1.0f / 3.0f, -1.0f / 3.0f, 0), glm::u8vec4(0xff));
-			grid.draw(glm::vec3(-1.0f / 3.0f, 1.0f / 3.0f, 0), glm::vec3(-1.0f / 3.0f, -1.0f / 3.0f, 0), glm::u8vec4(0xff));
-			grid.draw(glm::vec3(1.0f / 3.0f, 1.0f / 3.0f, 0), glm::vec3(1.0f / 3.0f, -1.0f / 3.0f, 0), glm::u8vec4(0xff));
-			// Viewport reticle (square if aspect ratio is 16x9)
-			grid.draw(glm::vec3(-1.0f / 16.0f, 1.0f / 9.0f, 0), glm::vec3(1.0f / 16.0f, 1.0f / 9.0f, 0), glm::u8vec4(0xff));
-			grid.draw(glm::vec3(-1.0f / 16.0f, -1.0f / 9.0f, 0), glm::vec3(1.0f / 16.0f, -1.0f / 9.0f, 0), glm::u8vec4(0xff));
-			grid.draw(glm::vec3(-1.0f / 16.0f, 1.0f / 9.0f, 0), glm::vec3(-1.0f / 16.0f, -1.0f / 9.0f, 0), glm::u8vec4(0xff));
-			grid.draw(glm::vec3(1.0f / 16.0f, 1.0f / 9.0f, 0), glm::vec3(1.0f / 16.0f, -1.0f / 9.0f, 0), glm::u8vec4(0xff));
-
-			// Zoom level readout
-			uint8_t zoom = (uint8_t)(std::round(player->player_camera->cur_zoom * 10.0f));
-			display_text->draw("x" + std::to_string(zoom / 10) + "." + std::to_string(zoom % 10), ((2.0f / 3.0f) - 0.04f) * float(drawable_size.x), ((1.0f / 3.0f) - 0.05f) * float(drawable_size.y), 0.5f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
-
-			// Creature in frame text
-			// TODO: implement this feature (need to check for creatures each frame)
-			barcode_text->draw("FLOATER", (1.0f / 3.0f) * float(drawable_size.x), ((1.0f / 3.0f) - 0.05f) * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));	
-		}
-		else {
-			// Draw clock
-			display_text->draw(display_text->format_time_of_day(time_of_day, day_length), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
-		}
-
-		if (score_text_is_showing) {
-			// draw text of last picture taken
-			if (!player->pictures->empty()) {
-				display_text->draw(player->pictures->back().title, 0.025f * float(drawable_size.x), 0.95f * float(drawable_size.y), 0.6f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
-				display_text->draw("Score: " + std::to_string(player->pictures->back().get_total_score()), 0.025f * float(drawable_size.x), 0.9f * float(drawable_size.y), 0.5f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
-			}
+		switch (cur_state) {
+			case menu:
+				menu_draw_ui(drawable_size);
+				break;
+			case playing:
+				playing_draw_ui(drawable_size);
+				break;
+			case journal:
+				journal_draw_ui(drawable_size);
+				break;
+			case night:
+				night_draw_ui(drawable_size);
+				break;
 		}
 	}
 	GL_ERRORS();
+}
+
+// -------- Menu functions -----------
+void PlayMode::menu_update(float elapsed) {
+
+	// start game on enter, swap to playing state
+	if (enter.downs == 1) {
+		time_of_day = start_day_time;
+		time_scale = 1.0f;
+		cur_state = playing;
+		return;
+	}
+}
+
+void PlayMode::menu_draw_ui(glm::uvec2 const& drawable_size) {
+
+	display_text->draw("APERTURE", 0.3f * float(drawable_size.x), 0.5f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+	body_text->draw("press enter to start", 0.35f * float(drawable_size.x), 0.4f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+}
+
+// -------- Playing functions -----------
+void PlayMode::playing_update(float elapsed) {
+	// Handle State (return early if state changes)
+	{
+		// open journal on tab, swap to journal state
+		if (tab.downs == 1) {
+			
+			player->in_cam_view = false;
+			player->SetCrouch(false);
+			score_text_is_showing = false;
+
+			time_scale = 1.0f; // time doesn't stop while in journal but it could
+
+			cur_state = journal;
+			return;
+		}
+
+		// swap to night state at end of day
+		if (time_of_day == end_day_time) {
+
+			player->in_cam_view = false;
+			player->SetCrouch(false);
+			score_text_is_showing = false;
+
+			time_scale = 8.0f; // zoom through night
+
+			cur_state = night;
+			return;
+		}
+	}
+	
+	// Player movement
+	{
+		// WASD to move on walk mesh
+		glm::vec2 move = glm::vec2(0.0f);
+		if (left.pressed && !right.pressed) move.x = -1.0f;
+		if (!left.pressed && right.pressed) move.x = 1.0f;
+		if (down.pressed && !up.pressed) move.y = -1.0f;
+		if (!down.pressed && up.pressed) move.y = 1.0f;
+
+		if (move.x != 0.0f || move.y != 0.0f) player->Move(move, elapsed);
+
+	}
+
+	// Player camera logic 
+	{
+		// First person looking around on mouse movement
+		if (mouse.moves > 0) {
+			player->OnMouseMotion(mouse.mouse_motion * mouse_sensitivity);
+		}
+
+		// Toggle player view on right click
+		if (rmb.downs == 1) {
+			player->in_cam_view = !player->in_cam_view;
+		}
+
+		if (player->in_cam_view && mouse.scrolled) {
+            //Change Depth of Field distance if shift is held down
+            if(lshift.pressed) {
+                //on mac, shift + scroll is x
+                if (mouse.wheel_x > 0 || mouse.wheel_y > 0) {
+                    player->player_camera->AdjustFocus(0.25f); // zoom in
+                } else {
+                    player->player_camera->AdjustFocus(-0.25f); // zoom out
+                }
+            } else {
+                // Zoom in and out on mouse wheel scroll when in cam view
+                if (mouse.wheel_y > 0) {
+                    player->player_camera->AdjustZoom(0.1f); // zoom in
+                } else {
+                    player->player_camera->AdjustZoom(-0.1f); // zoom out
+                }
+            }
+		}
+
+		// Snap a pic on left click, if in camera view and has remaining battery
+		if (player->in_cam_view && lmb.downs == 1 && player->player_camera->cur_battery > 0) {
+			player->player_camera->TakePicture(scene);
+			score_text_is_showing = true;
+			score_text_popup_timer = 0.0f;
+		}
+	}
+
+	// UI
+	{
+		if (score_text_is_showing) {
+			if (score_text_popup_timer >= score_text_popup_duration) {
+				score_text_is_showing = false;
+			}
+			else {
+				score_text_popup_timer += elapsed;
+			}
+		}
+	}
+}
+
+void PlayMode::playing_draw_ui(glm::uvec2 const& drawable_size) {
+
+	if (player->in_cam_view) {
+		// Draw viewport grid
+		DrawLines grid(glm::mat4(
+			1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f, 0.0f,
+			0.0f, 0.0f, 0.0f, 1.0f
+		));
+
+		// Viewport rule of thirds guidelines
+		grid.draw(glm::vec3(-1.0f / 3.0f, 1.0f / 3.0f, 0), glm::vec3(1.0f / 3.0f, 1.0f / 3.0f, 0), glm::u8vec4(0xff));
+		grid.draw(glm::vec3(-1.0f / 3.0f, -1.0f / 3.0f, 0), glm::vec3(1.0f / 3.0f, -1.0f / 3.0f, 0), glm::u8vec4(0xff));
+		grid.draw(glm::vec3(-1.0f / 3.0f, 1.0f / 3.0f, 0), glm::vec3(-1.0f / 3.0f, -1.0f / 3.0f, 0), glm::u8vec4(0xff));
+		grid.draw(glm::vec3(1.0f / 3.0f, 1.0f / 3.0f, 0), glm::vec3(1.0f / 3.0f, -1.0f / 3.0f, 0), glm::u8vec4(0xff));
+		// Viewport reticle (square if aspect ratio is 16x9)
+		grid.draw(glm::vec3(-1.0f / 16.0f, 1.0f / 9.0f, 0), glm::vec3(1.0f / 16.0f, 1.0f / 9.0f, 0), glm::u8vec4(0xff));
+		grid.draw(glm::vec3(-1.0f / 16.0f, -1.0f / 9.0f, 0), glm::vec3(1.0f / 16.0f, -1.0f / 9.0f, 0), glm::u8vec4(0xff));
+		grid.draw(glm::vec3(-1.0f / 16.0f, 1.0f / 9.0f, 0), glm::vec3(-1.0f / 16.0f, -1.0f / 9.0f, 0), glm::u8vec4(0xff));
+		grid.draw(glm::vec3(1.0f / 16.0f, 1.0f / 9.0f, 0), glm::vec3(1.0f / 16.0f, -1.0f / 9.0f, 0), glm::u8vec4(0xff));
+
+		// Zoom level readout
+		uint8_t zoom = (uint8_t)(std::round(player->player_camera->cur_zoom * 10.0f));
+		display_text->draw("x" + std::to_string(zoom / 10) + "." + std::to_string(zoom % 10), ((2.0f / 3.0f) - 0.04f) * float(drawable_size.x), ((1.0f / 3.0f) - 0.05f) * float(drawable_size.y), 0.25f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+
+		// Battery readout
+		float battery = (float)player->player_camera->cur_battery / (float)player->player_camera->max_battery;
+		display_text->draw("Battery: " + TextRenderer::format_percentage(battery), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 0.25f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		// Creature in frame text
+		// TODO: implement this feature (need to check for creatures each frame)
+		barcode_text->draw("FLOATER", (1.0f / 3.0f) * float(drawable_size.x), ((1.0f / 3.0f) - 0.05f) * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		// Some assorted DSLR type viewport readouts
+		// TODO: replace these with other functional things
+		display_text->draw("AUTO", 0.45f * float(drawable_size.x), 0.025f * float(drawable_size.y), 0.25f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		display_text->draw("[2.9.020]", 0.9f * float(drawable_size.x), 0.025f * float(drawable_size.y), 0.25f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+	}
+	else {
+		// Draw clock
+		body_text->draw(TextRenderer::format_time_of_day(time_of_day, day_length), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+	}
+
+	if (score_text_is_showing) {
+		// draw text of last picture taken
+		if (!player->pictures->empty()) {
+			body_text->draw(player->pictures->back().title, 0.025f * float(drawable_size.x), 0.95f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+			body_text->draw("Score: " + std::to_string(player->pictures->back().get_total_score()), 0.025f * float(drawable_size.x), 0.9f * float(drawable_size.y), 0.8f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		}
+	}
+}
+
+// -------- Journal functions -----------
+void PlayMode::journal_update(float elapsed) {
+
+	// swap to night state at end of day, even if in journal
+	if (time_of_day >= end_day_time) {
+		time_scale = 8.0f; // zoom through night
+		cur_state = night;
+		return;
+	}
+
+	// close journal on tab, swap to playing state
+	if (tab.downs == 1) {
+		time_scale = 1.0f; // if time freezes in journal, would need to start it moving again
+		cur_state = playing;
+		return;
+	}
+}
+
+void PlayMode::journal_draw_ui(glm::uvec2 const& drawable_size) {
+
+	handwriting_text->draw("JOURNAL", 0.45f * float(drawable_size.x), 0.85f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+
+	float offset = 0.8f / (player->pictures->size() + 1.0f);
+	int i = 1;
+	for (auto p = player->pictures->begin(); p != player->pictures->end(); ++p) {
+		handwriting_text->draw(p->title, 0.35f * float(drawable_size.x), (0.8f - (offset * i)) * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		i++;
+	}
+}
+
+// -------- Nightime functions -----------
+void PlayMode::night_update(float elapsed) {
+
+	// swap to playing at start of day
+	if (time_of_day >= start_day_time) {
+		//TODO: reset player position/etc
+		player->player_camera->cur_battery = player->player_camera->max_battery;
+
+		time_scale = 1.0f;
+		cur_state = playing;
+		return;
+	}
+}
+
+void PlayMode::night_draw_ui(glm::uvec2 const& drawable_size) {
+
+	// Draw clock
+	body_text->draw(TextRenderer::format_time_of_day(time_of_day, day_length), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+}
+
+void PlayMode::play_animation(Creature &creature, std::string const &anim_name, bool loop, float speed)
+{	
+	
+	//if current animation is equal to the one currently playing, do nothing
+	if (anim_name == creature.curr_anim_name)return;
+	//try to retrive creature animation data based on code
+
+	auto animation_set_iter = BoneAnimation::animation_map.find(creature.code);
+	//check if found 
+	if (animation_set_iter == BoneAnimation::animation_map.end())
+	{
+		throw std::runtime_error("Error: Animation SET not found for creature: " + creature.code);
+	}
+
+	//try to retrive animation data based on animation name
+	BoneAnimation *bone_anim_set = animation_set_iter->second;
+	BoneAnimation::Animation const * animation = &(bone_anim_set->lookup(anim_name));
+
+	//check looping or not
+	BoneAnimationPlayer::LoopOrOnce loop_or_once = loop ? BoneAnimationPlayer::LoopOrOnce::Loop : BoneAnimationPlayer::LoopOrOnce::Once;
+
+	//if animation is found, set the current animation to the new one
+	playing_animations.emplace_back(*bone_anim_set, *animation, loop_or_once, speed);
+	BoneAnimationPlayer *current_anim_player = &playing_animations.back();
+	//For that creature, set the current animation to the new one
+	creature.drawable->pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [current_anim_player] () {
+		current_anim_player->set_uniform(bone_lit_color_texture_program->BONES_mat4x3_array);
+	};
+	//update the constants in creature 
+	creature.curr_anim_name = anim_name;
 }

@@ -7,6 +7,8 @@
 #include <filesystem>
 #include <math.h>
 
+const std::string Picture::adjectives[] = { "Majestic", "Beautiful", "Vibrant", "Grand", "Impressive", "Awe-inspiring", "Sublime", "Resplendent", "Striking", "Marvelous", "Alluring", "Gorgeous", "Glamorous", "Divine", "Exquisite", "Stunning", "Beauteous", "Comely", "Pulchritudinous", "Graceful", "Dazzling", "Lovely", "Superb", "Resplendent", "Radiant", "Well-formed", "Great"};
+
 Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.data) {
     if (stats.frag_counts.empty()) {
         title = "Pure Emptiness";
@@ -22,10 +24,10 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
         return;
     }
 
-    CreatureInfo subject_info = stats.creatures_in_frame.front();
+    PictureCreatureInfo subject_info = stats.creatures_in_frame.front();
 
     //grade subject
-    {   
+    {
         //Magnificence
         score_elements.emplace_back(subject_info.creature->name, subject_info.creature->score);
         auto result = score_creature(subject_info, stats);
@@ -35,7 +37,7 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
     {
         //Add bonus points for additional subjects
         std::for_each(std::next(stats.creatures_in_frame.begin()), stats.creatures_in_frame.end(),
-                      [&](CreatureInfo creature_info) {
+                      [&](PictureCreatureInfo creature_info) {
                           auto result = score_creature(creature_info, stats);
                           int total_score = creature_info.creature->score;
                           std::for_each(result.begin(), result.end(), [&](ScoreElement el) { total_score += el.value; });
@@ -43,11 +45,11 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
                       });
     }
 
-    //TODO: make name unique for file saving purposes
-    title = "Magnificent " + subject_info.creature->transform->name;
+
+    title = adjectives[rand() % adjectives->size()] + " " + subject_info.creature->name;
 }
 
-std::list<ScoreElement> Picture::score_creature(CreatureInfo &creature_info, PictureInfo &stats) {
+std::list<ScoreElement> Picture::score_creature(PictureCreatureInfo &creature_info, PictureInfo &stats) {
     std::list<ScoreElement> result;
     {
         //Add points for bigness
@@ -90,15 +92,33 @@ std::list<ScoreElement> Picture::score_creature(CreatureInfo &creature_info, Pic
         //ranges from -1, pointing opposite the correct angle, to 1, pointing directly at the correct angle
         float dot = glm::dot(creature_to_player_norm, creature_info.creature->get_best_angle()); //cos theta
         //clamped between min and max values
-        float lo = (float)std::cos( worst_degrees_deviated * M_PI / 180.f);
-        float hi = (float)std::cos(best_degrees_deviated * M_PI / 180.f);
+        float lo = (float)std::cos( worst_degrees_deviated * M_PI / 180.0f);
+        float hi = (float)std::cos(best_degrees_deviated * M_PI / 180.0f);
         float clamped_dot = std::clamp(dot, lo, hi);
         //normalized to be between 0 and 1
         float normalized_dot =  (clamped_dot - lo) / (hi - lo);
-        if(normalized_dot > 0.01) {
+        if (normalized_dot > 0.01f) {
             result.emplace_back("Angle", (uint32_t) (std::pow(normalized_dot, exponent) * 3000.0f));
         }
     }
+
+    { //Add points for focus
+        float distance = glm::length(creature_info.player_to_creature) - creature_info.creature->radius;
+        float real_focal_distance = stats.focal_distance * 1.4f;
+        float diff = abs(distance - real_focal_distance);
+        float percent;
+        if (distance > real_focal_distance) {
+            percent = pow(abs(real_focal_distance - diff) / real_focal_distance, 3.0f);
+        } else {
+            //focus drops off quicker towards the camera, so percent should also drop off quicker
+            percent = pow(abs(real_focal_distance - diff) / real_focal_distance, 5.0f);
+        }
+        float score = std::clamp(8000.0f * percent, 0.0f, 5000.0f);
+        if (score > 1500.f) {
+            result.emplace_back("Focus", (uint32_t)score);
+        }
+    }
+
     return result;
 }
 

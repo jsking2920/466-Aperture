@@ -23,10 +23,19 @@ struct PlayerCamera {
 	float default_fovy = 3.14159265358979323846f / 3.0f; // 60 degree vertical fov
 	float cur_zoom = 1.0f;
 	float min_zoom = 0.5f;
-	float max_zoom = 3.0f; 
+	float max_zoom = 3.0f;
+
+    float cur_focus = 3.0f;
+    float min_focus = 0.2f;
+    float max_focus = 20.f;
+	
+	// Measured in number of possible pictures that can be taken, displayed as a percentage
+	uint8_t cur_battery = 10;
+	uint8_t max_battery = 10;
 
 	void TakePicture(Scene &scene); // Adds picture to player.pictures
 	void AdjustZoom(float diff);
+    void AdjustFocus(float diff);
 };
 
 struct Player {
@@ -41,6 +50,8 @@ struct Player {
 	WalkPoint at;
 
 	float speed = 6.0f;
+
+	float base_cam_z;
 	float crouch_offset = 0.8f;
 	bool is_crouched = false;
 	
@@ -53,7 +64,7 @@ struct Player {
 	// List of pics player has taken
 	std::list<Picture> *pictures; // TODO: add an album view in game to look at these
 	
-	void ToggleCrouch(); // Adjusts z pos of player's cameras so it looks like they crouched
+	void SetCrouch(bool is_crouched); // Adjusts z pos of player's cameras so it looks like they crouched
 	void Move(glm::vec2 direction, float elapsed); // un-normalized, cardinal directions such as (-1.0f, 0.0f) -> left button only held, (1.0f, 1.0f) -> right and up buttons held, etc. 
 	void OnMouseMotion(glm::vec2 mouse_motion);
     float get_speed(); //for halving speed in cam mode

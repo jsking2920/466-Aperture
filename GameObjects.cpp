@@ -3,17 +3,30 @@
 #include "glm/gtx/string_cast.hpp"
 
 std::map< std::string, Creature > Creature::creature_map = std::map< std::string, Creature >();
+std::map< std::string, std::vector < std::string > > Creature::creature_stats_map = std::map< std::string, std::vector < std::string > >();
+
+
+Creature::Creature(std::string code_, int number_) : code(code_), number(number_) {
+    //populate metadata based on creature_stats
+    std::vector < std::string > &creature_stats = creature_stats_map[code];
+    assert(code == creature_stats[0]);
+    assert(creature_stats.size() == 5); //if assert fails, you probably added a field to the csv that must be added here!
+    name = creature_stats[1];
+    description = creature_stats[2];
+    score = std::stoi(creature_stats[3]);
+    radius = std::stof(creature_stats[4]);
+}
 
 //add to constructor?
 //could make this faster by doing all creatures at once
+//deprecated
 void Creature::init_transforms (Scene &scene) {
     for (auto &draw : scene.drawables) {
         Scene::Transform &trans = *draw.transform;
         std::string full_code = get_code_and_number();
-
-        std::cout << trans.name.substr(0, 6) << ", " << full_code << std::endl;
+//        std::cout << trans.name.substr(0, 6) << ", " << full_code << std::endl;
         if (trans.name.substr(0, 6) == full_code) {
-            std::cout << trans.name.substr(6) <<std::endl;
+//            std::cout << trans.name.substr(6) <<std::endl;
             if (trans.name.length() == 6) {
                 transform = &trans;
                 drawable = &draw;

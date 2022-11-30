@@ -114,12 +114,12 @@ int main(int argc, char **argv) {
 				scene.drawables.emplace_back(transform);
 				Scene::Drawable &drawable = scene.drawables.back();
 
-				drawable.pipeline = show_scene_program_pipeline;
+				drawable.pipeline[Scene::Drawable::ProgramTypeDefault] = show_scene_program_pipeline;
 
-				drawable.pipeline.vao = buffer_vao;
-				drawable.pipeline.type = mesh.type;
-				drawable.pipeline.start = mesh.start;
-				drawable.pipeline.count = mesh.count;
+				drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = buffer_vao;
+				drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
+				drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = mesh.start;
+				drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = mesh.count;
 
 			});
 		} catch (std::exception &e) {
