@@ -93,13 +93,6 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
         scene.drawables.emplace_back(transform);
         Scene::Drawable &drawable = scene.drawables.back();
 
-        drawable.pipeline[Scene::Drawable::ProgramTypeDefault] = lit_color_texture_program_pipeline;
-
-        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = main_meshes_for_lit_color_texture_program;
-        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
-        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = mesh.start;
-        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = mesh.count;
-
         //to find if creature (has anims)
         auto is_creature = [&](std::pair< std::string, std::vector < std::string > > pair) {
             return pair.first == transform->name.substr(0, 3);
@@ -115,15 +108,25 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = test_banims->mesh.start;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = test_banims->mesh.count;
 			std::cout << "found " << transform->name << std::endl;
-		} else {
-            //TODO:: move back outside once roughness has been added to shaders
+
             //set roughnesses, possibly should be from csv??
-            float roughness = 0.9f;
-            //if (transform->name.substr(0, 9) == "Icosphere") {
-            //    roughness = (transform->position.y + 10.0f) / 18.0f;
-            //}
-            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [drawable, roughness](){
-                glUniform1f(lit_color_texture_program->ROUGHNESS_float, roughness);
+            drawable.roughness = 0.9f;
+            //this will get changed later
+            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [drawable](){
+                glUniform1f(bone_lit_color_texture_program->ROUGHNESS_float, drawable.roughness);
+            };
+		} else {
+            drawable.pipeline[Scene::Drawable::ProgramTypeDefault] = lit_color_texture_program_pipeline;
+
+            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = main_meshes_for_lit_color_texture_program;
+            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
+            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = mesh.start;
+            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = mesh.count;
+
+            //set roughnesses, possibly should be from csv??
+            drawable.roughness = 0.9f;
+            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [drawable](){
+                glUniform1f(lit_color_texture_program->ROUGHNESS_float, drawable.roughness);
             };
         }
 
@@ -177,8 +180,8 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
             drawable.uses_vertex_color = true;
         }
 
-        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].texture = framebuffers.shadow_depth_tex;
-        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].target = GL_TEXTURE_2D;
+//        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].texture = framebuffers.shadow_depth_tex;
+//        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].target = GL_TEXTURE_2D;
 
     });
 });
@@ -577,14 +580,22 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         //getting warnings about narrowing conversions, if doesn't compile on windows this is probably why
         //to solve, cast all the locations to GLint
         glUniform3fv(lit_color_texture_program->EYE_vec3, 1, glm::value_ptr(eye));
-
         glUniform1ui(lit_color_texture_program->LIGHTS_uint, (GLuint) lights);
-
         glUniform1iv(lit_color_texture_program->LIGHT_TYPE_int_array, lights, light_type.data());
         glUniform3fv(lit_color_texture_program->LIGHT_LOCATION_vec3_array, lights, glm::value_ptr(light_location[0]));
         glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3_array, lights, glm::value_ptr(light_direction[0]));
         glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3_array, lights, glm::value_ptr(light_energy[0]));
         glUniform1fv(lit_color_texture_program->LIGHT_CUTOFF_float_array, lights, light_cutoff.data());
+
+        //bone textures
+        glUseProgram(bone_lit_color_texture_program->program);
+        glUniform3fv(bone_lit_color_texture_program->EYE_vec3, 1, glm::value_ptr(eye));
+        glUniform1ui(bone_lit_color_texture_program->LIGHTS_uint, (GLuint) lights);
+        glUniform1iv(bone_lit_color_texture_program->LIGHT_TYPE_int_array, lights, light_type.data());
+        glUniform3fv(bone_lit_color_texture_program->LIGHT_LOCATION_vec3_array, lights, glm::value_ptr(light_location[0]));
+        glUniform3fv(bone_lit_color_texture_program->LIGHT_DIRECTION_vec3_array, lights, glm::value_ptr(light_direction[0]));
+        glUniform3fv(bone_lit_color_texture_program->LIGHT_ENERGY_vec3_array, lights, glm::value_ptr(light_energy[0]));
+        glUniform1fv(bone_lit_color_texture_program->LIGHT_CUTOFF_float_array, lights, light_cutoff.data());
 
         GL_ERRORS();
 
@@ -620,8 +631,11 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
                 )
                 //this is the world-to-clip matrix used when rendering the shadow map:
                 * world_to_clip;
+        glUseProgram(lit_color_texture_program->program);
         glUniformMatrix4fv(lit_color_texture_program->LIGHT_TO_SPOT_mat4, 1, GL_FALSE, glm::value_ptr(world_to_spot));
-//        glUniformMatrix4fv(depth_program->OBJECT_TO_CLIP_mat4, 1, GL_FALSE, glm::value_ptr(world_to_spot));
+
+        glUseProgram(bone_lit_color_texture_program->program);
+        glUniformMatrix4fv(bone_lit_color_texture_program->LIGHT_TO_SPOT_mat4, 1, GL_FALSE, glm::value_ptr(world_to_spot));
         glUseProgram(0);
 
         scene.draw(Scene::Drawable::PassTypeShadow, world_to_clip, glm::mat4x3(1.0f));
@@ -1046,8 +1060,10 @@ void PlayMode::play_animation(Creature &creature, std::string const &anim_name, 
 	playing_animations.emplace_back(*bone_anim_set, *animation, loop_or_once, speed);
 	BoneAnimationPlayer *current_anim_player = &playing_animations.back();
 	//For that creature, set the current animation to the new one
-	creature.drawable->pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [current_anim_player] () {
+    Scene::Drawable &drawable = *creature.drawable;
+    drawable.pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [current_anim_player, drawable] () {
 		current_anim_player->set_uniform(bone_lit_color_texture_program->BONES_mat4x3_array);
+        glUniform1f(bone_lit_color_texture_program->ROUGHNESS_float, drawable.roughness);
 	};
 	//update the constants in creature 
 	creature.curr_anim_name = anim_name;

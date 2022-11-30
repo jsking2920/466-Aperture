@@ -311,7 +311,7 @@ struct ToneMapProgram {
                 //raw values:
 //                "		color = vec3(color.r - color.r % 0.01, color.r - color.g % 0.01, color.r - color.b % 0.01);\n"
 //                "		color = vec3(pow(color.r, 2) * 2, pow(color.g, 2)* 2, pow(color.b, 2)* 2);\n"
-                "   color = adjustContrast(color, 1.2f);\n"
+                "   color = adjustContrast(color, 1.1f);\n"
                 "	fragColor = vec4(color, 1.0);\n"
                 "}\n"
         );

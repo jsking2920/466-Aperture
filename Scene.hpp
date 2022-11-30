@@ -68,6 +68,7 @@ struct Scene {
         bool render_to_picture = true;
         GLuint frag_count = 0; //for later use in object occlusion
         bool uses_vertex_color = false;
+        float roughness = 0.9f;
 
         //program info:
         enum ProgramType : uint32_t {
