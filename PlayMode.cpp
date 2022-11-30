@@ -537,7 +537,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         sun_color *= brightness;
 
         fog_intensity = 0.6f + 0.4f * (1 - brightness);
-        fog_color = glm::vec3(0.8f) + 0.2f * sky_color;
+        fog_color = glm::vec3(0.4f) + 0.6f * sky_color;
 
         //push calculated sky lighting uniforms
         light_direction.emplace_back(glm::vec3(0, 0, -1.f));
@@ -787,7 +787,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
     { //postprocessing
         //add fog, fog uses original multisampled depth buffer so no aliasing
-        framebuffers.add_depth_effects(fog_intensity, 1800.0f, fog_color);
+        framebuffers.add_depth_effects(fog_intensity, 1300.0f, fog_color);
 
         if(player->in_cam_view) {
             //add depth of field
@@ -795,6 +795,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
                                                   glm::vec4(0, 0, 0, 1.0f));
             // Copy framebuffer to main window:
             framebuffers.tone_map_to_screen(framebuffers.screen_texture);
+            std::cout << player->player_camera->cur_focus << std::endl;
         } else {
             framebuffers.tone_map_to_screen(framebuffers.depth_effect_tex);
         }

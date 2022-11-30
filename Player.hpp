@@ -27,7 +27,7 @@ struct PlayerCamera {
 
     float cur_focus = 3.0f;
     float min_focus = 0.2f;
-    float max_focus = 20.f;
+    float max_focus = 40.f;
 	
 	// Measured in number of possible pictures that can be taken, displayed as a percentage
 	uint8_t cur_battery = 10;
