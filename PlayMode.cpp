@@ -795,7 +795,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
                                                   glm::vec4(0, 0, 0, 1.0f));
             // Copy framebuffer to main window:
             framebuffers.tone_map_to_screen(framebuffers.screen_texture);
-            std::cout << player->player_camera->cur_focus << std::endl;
         } else {
             framebuffers.tone_map_to_screen(framebuffers.depth_effect_tex);
         }
