@@ -23,13 +23,56 @@
 
 #include <random>
 
+
+
+Load< std::map< std::string, std::vector < std::string > > > creature_stats_map_load(LoadTagEarly, []() -> std::map< std::string, std::vector < std::string > > const* {
+    //Automatically parses Creature csv and puts results in Creature::creature_stats_map
+    //TODO: make the stats a struct, not a vector of strings (low priority)
+    Creature::creature_stats_map.clear();
+    std::ifstream csv;
+    csv.open(data_path("assets/ApertureNaming - CreatureSheet.csv"), std::ifstream::in);
+    //verify that we can find this file
+    if (!bool(csv)) {
+        throw std::runtime_error("Could not find ApertureNaming - CreatureSheet.csv, ");
+    }
+    std::string buffer;
+    getline(csv, buffer); //skip label line
+
+    int index = 0;
+    while (getline(csv, buffer)) {
+        size_t delimiter_pos = 0;
+        //get code
+        delimiter_pos = buffer.find(',');
+        std::string code = buffer.substr(0, delimiter_pos);
+        buffer.erase(0, delimiter_pos + 1);
+
+        Creature::creature_stats_map.emplace(std::piecewise_construct, make_tuple(code), std::make_tuple());
+        std::vector<std::string> &row = Creature::creature_stats_map[code];
+        //row.reserve(buffer.length);
+        row.push_back(code);
+
+        //loop through comma delimited columns
+        //from https://stackoverflow.com/questions/14265581/parse-split-a-string-in-c-using-string-delimiter-standard-c
+        while ((delimiter_pos = buffer.find(',')) != std::string::npos) {
+            row.push_back(buffer.substr(0, delimiter_pos));
+            buffer.erase(0, delimiter_pos + 1);
+        }
+        //run once for last column, not delimited by comma
+        row.push_back(buffer.substr(0, delimiter_pos));
+        buffer.erase(0, delimiter_pos + 1);
+        //push back switch index
+        row.push_back(std::to_string(index));
+    }
+    return &Creature::creature_stats_map;
+});
+
 GLuint main_meshes_for_lit_color_texture_program = 0;
 GLuint main_meshes_for_depth_program = 0;
 GLuint main_meshes_for_bone_lit_color_texture_program = 0;
 Load< MeshBuffer > main_meshes(LoadTagDefault, []() -> MeshBuffer const * {
 	MeshBuffer const *ret = new MeshBuffer(data_path("assets/proto-world2.pnct"));
 	main_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
-    main_meshes_for_depth_program = ret->make_vao_for_program(depth_program->program);
+    main_meshes_for_depth_program = ret->make_vao_for_program(shadow_program->program);
 	return ret;
 });
 
@@ -53,42 +96,53 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
         scene.drawables.emplace_back(transform);
         Scene::Drawable &drawable = scene.drawables.back();
 
-        drawable.pipeline[Scene::Drawable::ProgramTypeDefault] = lit_color_texture_program_pipeline;
-
-        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = main_meshes_for_lit_color_texture_program;
-        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
-        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = mesh.start;
-        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = mesh.count;
-
+        //to find if creature (has anims)
+        auto is_creature = [&](std::pair< std::string, std::vector < std::string > > pair) {
+            return pair.first == transform->name.substr(0, 3);
+        };
 
 		//TODO: for stuff that has animations, add a section where it samples the animation
-		if (transform->name == "FLO_01") {
+        //only change shader if the object has a creature code
+		if (transform->name.length() == 6 &&
+                std::find_if(creature_stats_map_load->begin(), creature_stats_map_load->end(), is_creature) != creature_stats_map_load->end()) {
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault] = bone_lit_color_texture_program_pipeline;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = *banims_for_bone_lit_color_texture_program;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = test_banims->mesh.start;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = test_banims->mesh.count;
 			std::cout << "found " << transform->name << std::endl;
-		}
 
-        //set roughnesses, possibly should be from csv??
-        float roughness = 1.0f;
-        //if (transform->name.substr(0, 9) == "Icosphere") {
-        //    roughness = (transform->position.y + 10.0f) / 18.0f;
-        //}
-        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [drawable, roughness](){
-            glUniform1f(lit_color_texture_program->ROUGHNESS_float, roughness);
-        };
+            //set roughnesses, possibly should be from csv??
+            drawable.roughness = 0.9f;
+            //this will get changed later
+            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [drawable](){
+                glUniform1f(bone_lit_color_texture_program->ROUGHNESS_float, drawable.roughness);
+            };
+		} else {
+            drawable.pipeline[Scene::Drawable::ProgramTypeDefault] = lit_color_texture_program_pipeline;
+
+            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = main_meshes_for_lit_color_texture_program;
+            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
+            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = mesh.start;
+            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = mesh.count;
+
+            //set roughnesses, possibly should be from csv??
+            drawable.roughness = 0.9f;
+            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [drawable](){
+                glUniform1f(lit_color_texture_program->ROUGHNESS_float, drawable.roughness);
+            };
+        }
+
 
         //Set up depth program
-        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].program = depth_program_pipeline.program;
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].program = shadow_program_pipeline.program;
         drawable.pipeline[Scene::Drawable::ProgramTypeShadow].vao = main_meshes_for_depth_program;
         drawable.pipeline[Scene::Drawable::ProgramTypeShadow].type = mesh.type;
         drawable.pipeline[Scene::Drawable::ProgramTypeShadow].start = mesh.start;
         drawable.pipeline[Scene::Drawable::ProgramTypeShadow].count = mesh.count;
 
-        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_CLIP_mat4 = depth_program_pipeline.OBJECT_TO_CLIP_mat4;
-        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_LIGHT_mat4x3 = depth_program_pipeline.OBJECT_TO_LIGHT_mat4x3;
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_CLIP_mat4 = shadow_program_pipeline.OBJECT_TO_CLIP_mat4;
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_LIGHT_mat4x3 = shadow_program_pipeline.OBJECT_TO_LIGHT_mat4x3;
 
         GLuint tex;
         glGenTextures(1, &tex);
@@ -129,8 +183,8 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
             drawable.uses_vertex_color = true;
         }
 
-        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].texture = framebuffers.shadow_depth_tex;
-        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].target = GL_TEXTURE_2D;
+//        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].texture = framebuffers.shadow_depth_tex;
+//        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].target = GL_TEXTURE_2D;
 
     });
 });
@@ -188,43 +242,6 @@ PlayMode::PlayMode() : scene(*main_scene) {
     sample_map = *audio_samples;
     Sound::sample_map = &sample_map; // example access--> Sound::play(Sound::sample_map->at("CameraClick"));
 
-    //Automatically parses Creature csv and puts results in Creature::creature_stats_map
-    //TODO: make the stats a struct, not a vector of strings (low priority)
-    {
-        Creature::creature_stats_map.clear();
-        std::ifstream csv;
-		csv.open(data_path("assets/ApertureNaming - CreatureSheet.csv"), std::ifstream::in);
-		//verify that we can find this file
-		if (!bool(csv)) {
-			throw std::runtime_error("Could not find ApertureNaming - CreatureSheet.csv, ");
-		}
-        std::string buffer;
-        getline(csv, buffer); //skip label line
-
-        while (getline(csv, buffer)) {
-            size_t delimiter_pos = 0;
-            //get code
-            delimiter_pos = buffer.find(',');
-            std::string code = buffer.substr(0, delimiter_pos);
-            buffer.erase(0, delimiter_pos + 1);
-
-            Creature::creature_stats_map.emplace(std::piecewise_construct, make_tuple(code), std::make_tuple());
-            std::vector<std::string> &row = Creature::creature_stats_map[code];
-            //row.reserve(buffer.length);
-            row.push_back(code);
-
-            //loop through comma delimited columns
-            //from https://stackoverflow.com/questions/14265581/parse-split-a-string-in-c-using-string-delimiter-standard-c
-            while ((delimiter_pos = buffer.find(',')) != std::string::npos) {
-                row.push_back(buffer.substr(0, delimiter_pos));
-                buffer.erase(0, delimiter_pos + 1);
-            }
-            //run once for last column, not delimited by comma
-            row.push_back(buffer.substr(0, delimiter_pos));
-            buffer.erase(0, delimiter_pos + 1);
-        }
-    }
-
     // using syntax from https://stackoverflow.com/questions/14075128/mapemplace-with-a-custom-value-type
     // if we use things that need references in the future, change make_tuple to forward_as_tuple
     // put in constructor??
@@ -264,9 +281,12 @@ PlayMode::PlayMode() : scene(*main_scene) {
 
 	//animation initialization
 	{
-		playing_animations.reserve(1);
-		Creature* flo = &Creature::creature_map["FLO_01"];
-		play_animation(*flo, "Idle", true, 1.0f);
+		size_t creature_count = Creature::creature_map.size();
+		playing_animations.reserve(creature_count);
+		for (auto &creature_pair : Creature::creature_map) {
+			Creature* critter = &Creature::creature_map[creature_pair.first];
+			play_animation(*critter, "Idle", true, 1.0f);
+		}
 	}
 }
 
@@ -519,8 +539,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		}
         sun_color *= brightness;
 
-        fog_intensity = 0.4f + 0.4f * (1 - brightness);
-        fog_color = glm::vec3(0.8f) + 0.2f * sky_color;
+        fog_intensity = 0.6f + 0.4f * (1 - brightness);
+        fog_color = glm::vec3(0.4f) + 0.6f * sky_color;
 
         //push calculated sky lighting uniforms
         light_direction.emplace_back(glm::vec3(0, 0, -1.f));
@@ -563,14 +583,22 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         //getting warnings about narrowing conversions, if doesn't compile on windows this is probably why
         //to solve, cast all the locations to GLint
         glUniform3fv(lit_color_texture_program->EYE_vec3, 1, glm::value_ptr(eye));
-
         glUniform1ui(lit_color_texture_program->LIGHTS_uint, (GLuint) lights);
-
         glUniform1iv(lit_color_texture_program->LIGHT_TYPE_int_array, lights, light_type.data());
         glUniform3fv(lit_color_texture_program->LIGHT_LOCATION_vec3_array, lights, glm::value_ptr(light_location[0]));
         glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3_array, lights, glm::value_ptr(light_direction[0]));
         glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3_array, lights, glm::value_ptr(light_energy[0]));
         glUniform1fv(lit_color_texture_program->LIGHT_CUTOFF_float_array, lights, light_cutoff.data());
+
+        //bone textures
+        glUseProgram(bone_lit_color_texture_program->program);
+        glUniform3fv(bone_lit_color_texture_program->EYE_vec3, 1, glm::value_ptr(eye));
+        glUniform1ui(bone_lit_color_texture_program->LIGHTS_uint, (GLuint) lights);
+        glUniform1iv(bone_lit_color_texture_program->LIGHT_TYPE_int_array, lights, light_type.data());
+        glUniform3fv(bone_lit_color_texture_program->LIGHT_LOCATION_vec3_array, lights, glm::value_ptr(light_location[0]));
+        glUniform3fv(bone_lit_color_texture_program->LIGHT_DIRECTION_vec3_array, lights, glm::value_ptr(light_direction[0]));
+        glUniform3fv(bone_lit_color_texture_program->LIGHT_ENERGY_vec3_array, lights, glm::value_ptr(light_energy[0]));
+        glUniform1fv(bone_lit_color_texture_program->LIGHT_CUTOFF_float_array, lights, light_cutoff.data());
 
         GL_ERRORS();
 
@@ -606,8 +634,11 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
                 )
                 //this is the world-to-clip matrix used when rendering the shadow map:
                 * world_to_clip;
+        glUseProgram(lit_color_texture_program->program);
         glUniformMatrix4fv(lit_color_texture_program->LIGHT_TO_SPOT_mat4, 1, GL_FALSE, glm::value_ptr(world_to_spot));
-//        glUniformMatrix4fv(depth_program->OBJECT_TO_CLIP_mat4, 1, GL_FALSE, glm::value_ptr(world_to_spot));
+
+        glUseProgram(bone_lit_color_texture_program->program);
+        glUniformMatrix4fv(bone_lit_color_texture_program->LIGHT_TO_SPOT_mat4, 1, GL_FALSE, glm::value_ptr(world_to_spot));
         glUseProgram(0);
 
         scene.draw(Scene::Drawable::PassTypeShadow, world_to_clip, glm::mat4x3(1.0f));
@@ -759,7 +790,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
     { //postprocessing
         //add fog, fog uses original multisampled depth buffer so no aliasing
-        framebuffers.add_depth_effects(fog_intensity, 1800.0f, fog_color);
+        framebuffers.add_depth_effects(fog_intensity, 1300.0f, fog_color);
 
         if(player->in_cam_view) {
             //add depth of field
@@ -892,6 +923,12 @@ void PlayMode::playing_update(float elapsed) {
 			score_text_popup_timer = 0.0f;
 		}
 	}
+
+    //creature movement updates
+    std::for_each(Creature::creature_map.begin(), Creature::creature_map.end(), [&](std::pair< const std::string, Creature > &pair) {
+        Creature &creature = pair.second;
+        creature.update(elapsed);
+    });
 
 	// UI
 	{
@@ -1032,8 +1069,10 @@ void PlayMode::play_animation(Creature &creature, std::string const &anim_name, 
 	playing_animations.emplace_back(*bone_anim_set, *animation, loop_or_once, speed);
 	BoneAnimationPlayer *current_anim_player = &playing_animations.back();
 	//For that creature, set the current animation to the new one
-	creature.drawable->pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [current_anim_player] () {
+    Scene::Drawable &drawable = *creature.drawable;
+    drawable.pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [current_anim_player, drawable] () {
 		current_anim_player->set_uniform(bone_lit_color_texture_program->BONES_mat4x3_array);
+        glUniform1f(bone_lit_color_texture_program->ROUGHNESS_float, drawable.roughness);
 	};
 	//update the constants in creature 
 	creature.curr_anim_name = anim_name;

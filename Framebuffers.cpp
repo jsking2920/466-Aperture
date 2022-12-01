@@ -288,12 +288,24 @@ struct ToneMapProgram {
         program = gl_compile_program(
                 //vertex shader -- draws a fullscreen triangle using no attribute streams
                 "#version 330\n"
+
                 "void main() {\n"
                 "	gl_Position = vec4(4 * (gl_VertexID & 1) - 1,  2 * (gl_VertexID & 2) - 1, 0.0, 1.0);\n"
                 "}\n"
                 ,
                 //fragment shader -- reads a HDR texture, maps to output pixel colors
                 "#version 330\n"
+                //saturation and exposure from https://timseverien.com/posts/2020-06-19-colour-correction-with-webgl/
+                "vec3 adjustSaturation(vec3 color, float value) {\n"
+//                "  // https://www.w3.org/TR/WCAG21/#dfn-relative-luminance\n"
+                "  const vec3 luminosityFactor = vec3(0.2126, 0.7152, 0.0722);\n"
+                "  vec3 grayscale = vec3(dot(color, luminosityFactor));\n"
+                "\n"
+                "  return mix(grayscale, color, 1.0 + value);\n"
+                "}\n"
+                "vec3 adjustExposure(vec3 color, float value) {\n"
+                "  return (1.0 + value) * color;\n"
+                "}\n"
                 "uniform sampler2D TEX;\n"
                 "out vec4 fragColor;\n"
                 "void main() {\n"
@@ -306,6 +318,9 @@ struct ToneMapProgram {
 //                "		color = vec3(pow(color.r, 0.45), pow(color.g, 0.45), pow(color.b, 0.45));\n"
                 //raw values:
 //                "		color = vec3(color.r - color.r % 0.01, color.r - color.g % 0.01, color.r - color.b % 0.01);\n"
+//                "		color = vec3(pow(color.r, 2) * 2, pow(color.g, 2)* 2, pow(color.b, 2)* 2);\n"
+                "   color = adjustSaturation(color, 1.2f);"
+                "   color = adjustExposure(color, 0.4f);\n"
                 "	fragColor = vec4(color, 1.0);\n"
                 "}\n"
         );
@@ -517,14 +532,27 @@ struct DepthOfFieldProgram {
                 "void main() {\n"
                 "	ivec2 c = ivec2(gl_FragCoord.xy);\n"
                 "	vec3 location = vec3(texelFetch(POS_TEX, c, 0));\n"
-                "   float blur;"
+                "   float blur;\n"
                 "   if(location == vec3(0, 0, 0)) {\n"
-                "       blur = 1.0f;\n"
+                "       blur = clamp(1 - (FOCAL_DISTANCE - 15)/30, 0, 1);\n" //setting blur for the sky, less blur at large values of focal distance
+//                "       if(FOCAL_DISTANCE > 20) {\n"
+//                "           blur = 0.0f;\n"
+//                "       } else {\n"
+//                "           blur = 1.0f;\n"
+//                "       }\n"
                 "   } else {\n"
                 "	    float distance = distance(PLAYER_POS, location);\n"
-                "       float range = 1.0f;\n"
-                "       float offset = FOCAL_DISTANCE/2;\n"
-                "	    blur = clamp((abs(offset + FOCAL_DISTANCE - distance) - range)/(offset), 0, 1);\n" //returns 0-1, first arg can be changed to increase "in focus" range
+                //I know this function is complicated, but trust me, it works, look here: https://www.desmos.com/calculator/qhviivdx7k It could be less complex for performance reasons but it's good
+                //because the focal distance is exactly where the focus hits zero, and it has a reverse exponential falloff at first.
+//                "	    blur = clamp((abs(2 * FOCAL_DISTANCE - pow(distance,2)/FOCAL_DISTANCE) - FOCAL_DISTANCE)/(FOCAL_DISTANCE), 0, 1);\n" //returns 0-1, first arg can be changed to increase "in focus" range
+
+                //most performant blue with neg exponential blur close and slow linear falloff far
+                //blur graphs here: https://www.desmos.com/calculator/iga7nhk3hr
+                "       if(distance < FOCAL_DISTANCE) {\n"
+                "           blur = clamp(1 - pow(distance/FOCAL_DISTANCE, 2), 0, 1);\n"
+                "       } else {\n"
+                "           blur = clamp((abs(FOCAL_DISTANCE - distance) - FOCAL_DISTANCE)/(2 * FOCAL_DISTANCE), 0, 1);\n"
+                "       }\n"
                 "   }\n"
                 "	fragColor = mix(texelFetch(TEX, c, 0), texelFetch(BLUR_TEX, c, 0), blur);\n"
 //                "	fragColor = vec4(blur, blur, blur, 1.0);\n"

@@ -270,7 +270,10 @@ void Scene::render_drawable(Scene::Drawable const &drawable, Scene::Drawable::Pr
     GL_ERRORS();
 
     //set any requested custom uniforms:
-    if (pipeline.set_uniforms) pipeline.set_uniforms();
+    if (pipeline.set_uniforms) {
+        pipeline.set_uniforms();
+    }
+    GL_ERRORS();
 
     //set up textures:
     for (uint32_t i = 0; i < Drawable::Pipeline::TextureCount; ++i) {
