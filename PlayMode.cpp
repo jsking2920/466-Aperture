@@ -2,10 +2,11 @@
 
 #include "LitColorTextureProgram.hpp"
 #include "BoneLitColorTextureProgram.hpp"
-
 #include "depth_program.hpp"
 
 #include "DrawLines.hpp"
+#include "Sprite.hpp"
+#include "DrawSprites.hpp"
 #include "Mesh.hpp"
 #include "Load.hpp"
 #include "gl_errors.hpp"
@@ -20,10 +21,10 @@
 #include <filesystem>
 #include <fstream>
 #include <algorithm>
-
 #include <random>
 
 
+// -------- Loading functions -----------
 Load< std::map< std::string, std::vector < std::string > > > creature_stats_map_load(LoadTagEarly, []() -> std::map< std::string, std::vector < std::string > > const* {
     //Automatically parses Creature csv and puts results in Creature::creature_stats_map
     //TODO: make the stats a struct, not a vector of strings (low priority)
@@ -63,6 +64,10 @@ Load< std::map< std::string, std::vector < std::string > > > creature_stats_map_
         row.push_back(std::to_string(index));
     }
     return &Creature::creature_stats_map;
+});
+
+Load< SpriteAtlas > ui_sprite_atlas(LoadTagDefault, []() -> SpriteAtlas const* {
+	return new SpriteAtlas(data_path("assets/sprites/ui_sprites")); // Each atlas needs to have a .atlas and .png file with this name at this path
 });
 
 GLuint main_meshes_for_lit_color_texture_program = 0;
@@ -189,9 +194,9 @@ Load< WalkMeshes > main_walkmeshes(LoadTagDefault, []() -> WalkMeshes const * {
 	return ret;
 });
 
-//Automatically loads samples with names listed in names vector. names vector can include paths
 Load< std::map<std::string, Sound::Sample> > audio_samples(LoadTagDefault, []() -> std::map<std::string, Sound::Sample> const* {
-    auto *sample_map = new std::map<std::string, Sound::Sample>();
+	// Automatically loads samples with names listed in names vector. names vector can include paths
+	auto *sample_map = new std::map<std::string, Sound::Sample>();
     std::vector<std::string> names = {
             //insert new samples here
             "CameraClick",
@@ -202,6 +207,8 @@ Load< std::map<std::string, Sound::Sample> > audio_samples(LoadTagDefault, []() 
     return sample_map;
 });
 
+
+//* -------- Mode initializationand cleanup ---------- */
 PlayMode::PlayMode() : scene(*main_scene) {
 	
     // Change depth buffer comparison function to be leq instead of less to correctly occlude in object detection
@@ -232,6 +239,9 @@ PlayMode::PlayMode() : scene(*main_scene) {
 	handwriting_text = new TextRenderer(data_path("assets/fonts/PoorStory-Regular.ttf"), handwriting_font_size);
 	body_text = new TextRenderer(data_path("assets/fonts/Sono-Regular.ttf"), body_font_size);
 	barcode_text = new TextRenderer(data_path("assets/fonts/LibreBarcode128Text-Regular.ttf"), barcode_font_size);
+
+	// Get sprite atlas
+	//ui_sprites = &ui_sprite_atlas;
 
     //load audio samples
     sample_map = *audio_samples;
@@ -289,6 +299,7 @@ PlayMode::~PlayMode() {
 	delete player;
     Sound::sample_map = nullptr;
 }
+
 
 // -------- Main functions -----------
 bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size) {
@@ -810,6 +821,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	}
 	GL_ERRORS();
 }
+
 
 // -------- Menu functions -----------
 void PlayMode::menu_update(float elapsed) {

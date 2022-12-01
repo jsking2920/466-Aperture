@@ -19,7 +19,7 @@ Echo Exporting scene...
 "C:\Program Files\Blender Foundation\Blender 3.2\blender.exe" --background --python scenes/export-scene.py -- scenes/proto-world2.blend dist/assets/proto-world2.scene
 ECHO ==============================================
 Echo Running maekfile...
-node Maekfile.js -j1 &
+node Maekfile.js -j1
 ECHO ==============================================
 Echo All done! Starting game
 .\dist\game.exe

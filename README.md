@@ -26,6 +26,6 @@ Developed by Joyce Zheng, Scott King, and Will Ozeas for 15-466 at CMU.
 - "Libre Barcode 128 Text" by Lasse Fister <br>
 	(https://fonts.google.com/specimen/Libre+Barcode+128+Text) is licensed under the Open Font License
 
-Built with [NEST](NEST.md) and forked from https://github.com/15-466/15-466-f22-base5
+Built with [NEST](NEST.md) and based on https://github.com/15-466/15-466-f22-base5 and https://github.com/15-466/15-466-f19-base6 by Jim McCann and 15-466's course staff
 
 Original source code for Aperture by Joyce Zheng, Scott King, and Will Ozeas provided with the MIT licenses; code taken from other sources may be licensed differently.
