@@ -26,6 +26,9 @@ Echo Running maekfile...
 node Maekfile.js -j1
 ECHO ==============================================
 
+Echo Exporting and packing sprites...
+python3 sprites/make-sprites-win.py
+
 Echo All done! Starting game
 .\dist\game.exe
 
@@ -36,8 +39,3 @@ Echo All done! Starting game
 :: Must have SDL2.dll in same folder with these .exe's for them to the run
 :: .\dist\show-meshes.exe .\dist\assets\proto-world2.pnct
 :: .\dist\show-scene.exe .\dist\assets\proto-world2.scene .\dist\assets\proto-world2.pnct
-
-:: Sprite pipeline
-:: See README in /sprites/ for details
-:: python3 sprites/extract-sprites.py sprites/ui_sprites.list dist/assets/sprites/ --gimp="C:\Program Files\GIMP 2\bin\gimp-2.10.exe"
-:: python3 sprites/extract-sprites.py sprites/the-planet.list dist/assets/sprites/ --gimp="C:\Program Files\GIMP 2\bin\gimp-2.10.exe"
