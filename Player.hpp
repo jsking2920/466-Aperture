@@ -22,20 +22,24 @@ struct PlayerCamera {
 
 	float default_fovy = 3.14159265358979323846f / 3.0f; // 60 degree vertical fov
 	float cur_zoom = 1.0f;
+	float default_zoom = 1.0f;
+	float default_zoom_increment = 0.1f; // increment per frame while scrolling mouse up or down
 	float min_zoom = 0.5f;
 	float max_zoom = 3.0f;
 
     float cur_focus = 3.0f;
-    float min_focus = 0.2f;
+	float default_focus = 3.0f;
+    float min_focus = 0.1f;
     float max_focus = 40.f;
 	
 	// Measured in number of possible pictures that can be taken, displayed as a percentage
-	uint8_t cur_battery = 10;
-	uint8_t max_battery = 10;
+	uint8_t cur_battery = 20;
+	uint8_t max_battery = 20;
 
 	void TakePicture(Scene &scene); // Adds picture to player.pictures
-	void AdjustZoom(float diff);
-    void AdjustFocus(float diff);
+	void AdjustZoom(bool increase); // zooms in if increase == true; also affects focus
+    void AdjustFocus(bool increase);
+	void Reset(bool reset_battery); // resets zoom, focus, and battery to defaults if desired
 };
 
 struct Player {

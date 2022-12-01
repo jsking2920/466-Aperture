@@ -24,7 +24,6 @@
 #include <random>
 
 
-
 Load< std::map< std::string, std::vector < std::string > > > creature_stats_map_load(LoadTagEarly, []() -> std::map< std::string, std::vector < std::string > > const* {
     //Automatically parses Creature csv and puts results in Creature::creature_stats_map
     //TODO: make the stats a struct, not a vector of strings (low priority)
@@ -110,7 +109,7 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = test_banims->mesh.start;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = test_banims->mesh.count;
-			std::cout << "found " << transform->name << std::endl;
+			// std::cout << "found " << transform->name << std::endl;
 
             //set roughnesses, possibly should be from csv??
             drawable.roughness = 0.9f;
@@ -133,7 +132,6 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
             };
         }
 
-
         //Set up depth program
         drawable.pipeline[Scene::Drawable::ProgramTypeShadow].program = shadow_program_pipeline.program;
         drawable.pipeline[Scene::Drawable::ProgramTypeShadow].vao = main_meshes_for_depth_program;
@@ -150,7 +148,6 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
         // load texture for object if one exists, supports only 1 texture for now
 		// texture must share name with transform in scene ( "assets/textures/{transform->name}.png" )
         // file existence check from https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exists-using-standard-c-c11-14-17-c
-
 		std::string identifier = transform->name.substr(0, 6);
         if (std::filesystem::exists(data_path("assets/textures/" + identifier + ".png"))) {
             drawable.uses_vertex_color = false;
@@ -182,10 +179,8 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
             //no texture found, using vertex colors
             drawable.uses_vertex_color = true;
         }
-
-//        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].texture = framebuffers.shadow_depth_tex;
-//        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].target = GL_TEXTURE_2D;
-
+        //drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].texture = framebuffers.shadow_depth_tex;
+        //drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].target = GL_TEXTURE_2D;
     });
 });
 
@@ -335,6 +330,10 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
             lshift.downs += 1;
             lshift.pressed = true;
         }
+		else if (evt.key.keysym.sym == SDLK_r) {
+			r.downs += 1;
+			r.pressed = true;
+		}
 	} else if (evt.type == SDL_KEYUP) {
 		if (evt.key.keysym.sym == SDLK_a) {
 			left.pressed = false;
@@ -361,6 +360,9 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
         else if (evt.key.keysym.sym == SDLK_LSHIFT) {
             lshift.pressed = false;
         }
+		else if (evt.key.keysym.sym == SDLK_r) {
+			r.pressed = false;
+		}
 	} else if (evt.type == SDL_MOUSEBUTTONDOWN) {
 		if (SDL_GetRelativeMouseMode() == SDL_FALSE) {
 			SDL_SetRelativeMouseMode(SDL_TRUE);
@@ -394,19 +396,18 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			mouse.moves += 1;
 			return true;
 		}
-	} else if (evt.type == SDL_MOUSEWHEEL && player->in_cam_view) {
+	} else if (evt.type == SDL_MOUSEWHEEL) {
 		if (evt.wheel.y != 0) // scroll mouse wheel
 		{
 			mouse.scrolled = true;
-			mouse.wheel_y = evt.wheel.y;
+			mouse.wheel_y += evt.wheel.y; // Can be multiple of these events per frame, so sum them all up
 		}
         if (evt.wheel.x != 0)
         {
             mouse.scrolled = true;
-            mouse.wheel_x = evt.wheel.x;
+            mouse.wheel_x += evt.wheel.x; // Can be multiple of these events per frame, so sum them all up
         }
 	}
-
 	return false;
 }
 
@@ -415,7 +416,6 @@ void PlayMode::update(float elapsed) {
 	time_of_day += elapsed * time_scale * time_scale_debug;
 
 	switch (cur_state) {
-
 		case menu:
 			menu_update(elapsed);
 			break;
@@ -450,9 +450,12 @@ void PlayMode::update(float elapsed) {
 	lctrl.downs = 0;
 	tab.downs = 0;
 	enter.downs = 0;
+	r.downs = 0;
 
 	mouse.moves = 0;
 	mouse.mouse_motion = glm::vec2(0, 0);
+	mouse.wheel_x = 0;
+	mouse.wheel_y = 0;
 	mouse.scrolled = false;
 }
 
@@ -470,7 +473,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         framebuffers.realloc(drawable_size, glm::vec2(1024, 1024));
 	}
 
-    //set active camera
+    // Set active camera
     Scene::Camera *active_camera;
     if (player->in_cam_view) {
         active_camera = player->player_camera->scene_camera;
@@ -482,42 +485,41 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	{
         glm::vec3 eye = active_camera->transform->make_local_to_world()[3];
 
-        //compute light uniforms:
+        // Compute light uniforms:
         GLsizei lights = uint32_t(scene.lights.size() + 2);
-        //clamp lights to maximum lights allowed by shader:
+        // Clamp lights to maximum lights allowed by shader:
         lights = std::min< uint32_t >(lights, LitColorTextureProgram::MaxLights);
 
-        //lighting information vectors
+        // Lighting information vectors
         std::vector< int32_t > light_type; light_type.reserve(lights);
         std::vector< glm::vec3 > light_location; light_location.reserve(lights);
         std::vector< glm::vec3 > light_direction; light_direction.reserve(lights);
         std::vector< glm::vec3 > light_energy; light_energy.reserve(lights);
         std::vector< float > light_cutoff; light_cutoff.reserve(lights);
 
-        //hemisphere light is 1
+        // Hemisphere light is 1
         light_type.emplace_back(1);
         light_cutoff.emplace_back(1.0f);
-        //sun/moon is 2
+        // Sun/Moon is 2
         light_type.emplace_back(3);
         light_cutoff.emplace_back(1.0f);
 
-
-		// calculate brightness of sun/moon based in time of day
-        //Fix "jump" at day/night switch over, by letting brightnesses reach zero and turning up ambient lighting
-        //Maybe displace sunset and sunrise to be more during the daytime so that sun angles make more sense during sunrise/set
-        //make sunrise less orange probably
+		// Calculate brightness of sun/moon based in time of day
+        // Fix "jump" at day/night switch over, by letting brightnesses reach zero and turning up ambient lighting
+        // Maybe displace sunset and sunrise to be more during the daytime so that sun angles make more sense during sunrise/set
+        // make sunrise less orange probably
         glm::vec3 ambient_color;
 		float brightness;
         glm::vec3 sun_angle;
 		glm::vec3 sun_color;
-		if (time_of_day >= sunrise && time_of_day <= sunset) { // daytime lighting
+
+		// daytime lighting
+		if (time_of_day >= sunrise && time_of_day <= sunset) { 
 			// sinusoidal curve that goes from 0 at sun rise to 1 at the midpoint between sun rise and set to 0 at sun set
 			brightness = std::sin(((time_of_day - sunrise) / (sunset - sunrise)) * float(M_PI));
 			// increase amplitude of curve so that middle of the day is all at or above max brightness
 			brightness *= 1.3f;
             float color_sin = std::clamp(brightness, 0.0f, 1.0f);
-			// clamp brightness to [0.1f, 1.0f], which creates a "plateau" in the curve at midday
-//			brightness = brightness > 1.0f ? 1.0f : brightness;
 
             sun_color = glm::vec3(1.0f, 1.0f, 0.95f); // slightly warm light (less blue)
             sun_angle = glm::vec3(0, -std::cos(((time_of_day - sunrise) / (sunset - sunrise)) * float(M_PI)) / std::sqrt(2),
@@ -525,11 +527,12 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
             sky_color = day_sky_color * color_sin + sunset_sky_color * std::pow( 1 - color_sin, 3.f );
             ambient_color = day_ambient_color * color_sin + sunset_ambient_color * std::pow( 1 - color_sin, 3.f );
 		}
-		else { // nighttime lighting
+		// nighttime lighting
+		else { 
 			float unwrapped_time = time_of_day < sunset ? day_length + time_of_day : time_of_day; // handle timer wrapping aorund to 0
 			// sinusoidal curve that goes from 0 at sun set to 1 at the midpoint between sun set and rise to 0 at sun rise
 			float sin = std::sin(((unwrapped_time - sunset) / (sunrise + (day_length - sunset))) * float(M_PI));
-			// lerp brightness value from 0.15 to 0.4 so that it's never completely dark but also never quite as bright as day
+
 			brightness = (sin * 0.8f);
             sun_color = glm::vec3(0.975f, 0.975f, 1.0f); // slightly cool light (more blue) that is also dimmer
             sun_angle = glm::vec3(0, -std::cos(((unwrapped_time - sunset) / (sunrise + (day_length - sunset))) * float(M_PI)) / std::sqrt(2),
@@ -542,24 +545,24 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         fog_intensity = 0.6f + 0.4f * (1 - brightness);
         fog_color = glm::vec3(0.4f) + 0.6f * sky_color;
 
-        //push calculated sky lighting uniforms
+        // Push calculated sky lighting uniforms
         light_direction.emplace_back(glm::vec3(0, 0, -1.f));
         light_energy.emplace_back(ambient_color);
         light_location.emplace_back(glm::vec3(0, 0, 100));
-        //push calculated sun lighting uniforms
+        // Push calculated sun lighting uniforms
         light_direction.emplace_back(sun_angle);
         light_energy.emplace_back(sun_color);
         light_location.emplace_back(player->transform->position - sun_angle * 50.f);
 
-        //other lights setup
+        // Other lights setup
         for (auto const &light : scene.lights) {
-            //only one hemisphere & directional light is allowed! otherwise they won't get added
             if (light.type == Scene::Light::Hemisphere || light.type == Scene::Light::Directional) {
+				std::cout << "Only one hemisphere & directional light is allowed! Not adding this one!" << std::endl;
                 continue;
             }
 
             glm::mat4 light_to_world = light.transform->make_local_to_world();
-            //set up lighting information for this light:
+            // Set up lighting information for this light:
             light_location.emplace_back(glm::vec3(light_to_world[3]));
             light_direction.emplace_back(glm::vec3(-light_to_world[2]));
             light_energy.emplace_back(light.energy);
@@ -572,16 +575,16 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
                 light_cutoff.emplace_back(std::cos(0.5f * light.spot_fov));
             }
 
-            //skip remaining lights if maximum light count reached:
-            if (light_type.size() == (uint32_t)lights) break;
+            // Skip remaining lights if maximum light count reached:
+			if (light_type.size() == (uint32_t)lights) {
+				std::cout << "Max light count reached!" << std::endl;
+				break;
+			}
         }
-
 
         // Set up sky lighting uniforms for lit_color_texture_program:
         glUseProgram(lit_color_texture_program->program);
 
-        //getting warnings about narrowing conversions, if doesn't compile on windows this is probably why
-        //to solve, cast all the locations to GLint
         glUniform3fv(lit_color_texture_program->EYE_vec3, 1, glm::value_ptr(eye));
         glUniform1ui(lit_color_texture_program->LIGHTS_uint, (GLuint) lights);
         glUniform1iv(lit_color_texture_program->LIGHT_TYPE_int_array, lights, light_type.data());
@@ -590,7 +593,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3_array, lights, glm::value_ptr(light_energy[0]));
         glUniform1fv(lit_color_texture_program->LIGHT_CUTOFF_float_array, lights, light_cutoff.data());
 
-        //bone textures
+        // Bone textures
         glUseProgram(bone_lit_color_texture_program->program);
         glUniform3fv(bone_lit_color_texture_program->EYE_vec3, 1, glm::value_ptr(eye));
         glUniform1ui(bone_lit_color_texture_program->LIGHTS_uint, (GLuint) lights);
@@ -601,7 +604,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         glUniform1fv(bone_lit_color_texture_program->LIGHT_CUTOFF_float_array, lights, light_cutoff.data());
 
         GL_ERRORS();
-
 
         //Draw scene to shadow map for spotlight, adapted from https://github.com/ixchow/15-466-f18-base3
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.shadow_fb);
@@ -649,49 +651,41 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         GL_ERRORS(); //now texture is already in framebuffers.shadow_depth_tex
-
-
 	}
 
-    //run depth pre-pass for occlusion query, and write position buffer for post-processing
+    // Run depth pre-pass for occlusion query, and write position buffer for post-processing
     {
-        //run query for each drawable
+        // run query for each drawable
         glViewport(0, 0, drawable_size.x, drawable_size.y);
-        //bind renderbuffers for rendering
+        // bind renderbuffers for rendering
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.oc_fb);
 
         // set clear depth, testing criteria, and the like
         glClearDepth(1.0f); // 1.0 is the default value to clear the depth buffer to, but you can change it
         //set sky bits to be far away from the camera
-//        glm::vec4 distant = active_camera->transform->make_local_to_world() * glm::vec4(active_camera->transform->position, 1.0f) + glm::vec4(1000.f, 1000.f, 1000.f, 0.0f);
-//        glClearColor(distant.r, distant.g, distant.b, distant.a);
+        //glm::vec4 distant = active_camera->transform->make_local_to_world() * glm::vec4(active_camera->transform->position, 1.0f) + glm::vec4(1000.f, 1000.f, 1000.f, 0.0f);
+        //glclearcolor(distant.r, distant.g, distant.b, distant.a);
         glClearColor(0, 0, 0, 1);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clears currently bound framebuffer's color and depth info
-        // clears color to clearColor set above (sky_color) and clearDepth set above (1.0)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clears currently bound framebuffer's color and depth info to clearColor set above (0, 0 ,0 1) and clearDepth set above (1.0)
         glEnable(GL_DEPTH_TEST); // enable depth testing
         glDepthFunc(GL_LEQUAL); // set criteria for depth test
         glDisable(GL_BLEND);
         GL_ERRORS();
 
-        //render with occlusion pass
-        scene.draw(  *active_camera, Scene::Drawable::PassTypePrepass);
+        // render with occlusion pass
+        scene.draw(*active_camera, Scene::Drawable::PassTypePrepass);
     }
 
-    //run occlusion query using prepass sample buffer
+    // Run occlusion query using prepass sample buffer
     {
-        // clears color to clearColor set above (sky_color) and clearDepth set above (1.0)
-        glDepthMask(GL_FALSE); //depth buffer should be already filled
+        glDepthMask(GL_FALSE); // depth buffer should be already filled
         GL_ERRORS();
         glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 
-        //render with occlusion pass
-        scene.draw(  *active_camera, Scene::Drawable::PassTypeOcclusion);
+        // Render with occlusion pass
+        scene.draw(*active_camera, Scene::Drawable::PassTypeOcclusion);
 
-//        float pixels[4];
-//        glReadPixels(0, 0, 1, 1, GL_RGBA, GL_FLOAT, &pixels);
-//        std::cout << pixels[0] << ", " << pixels[1] << ", " << pixels[2] << ", " << pixels[3] << std::endl;
-
-        //reenable writing
+        // Reenable writing
         glDepthMask(GL_TRUE);
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -701,7 +695,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
         GL_ERRORS();
     }
-
 	
 	// Draw scene to multisampled framebuffer
 	{
@@ -718,7 +711,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 		// set clear depth, testing criteria, and the like
 		glClearDepth(1.0f); // 1.0 is the default value to clear the depth buffer to, but you can change it
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clears currently bound framebuffer's (framebuffers.ms_fb )color and depth info
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clears currently bound framebuffer's (framebuffers.ms_fb) color and depth info
 		                                                    // clears color to clearColor set above (sky_color) and clearDepth set above (1.0)
 		glEnable(GL_DEPTH_TEST); // enable depth testing
 		glDepthFunc(GL_LEQUAL); // set criteria for depth test
@@ -729,20 +722,20 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		// glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		// Draw based on active camera (Player's "eyes" or their PlayerCamera)
-        if(player->in_cam_view) {
+        if (player->in_cam_view) {
             scene.draw(*active_camera, Scene::Drawable::PassTypeInCamera);
         } else {
             scene.draw(*active_camera, Scene::Drawable::PassTypeDefault);
         }
 
-        //unbind textures
+        // Unbind textures
         glActiveTexture(GL_TEXTURE5);
         glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
-	// Debugging code
+	// Debugging code for printing all visible objects and visualizing walk mesh
+	/*
 	{
-		/* Debug code for printint all visible objects
 		{
 			std::list<std::pair<Scene::Drawable &, GLuint>> results;
 			if (player.in_cam_view) {
@@ -755,10 +748,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			}
 			std::cout << "\n" << std::endl;
 		}
-		*/
 
-		//Debug code for visualizing walk mesh
-		/*
 		{
 			glDisable(GL_DEPTH_TEST);
 			DrawLines lines(player->camera->make_projection() * glm::mat4(player->camera->transform->make_world_to_local()));
@@ -768,19 +758,16 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 				lines.draw(player->walk_mesh->vertices[tri.z], player->walk_mesh->vertices[tri.x], glm::u8vec4(0x88, 0x00, 0x00, 0xff));
 			}
 		}
-		*/
-		
 	}
+	*/
 
     // Resolve multisampled buffer to screen
     {
-
         // blit multisampled buffer to the normal, intermediate post_processing buffer. Image is stored in screen_texture, depth in pp_depth
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffers.ms_fb);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffers.pp_fb);
 
-        glBlitFramebuffer(0, 0, drawable_size.x, drawable_size.y, 0, 0, drawable_size.x, drawable_size.y,
-                          GL_COLOR_BUFFER_BIT, GL_LINEAR); // Bilinear interpolation for anti aliasing
+        glBlitFramebuffer(0, 0, drawable_size.x, drawable_size.y, 0, 0, drawable_size.x, drawable_size.y, GL_COLOR_BUFFER_BIT, GL_LINEAR); // Bilinear interpolation for anti aliasing
 
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -788,11 +775,12 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
         GL_ERRORS();
     }
 
-    { //postprocessing
-        //add fog, fog uses original multisampled depth buffer so no aliasing
+	// Postprocessing
+    { 
+        // Add fog, fog uses original multisampled depth buffer so no aliasing
         framebuffers.add_depth_effects(fog_intensity, 1300.0f, fog_color);
 
-        if(player->in_cam_view) {
+        if (player->in_cam_view) {
             //add depth of field
             framebuffers.add_depth_of_field(player->player_camera->cur_focus, active_camera->transform->make_local_to_world() *
                                                   glm::vec4(0, 0, 0, 1.0f));
@@ -827,7 +815,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 void PlayMode::menu_update(float elapsed) {
 
 	// start game on enter, swap to playing state
-	if (enter.downs == 1) {
+	if (enter.downs > 0) {
 		time_of_day = start_day_time;
 		time_scale = 1.0f;
 		cur_state = playing;
@@ -843,10 +831,11 @@ void PlayMode::menu_draw_ui(glm::uvec2 const& drawable_size) {
 
 // -------- Playing functions -----------
 void PlayMode::playing_update(float elapsed) {
+
 	// Handle State (return early if state changes)
 	{
 		// open journal on tab, swap to journal state
-		if (tab.downs == 1) {
+		if (tab.downs > 0) {
 			
 			player->in_cam_view = false;
 			player->SetCrouch(false);
@@ -859,7 +848,7 @@ void PlayMode::playing_update(float elapsed) {
 		}
 
 		// swap to night state at end of day
-		if (time_of_day == end_day_time) {
+		if (time_of_day >= end_day_time) {
 
 			player->in_cam_view = false;
 			player->SetCrouch(false);
@@ -882,7 +871,7 @@ void PlayMode::playing_update(float elapsed) {
 		if (!down.pressed && up.pressed) move.y = 1.0f;
 
 		if (move.x != 0.0f || move.y != 0.0f) player->Move(move, elapsed);
-
+		if (player->is_crouched != lctrl.pressed) player->SetCrouch(lctrl.pressed);
 	}
 
 	// Player camera logic 
@@ -893,27 +882,32 @@ void PlayMode::playing_update(float elapsed) {
 		}
 
 		// Toggle player view on right click
-		if (rmb.downs == 1) {
+		if (rmb.downs > 0) {
 			player->in_cam_view = !player->in_cam_view;
 		}
 
 		if (player->in_cam_view && mouse.scrolled) {
-            //Change Depth of Field distance if shift is held down
-            if(lshift.pressed) {
+            // Change Depth of Field distance on shift + mouse scroll 
+            if (lshift.pressed) {
                 //on mac, shift + scroll is x
                 if (mouse.wheel_x > 0 || mouse.wheel_y > 0) {
-                    player->player_camera->AdjustFocus(0.25f); // zoom in
+                    player->player_camera->AdjustFocus(true); // Increase focal distance and depth of field
                 } else {
-                    player->player_camera->AdjustFocus(-0.25f); // zoom out
+                    player->player_camera->AdjustFocus(false); // Decrease focal distance and depth of field
                 }
             } else {
-                // Zoom in and out on mouse wheel scroll when in cam view
+                // Zoom in and out on mouse wheel scroll (without shift) when in cam view (also affects focal distance)
                 if (mouse.wheel_y > 0) {
-                    player->player_camera->AdjustZoom(0.1f); // zoom in
+                    player->player_camera->AdjustZoom(true); // zoom in
                 } else {
-                    player->player_camera->AdjustZoom(-0.1f); // zoom out
+                    player->player_camera->AdjustZoom(false); // zoom out
                 }
             }
+		}
+
+		if (r.downs > 0) {
+			// Reset camera zoom and focus on r
+			player->player_camera->Reset(false);
 		}
 
 		// Snap a pic on left click, if in camera view and has remaining battery
@@ -969,15 +963,32 @@ void PlayMode::playing_draw_ui(glm::uvec2 const& drawable_size) {
 		uint8_t zoom = (uint8_t)(std::round(player->player_camera->cur_zoom * 10.0f));
 		display_text->draw("x" + std::to_string(zoom / 10) + "." + std::to_string(zoom % 10), ((2.0f / 3.0f) - 0.04f) * float(drawable_size.x), ((1.0f / 3.0f) - 0.05f) * float(drawable_size.y), 0.25f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 
+		// Focal distance readout
+		// Should be some combination of aperture diameter and lens length, but we'll just abstract it to something resembling aperrture diameter
+		// Larger depth of field means smaller aperture diameter, but is typically displayed in terms of a fraction (f/4 = 1/4 which is larger than f/16)
+		// Techincally this implies exposure of the picture should be affected too, which it's not
+		// see: https://photographylife.com/what-is-aperture-in-photography
+		// Ranges from f/1 to f/30, which is wider than in the real world but it's ~sci-fi~
+		// Quantized to discrete values in much wider increments than actual increments available to player 
+		// Remap backend represenation of focal distance to range for ddisplay (1 to 30)
+		float t = (player->player_camera->cur_focus - player->player_camera->min_focus) / (player->player_camera->max_focus - player->player_camera->min_focus);
+		float denom = 1.0f + (t * (30.0f - 1.0f));
+		uint8_t denom_rounded = (uint8_t)denom;
+		display_text->draw("f/" + std::to_string(denom_rounded), 0.95f * float(drawable_size.x), 0.95f * float(drawable_size.y), 0.25f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+
 		// Battery readout
 		float battery = (float)player->player_camera->cur_battery / (float)player->player_camera->max_battery;
 		display_text->draw("Battery: " + TextRenderer::format_percentage(battery), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 0.25f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		
 		// Creature in frame text
 		// TODO: implement this feature (need to check for creatures each frame)
 		barcode_text->draw("FLOATER", (1.0f / 3.0f) * float(drawable_size.x), ((1.0f / 3.0f) - 0.05f) * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		
 		// Some assorted DSLR type viewport readouts
 		// TODO: replace these with other functional things
+		// AUTO in palce of any Exposure/ISO settings
 		display_text->draw("AUTO", 0.45f * float(drawable_size.x), 0.025f * float(drawable_size.y), 0.25f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		// Just some numbers for the vibes, could be a date, time, shutter speed, etc.
 		display_text->draw("[2.9.020]", 0.9f * float(drawable_size.x), 0.025f * float(drawable_size.y), 0.25f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 	}
 	else {
@@ -986,7 +997,7 @@ void PlayMode::playing_draw_ui(glm::uvec2 const& drawable_size) {
 	}
 
 	if (score_text_is_showing) {
-		// draw text of last picture taken
+		// Draw text of last picture taken
 		if (!player->pictures->empty()) {
 			body_text->draw(player->pictures->back().title, 0.025f * float(drawable_size.x), 0.95f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 			body_text->draw("Score: " + std::to_string(player->pictures->back().get_total_score()), 0.025f * float(drawable_size.x), 0.9f * float(drawable_size.y), 0.8f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
@@ -1028,9 +1039,11 @@ void PlayMode::journal_draw_ui(glm::uvec2 const& drawable_size) {
 void PlayMode::night_update(float elapsed) {
 
 	// swap to playing at start of day
-	if (time_of_day >= start_day_time) {
+	if (time_of_day < end_day_time && time_of_day >= start_day_time) {
 		//TODO: reset player position/etc
-		player->player_camera->cur_battery = player->player_camera->max_battery;
+
+		// Reset camera zoom, focus, and battery
+		player->player_camera->Reset(true);
 
 		time_scale = 1.0f;
 		cur_state = playing;
@@ -1046,34 +1059,34 @@ void PlayMode::night_draw_ui(glm::uvec2 const& drawable_size) {
 
 void PlayMode::play_animation(Creature &creature, std::string const &anim_name, bool loop, float speed)
 {	
+	// If current animation is equal to the one currently playing, do nothing
+	if (anim_name == creature.curr_anim_name) return;
 	
-	//if current animation is equal to the one currently playing, do nothing
-	if (anim_name == creature.curr_anim_name)return;
-	//try to retrive creature animation data based on code
-
+	// Try to retrieve creature animation data based on code
 	auto animation_set_iter = BoneAnimation::animation_map.find(creature.code);
-	//check if found 
+
 	if (animation_set_iter == BoneAnimation::animation_map.end())
 	{
 		throw std::runtime_error("Error: Animation SET not found for creature: " + creature.code);
 	}
 
-	//try to retrive animation data based on animation name
+	// Try to retrive animation data based on animation name
 	BoneAnimation *bone_anim_set = animation_set_iter->second;
 	BoneAnimation::Animation const * animation = &(bone_anim_set->lookup(anim_name));
 
-	//check looping or not
+	// Check looping or not
 	BoneAnimationPlayer::LoopOrOnce loop_or_once = loop ? BoneAnimationPlayer::LoopOrOnce::Loop : BoneAnimationPlayer::LoopOrOnce::Once;
 
-	//if animation is found, set the current animation to the new one
+	// If animation is found, set the current animation to the new one
 	playing_animations.emplace_back(*bone_anim_set, *animation, loop_or_once, speed);
 	BoneAnimationPlayer *current_anim_player = &playing_animations.back();
-	//For that creature, set the current animation to the new one
+	// For that creature, set the current animation to the new one
     Scene::Drawable &drawable = *creature.drawable;
     drawable.pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [current_anim_player, drawable] () {
 		current_anim_player->set_uniform(bone_lit_color_texture_program->BONES_mat4x3_array);
         glUniform1f(bone_lit_color_texture_program->ROUGHNESS_float, drawable.roughness);
 	};
-	//update the constants in creature 
+
+	//Update the constants in creature 
 	creature.curr_anim_name = anim_name;
 }

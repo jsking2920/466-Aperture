@@ -29,6 +29,7 @@ PlayerCamera::~PlayerCamera() {
 }
 
 void PlayerCamera::TakePicture(Scene &scene) {
+
     Sound::play(Sound::sample_map->at("CameraClick"));
 
     PictureInfo stats;
@@ -65,11 +66,11 @@ void PlayerCamera::TakePicture(Scene &scene) {
         stats.creatures_in_frame.back().creature = &Creature::creature_map[code_id];
     }
 
-    //populate creature infos
+    // Populate creature infos
     for (auto &creature_info : stats.creatures_in_frame) {
-        //Get focal point vector - indices of bools map to indices of focal points in creature
+        // Get focal point vector - indices of bools map to indices of focal points in creature
         scene.test_focal_points(*scene_camera, creature_info.creature->focal_points, creature_info.are_focal_points_in_frame);
-        //populate frag counts by summing over all labeled parts
+        // Populate frag counts by summing over all labeled parts
         creature_info.frag_count = 0;
         std::for_each(stats.frag_counts.begin(), stats.frag_counts.end(), [&](auto pair) {
             if (pair.first.transform->name.substr(0, 6)
@@ -77,15 +78,15 @@ void PlayerCamera::TakePicture(Scene &scene) {
             creature_info.frag_count += pair.second;
             }
         });
-        //vector from player to creature
+        // Vector from player to creature
         glm::vec3 worldpos = creature_info.creature->transform->make_local_to_world() * glm::vec4(0, 0, 0, 1.0f);
         glm::vec3 camera_worldpos = player->player_camera->scene_camera->transform->make_local_to_world() * glm::vec4(0, 0, 0, 1.0f);
-        std::cout << glm::to_string(creature_info.creature->transform->make_local_to_world()) <<std::endl;
-        std::cout << glm::to_string(glm::vec4(creature_info.creature->transform->position, 1.0f)) <<std::endl;
-        std::cout << glm::to_string(camera_worldpos) <<std::endl;
-        std::cout << glm::to_string(worldpos) <<std::endl;
+        //std::cout << glm::to_string(creature_info.creature->transform->make_local_to_world()) <<std::endl;
+        //std::cout << glm::to_string(glm::vec4(creature_info.creature->transform->position, 1.0f)) <<std::endl;
+        //std::cout << glm::to_string(camera_worldpos) <<std::endl;
+        //std::cout << glm::to_string(worldpos) <<std::endl;
         creature_info.player_to_creature = worldpos - camera_worldpos;
-        std::cout << glm::to_string(creature_info.player_to_creature) <<std::endl;
+        //std::cout << glm::to_string(creature_info.player_to_creature) <<std::endl;
         //std::cout << glm::to_string(worldpos) << ",  " << glm::to_string(camera_worldpos);
     }
 
@@ -110,24 +111,66 @@ void PlayerCamera::TakePicture(Scene &scene) {
 	cur_battery -= 1;
 }
 
-void PlayerCamera::AdjustZoom(float diff) {
+// Akin to adjusting length of lens; affects focus (zooming in makes depth of field shallower)
+void PlayerCamera::AdjustZoom(bool increase) {
 
-	float new_zoom = cur_zoom + diff;
-	if (new_zoom < min_zoom - 0.001f || new_zoom > max_zoom + 0.001f) {
+	float diff = default_zoom_increment;
+	if (!increase) diff *= -1.0;
+
+	if (cur_zoom + diff > max_zoom || cur_zoom + diff < min_zoom) {
 		return;
 	}
-	cur_zoom = new_zoom;
 
+	cur_zoom += diff;
 	scene_camera->fovy = default_fovy / cur_zoom;
+
+	// Adjusting zoom (lens length) also impacts depth of field
+	this->AdjustFocus(!increase);
 }
 
-void PlayerCamera::AdjustFocus(float diff) {
+void PlayerCamera::AdjustFocus(bool increase) {
 
-    float new_focus = cur_focus + diff;
-    if (new_focus < min_focus - 0.001f || new_focus > max_focus + 0.001f) {
-        return;
-    }
-    cur_focus = new_focus;
+	float diff = increase ? 1.0f : -1.0f;
+
+	// Increment of adjustment increases as focal distance increases
+	// TODO: Make this not hardcoded based on the specific min/max values
+	if (cur_focus < 1.1f) {
+		// increments of 0.1 for 0.1 to 1
+		diff *= 0.1f;
+	}
+	else if (cur_focus >= 1.1f && cur_focus <= 5.0f) {
+		// increments of 0.25 for 1.1 to 5
+		diff *= 0.25f;
+	}
+	else if (cur_focus > 5.0f && cur_focus <= 10.0f) {
+		// increments of 0.5 for 5 to 10
+		diff *= 0.5f;
+	}
+	else if (cur_focus > 10.0f && cur_focus <= 20.0f) {
+		// increments of 1 for 10 to 20
+		diff *= 1.0f;
+	}
+	else if (cur_focus > 20.0f) {
+		// increments of 2 for above 20
+		diff *= 2.0f;
+	}
+
+	if (cur_focus + diff > max_focus || cur_focus + diff < min_focus) {
+		return;
+	}
+
+    cur_focus += diff;
+}
+
+void PlayerCamera::Reset(bool reset_battery) {
+
+	cur_focus = default_focus;
+	cur_zoom = default_zoom;
+	scene_camera->fovy = default_fovy / cur_zoom;
+
+	if (reset_battery) {
+		cur_battery = max_battery;
+	}
 }
 
 // Player

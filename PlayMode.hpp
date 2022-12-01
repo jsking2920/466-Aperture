@@ -43,7 +43,7 @@ struct PlayMode : Mode {
 	struct Button {
 		uint8_t downs = 0;
 		bool pressed = false;
-	} left, right, down, up, lmb, rmb, lctrl, tab, enter, lshift;
+	} left, right, down, up, lmb, rmb, lctrl, tab, enter, lshift, r;
 	struct Mouse {
 		glm::vec2 mouse_motion = glm::vec2(0, 0);
 		uint8_t moves = 0;
@@ -75,7 +75,7 @@ struct PlayMode : Mode {
 	float end_day_time = 230.0f; // Time player ends of everyday (11:00pm)
 
 	float time_scale = 4.0f; // multiplier for speed of time (starts at 4x for menu visuals)
-    float time_scale_debug = 1.0f; //multiplier for debug reasons
+    float time_scale_debug = 1.0f; // multiplier for debug reasons
 
 	float sunrise = 75.0f; // sunrise at 7:30am
 	float sunset = 210.0f; // sunset at 9pm
