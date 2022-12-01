@@ -3,6 +3,19 @@ Developed by Joyce Zheng, Scott King, and Will Ozeas for 15-466 at CMU.
 
 ![Screen Shot](screenshot.png)
 
+## Controls
+- Move: WASD
+- Crouch: lctrl
+- Open/Close Journal: tab
+- Use Camera: right click
+
+### Camera Controls
+- Take Picture: left click
+- Put Camera Away: right click
+- Zoom: mouse wheel
+- Adjust focus: mouse wheel + left shift
+- Reset: R
+
 ## Attributions
 - "Audiowide" by Astigmatic <br>
 	(https://fonts.google.com/specimen/Audiowide) is licensed under the Open Font License
