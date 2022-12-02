@@ -139,7 +139,6 @@ const game_names = [
 	maek.CPP('PlayMode.cpp'),
 	maek.CPP('main.cpp'),
 	maek.CPP('LitColorTextureProgram.cpp'),
-	maek.CPP('BoneLitColorTextureProgram.cpp'),
 	//maek.CPP('ColorTextureProgram.cpp'),  //not used right now, but you might want it
 ];
 
@@ -162,6 +161,7 @@ const common_names = [
 	maek.CPP('Picture.cpp'),
 	maek.CPP('make_vao_for_program.cpp'),
 	maek.CPP('BoneAnimation.cpp'),
+	maek.CPP('BoneLitColorTextureProgram.cpp'),
 	maek.CPP('Framebuffers.cpp'),
 	maek.CPP('Sound.cpp'),
 	maek.CPP('load_wav.cpp'),

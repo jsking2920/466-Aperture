@@ -294,8 +294,8 @@ PlayMode::PlayMode() : scene(*main_scene) {
 	//animation initialization
 	{
 		for (auto &creature_pair : Creature::creature_map) {
-			Creature* critter = &Creature::creature_map[creature_pair.first];
-			play_animation(*critter, "Idle", true, 1.0f);
+			Creature &critter = creature_pair.second;
+            critter.play_animation("Idle", true, 1.0f);
 		}
 	}
 }
@@ -1065,44 +1065,4 @@ void PlayMode::night_draw_ui(glm::uvec2 const& drawable_size) {
 
 	// Draw clock
 	body_text->draw(TextRenderer::format_time_of_day(time_of_day, day_length), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
-}
-
-void PlayMode::play_animation(Creature &creature, std::string const &anim_name, bool loop, float speed)
-{	
-	// If current animation is equal to the one currently playing, do nothing
-	if (creature.animation_player && anim_name == creature.animation_player->anim.name) return;
-	
-	// Try to retrieve creature animation data based on code
-	auto animation_set_iter = BoneAnimation::animation_map.find(creature.code);
-
-	if (animation_set_iter == BoneAnimation::animation_map.end())
-	{
-		throw std::runtime_error("Error: Animation SET not found for creature: " + creature.code);
-	}
-
-	// Try to retrive animation data based on animation name
-	BoneAnimation *bone_anim_set = animation_set_iter->second;
-	BoneAnimation::Animation const * animation = &(bone_anim_set->lookup(anim_name));
-
-	// Check looping or not
-	BoneAnimationPlayer::LoopOrOnce loop_or_once = loop ? BoneAnimationPlayer::LoopOrOnce::Loop : BoneAnimationPlayer::LoopOrOnce::Once;
-
-	// If animation is found, set the current animation to the new one
-//	playing_animations.emplace_back(*bone_anim_set, *animation, loop_or_once, speed);
-//	BoneAnimationPlayer *current_anim_player = &playing_animations.back();
-    creature.animation_player = std::make_unique<BoneAnimationPlayer>(*bone_anim_set, *animation, loop_or_once, speed);
-
-	// For that creature, set the current animation to the new one
-    Scene::Drawable &drawable = *creature.drawable;
-    drawable.pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [&creature, &drawable] () {
-        creature.animation_player->set_uniform(bone_lit_color_texture_program->BONES_mat4x3_array);
-        glUniform1f(bone_lit_color_texture_program->ROUGHNESS_float, drawable.roughness);
-	};
-    //set uniforms on shadow pipeline
-    drawable.pipeline[Scene::Drawable::ProgramTypeShadow].set_uniforms = [&creature] () {
-        creature.animation_player->set_uniform(bone_shadow_program->BONES_mat4x3_array);
-    };
-
-	//Update the constants in creature 
-	creature.curr_anim_name = anim_name;
 }

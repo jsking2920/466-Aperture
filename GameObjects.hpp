@@ -49,8 +49,6 @@ struct Creature {
     std::vector<Scene::Drawable *> focal_points = {};
     //Holds current animation - unique ptr to automatically dispose of old animations
     std::unique_ptr< BoneAnimationPlayer > animation_player;
-    //keep track of animation state
-    std::string curr_anim_name = "none";
     //index for switch statement, bc you can't switch on strings
     int switch_index = 0;
 
@@ -59,6 +57,7 @@ struct Creature {
 
     void update(float elapsed, float time_of_day);
     void on_picture();
+    void play_animation(std::string const &anim_name, bool loop = true, float speed = 1.0f);
 
     //Initialization/parsing function form scene
     void init_transforms(Scene &scene);
