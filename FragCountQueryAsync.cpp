@@ -65,10 +65,12 @@ void FragCountQueryAsync::StartQuery()
 
 void FragCountQueryAsync::EndQuery()
 {
-    //end same query
-    glEndQuery(GL_SAMPLES_PASSED);
-    start_ = (start_ + 1) % capacity_; // wrap
-    GL_ERRORS();
+    if(count_ > 0) {
+        //end same query
+        glEndQuery(GL_SAMPLES_PASSED);
+        start_ = (start_ + 1) % capacity_; // wrap
+        GL_ERRORS();
+    }
 }
 
 std::optional<GLuint> FragCountQueryAsync::most_recent_query()

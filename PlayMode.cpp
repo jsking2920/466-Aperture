@@ -85,8 +85,12 @@ Load< BoneAnimation > test_banims2(LoadTagDefault, [](){
 	BoneAnimation::animation_map.emplace(std::make_pair("monkey", ret));
 	return ret;
 });
+
 Load< GLuint > banims_for_bone_lit_color_texture_program(LoadTagDefault, [](){
 	return new GLuint(test_banims->make_vao_for_program(bone_lit_color_texture_program->program));
+});
+Load< GLuint > banims_for_bone_shadow_program(LoadTagDefault, [](){
+    return new GLuint(test_banims->make_vao_for_program(bone_shadow_program->program));
 });
 
 Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
@@ -104,6 +108,7 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
         //only change shader if the object has a creature code
 		if (transform->name.length() == 6 &&
                 std::find_if(creature_stats_map_load->begin(), creature_stats_map_load->end(), is_creature) != creature_stats_map_load->end()) {
+            //animated object pipeline setup
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault] = bone_lit_color_texture_program_pipeline;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = *banims_for_bone_lit_color_texture_program;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
@@ -117,7 +122,18 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
             drawable.pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [drawable](){
                 glUniform1f(bone_lit_color_texture_program->ROUGHNESS_float, drawable.roughness);
             };
+
+            //Set up depth program
+            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].program = bone_shadow_program_pipeline.program;
+            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].vao = *banims_for_bone_shadow_program;
+            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].type = mesh.type;
+            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].start = test_banims->mesh.start;
+            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].count = test_banims->mesh.count;
+
+            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_CLIP_mat4 = bone_shadow_program_pipeline.OBJECT_TO_CLIP_mat4;
+            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_LIGHT_mat4x3 = bone_shadow_program_pipeline.OBJECT_TO_LIGHT_mat4x3;
 		} else {
+            //Non-animated object
             drawable.pipeline[Scene::Drawable::ProgramTypeDefault] = lit_color_texture_program_pipeline;
 
             drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = main_meshes_for_lit_color_texture_program;
@@ -130,17 +146,18 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
             drawable.pipeline[Scene::Drawable::ProgramTypeDefault].set_uniforms = [drawable](){
                 glUniform1f(lit_color_texture_program->ROUGHNESS_float, drawable.roughness);
             };
+
+            //Set up depth program
+            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].program = shadow_program_pipeline.program;
+            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].vao = main_meshes_for_depth_program;
+            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].type = mesh.type;
+            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].start = mesh.start;
+            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].count = mesh.count;
+
+            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_CLIP_mat4 = shadow_program_pipeline.OBJECT_TO_CLIP_mat4;
+            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_LIGHT_mat4x3 = shadow_program_pipeline.OBJECT_TO_LIGHT_mat4x3;
         }
 
-        //Set up depth program
-        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].program = shadow_program_pipeline.program;
-        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].vao = main_meshes_for_depth_program;
-        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].type = mesh.type;
-        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].start = mesh.start;
-        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].count = mesh.count;
-
-        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_CLIP_mat4 = shadow_program_pipeline.OBJECT_TO_CLIP_mat4;
-        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_LIGHT_mat4x3 = shadow_program_pipeline.OBJECT_TO_LIGHT_mat4x3;
 
         GLuint tex;
         glGenTextures(1, &tex);
@@ -1086,6 +1103,11 @@ void PlayMode::play_animation(Creature &creature, std::string const &anim_name, 
 		current_anim_player->set_uniform(bone_lit_color_texture_program->BONES_mat4x3_array);
         glUniform1f(bone_lit_color_texture_program->ROUGHNESS_float, drawable.roughness);
 	};
+
+    //set uniforms on shadow pipeline
+    drawable.pipeline[Scene::Drawable::ProgramTypeShadow].set_uniforms = [current_anim_player, drawable] () {
+        current_anim_player->set_uniform(bone_shadow_program->BONES_mat4x3_array);
+    };
 
 	//Update the constants in creature 
 	creature.curr_anim_name = anim_name;
