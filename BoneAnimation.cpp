@@ -165,12 +165,13 @@ BoneAnimationPlayer::BoneAnimationPlayer(BoneAnimation const &banims_, BoneAnima
 
 void BoneAnimationPlayer::update(float elapsed) {
 	position += elapsed * position_per_second;
-	//std::cout << "position = " << position << std::endl;
+
 	if (loop_or_once == Loop) {
 		position -= std::floor(position);
 	} else { //(loop_or_once == Once)
 		position = std::max(std::min(position, 1.0f), 0.0f);
 	}
+
 }
 
 void BoneAnimationPlayer::set_uniform(GLint bones_mat4x3_array) const {

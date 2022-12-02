@@ -58,13 +58,19 @@ void Creature::init_transforms (Scene &scene) {
     assert(focal_points.size() > 0);
 }
 
-void Creature::update(float elapsed) {
+void Creature::update(float elapsed, float time_of_day) { //movements not synced to animations
+    animation_player->update(elapsed);
+
     //in hindsight I probably should have just done a big if statement but this is more efficient i believe
     switch(switch_index) {
         case 0: { //FLOATER
             //floater idle anim
-            if(curr_anim_name == "Idle") {
-
+            if(animation_player && animation_player->anim.name == "Idle") {
+                //gentle float up and down
+                float cycle_time = 3.f;
+                float height = 0.15f;
+                float distance = sin((time_of_day + 4 * number) / cycle_time) * elapsed * height;
+                transform->position += glm::vec3(transform->make_world_to_local() * glm::vec4(0.0f, 0.f, distance, 0.0f));
             }
         }
     }

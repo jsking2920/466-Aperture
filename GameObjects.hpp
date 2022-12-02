@@ -47,8 +47,8 @@ struct Creature {
     //have a list of objects to sample
     //If we want to assign points/names to each focal point, make this into a list of focal point objects
     std::vector<Scene::Drawable *> focal_points = {};
-    //temporarily holds a single animation
-    BoneAnimation::Animation const *banim_walk = nullptr;
+    //Holds current animation - unique ptr to automatically dispose of old animations
+    std::unique_ptr< BoneAnimationPlayer > animation_player;
     //keep track of animation state
     std::string curr_anim_name = "none";
     //index for switch statement, bc you can't switch on strings
@@ -57,7 +57,7 @@ struct Creature {
     //scoring parameters
     int score = 3000;
 
-    void update(float elapsed);
+    void update(float elapsed, float time_of_day);
     void on_picture();
 
     //Initialization/parsing function form scene
