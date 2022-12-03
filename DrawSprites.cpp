@@ -21,7 +21,6 @@ static GLuint vertex_buffer = 0;
 static GLuint vertex_buffer_for_color_texture_program = 0;
 
 static Load< void > setup_buffers(LoadTagDefault, [](){
-	//you may recognize this init code from PongMode.cpp in base0:
 
 	{ //set up vertex buffer:
 		glGenBuffers(1, &vertex_buffer);
