@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <utility>
 #include <filesystem>
-#include <math.h>
 
 const std::string Picture::adjectives[] = { "Majestic", "Beautiful", "Vibrant", "Grand", "Impressive", "Awe-inspiring", "Sublime", "Resplendent", "Striking", "Marvelous", "Alluring", "Gorgeous", "Glamorous", "Divine", "Exquisite", "Stunning", "Beauteous", "Comely", "Pulchritudinous", "Graceful", "Dazzling", "Lovely", "Superb", "Resplendent", "Radiant", "Well-formed", "Great"};
 
