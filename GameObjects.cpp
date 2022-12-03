@@ -4,6 +4,8 @@
 #include "BoneLitColorTextureProgram.hpp"
 #include "ShadowProgram.hpp"
 
+#include <math.h>
+
 std::map< std::string, Creature > Creature::creature_map = std::map< std::string, Creature >();
 std::map< std::string, CreatureStats > Creature::creature_stats_map = std::map< std::string, CreatureStats >();
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#define _USE_MATH_DEFINES
 #include "Mode.hpp"
 #include "Scene.hpp"
 #include "BoneAnimation.hpp"
@@ -10,7 +9,6 @@
 #include <iostream>
 #include <vector>
 #include <map>
-#include <cmath>
 
 /*
 33 characters and then a number
