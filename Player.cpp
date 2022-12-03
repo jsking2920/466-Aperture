@@ -79,8 +79,8 @@ void PlayerCamera::TakePicture(Scene &scene) {
             }
         });
         // Vector from player to creature
-        glm::vec3 worldpos = creature_info.creature->transform->make_local_to_world() * glm::vec4(0, 0, 0, 1.0f);
-        glm::vec3 camera_worldpos = player->player_camera->scene_camera->transform->make_local_to_world() * glm::vec4(0, 0, 0, 1.0f);
+        glm::vec3 worldpos = creature_info.creature->transform->make_local_to_world()[3];
+        glm::vec3 camera_worldpos = player->player_camera->scene_camera->transform->make_local_to_world()[3];
         //std::cout << glm::to_string(creature_info.creature->transform->make_local_to_world()) <<std::endl;
         //std::cout << glm::to_string(glm::vec4(creature_info.creature->transform->position, 1.0f)) <<std::endl;
         //std::cout << glm::to_string(camera_worldpos) <<std::endl;
@@ -220,6 +220,7 @@ void Player::OnMouseMotion(glm::vec2 mouse_motion) {
 		pitch = 0.0f;
 	}
 	camera->transform->rotation = glm::angleAxis(pitch, glm::vec3(1.0f, 0.0f, 0.0f)) * camera->transform->rotation;
+    Sound::listener.set_position_right(camera->transform->make_local_to_world()[3], camera->transform->get_world_rotation() * glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
 }
 
 void Player::Move(glm::vec2 direction, float elapsed) {
@@ -281,6 +282,7 @@ void Player::Move(glm::vec2 direction, float elapsed) {
 
 	// Update player's position to respect walking
 	transform->position = walk_mesh->to_world_point(at);
+    Sound::listener.set_position_right(camera->transform->make_local_to_world()[3], camera->transform->get_world_rotation() * glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
 }
 
 void Player::SetCrouch(bool _is_crouched) {

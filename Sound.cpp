@@ -26,7 +26,7 @@ namespace {
 }
 
 //public-facing data:
-const std::map<std::string, Sound::Sample> *Sound::sample_map = nullptr;
+const std::unordered_map<std::string, Sound::Sample> *Sound::sample_map = nullptr;
 
 //global static
 
@@ -248,7 +248,8 @@ void compute_pan_from_listener_and_position(
 		// but I'm going to use linear because it's sounds better to me.
 		// (feel free to change it, of course)
 		//want att = 0.5f at distance == half_volume_radius
-		float att = 1.0f / (1.0f + (distance / source_half_radius));
+//		float att = 1.0f / (1.0f + (distance / source_half_radius));
+        float att = 1.0f / (1.0f + (pow(distance, 2) / source_half_radius));
 		*left *= att;
 		*right *= att;
 	}
@@ -411,8 +412,7 @@ void mix_audio(void *, Uint8 *buffer_, int len) {
 			buffer[i].r += pan.r * current_sample;
 
 			//update position in sample:
-			playing_sample.i += 1;
-            playing_sample.blit += playing_sample.pitch - 1;
+            playing_sample.blit += playing_sample.pitch;
 
             //skip samples if blit is over 1
             if(playing_sample.blit >= 1.0f) {

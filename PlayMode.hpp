@@ -60,7 +60,7 @@ struct PlayMode : Mode {
 	Scene scene;
 
 	// Audio
-    std::map<std::string, Sound::Sample> sample_map;
+    std::unordered_map<std::string, Sound::Sample> sample_map;
 	std::shared_ptr< Sound::PlayingSample > music_loop;
 
 	// Player
@@ -105,4 +105,7 @@ struct PlayMode : Mode {
 	float score_text_popup_duration = 2.0f;
 	bool score_text_is_showing = false;
 
+    //Audio
+    float time_since_last_footstep = 1.0f;
+    const float footstep_time = 2.5f;
 };

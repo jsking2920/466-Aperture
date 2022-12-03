@@ -208,11 +208,15 @@ Load< WalkMeshes > main_walkmeshes(LoadTagDefault, []() -> WalkMeshes const * {
 });
 
 //Automatically loads samples with names listed in names vector. names vector can include paths
-Load< std::map<std::string, Sound::Sample> > audio_samples(LoadTagDefault, []() -> std::map<std::string, Sound::Sample> const* {
-    auto *sample_map = new std::map<std::string, Sound::Sample>();
+Load< std::unordered_map<std::string, Sound::Sample> > audio_samples(LoadTagDefault, []() -> std::unordered_map<std::string, Sound::Sample> const* {
+    auto *sample_map = new std::unordered_map<std::string, Sound::Sample>();
     std::vector<std::string> names = {
             //insert new samples here
             "CameraClick",
+            "FLO_Bounce",
+            "FLO_Idle",
+            "Footstep",
+            "Page_Turn"
     };
     for(std::string name : names) {
         sample_map->emplace(std::piecewise_construct, std::make_tuple(name), std::make_tuple(data_path("assets/audio/" + name + ".opus")));
@@ -793,8 +797,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
         if (player->in_cam_view) {
             //add depth of field
-            framebuffers.add_depth_of_field(player->player_camera->cur_focus, active_camera->transform->make_local_to_world() *
-                                                  glm::vec4(0, 0, 0, 1.0f));
+            framebuffers.add_depth_of_field(player->player_camera->cur_focus, active_camera->transform->make_local_to_world()[3]);
             // Copy framebuffer to main window:
             framebuffers.tone_map_to_screen(framebuffers.screen_texture);
         } else {
@@ -847,7 +850,7 @@ void PlayMode::playing_update(float elapsed) {
 	{
 		// open journal on tab, swap to journal state
 		if (tab.downs > 0) {
-			
+            Sound::play(Sound::sample_map->at("Page_Turn"));
 			player->in_cam_view = false;
 			player->SetCrouch(false);
 			score_text_is_showing = false;
@@ -881,7 +884,16 @@ void PlayMode::playing_update(float elapsed) {
 		if (down.pressed && !up.pressed) move.y = -1.0f;
 		if (!down.pressed && up.pressed) move.y = 1.0f;
 
-		if (move.x != 0.0f || move.y != 0.0f) player->Move(move, elapsed);
+		if (move.x != 0.0f || move.y != 0.0f) {
+            player->Move(move, elapsed);
+            //SFX
+            time_since_last_footstep += elapsed;
+            if(time_since_last_footstep > footstep_time/player->get_speed()) {
+                float random = ((float) rand() / (RAND_MAX)); //from https://stackoverflow.com/questions/9878965/rand-between-0-and-1
+                Sound::play(Sound::sample_map->at("Footstep"), ((float)(rand() % 2) + 4)/10, random/4 + 0.875f ); //pitch and volume randomization
+                time_since_last_footstep = 0;
+            }
+        }
 		if (player->is_crouched != lctrl.pressed) player->SetCrouch(lctrl.pressed);
 	}
 

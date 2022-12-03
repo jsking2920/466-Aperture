@@ -3,6 +3,7 @@
 #include "glm/gtx/string_cast.hpp"
 #include "BoneLitColorTextureProgram.hpp"
 #include "ShadowProgram.hpp"
+#include "Sound.hpp"
 
 #include <math.h>
 
@@ -97,6 +98,17 @@ void Creature::update(float elapsed, float time_of_day) { //movements not synced
                 const float height = 0.15f;
                 const float distance = sin((time_of_day + 4 * number) / cycle_time) * elapsed * height;
                 transform->position += glm::vec3(transform->make_world_to_local() * glm::vec4(0.0f, 0.f, distance, 0.0f));
+
+                //SFX
+                if(!sfx_loop_played && animation_player->position > 0.5f) {
+                    if(rand() % 4 == 0) {
+                        float random = ((float) rand() / (RAND_MAX));
+                        Sound::play_3D(Sound::sample_map->at("FLO_Idle"), 1.0f, glm::vec3(transform->make_local_to_world() * glm::vec4(transform->position, 1.0f)), random/4 + 0.875f, 5.0f);
+                    }
+                    sfx_loop_played = true;
+                } else if(sfx_loop_played && animation_player->position < 0.5f) {
+                    sfx_loop_played = false;
+                }
             } else if(animation_player->anim.name == "Action1") {
                 const glm::vec3 downwards_speed = glm::vec3(0.f, 0.f, -0.3f);
                 const glm::vec3 angle = glm::normalize(glm::vec3(0.5f, 0.f, 1.0f));
@@ -104,6 +116,19 @@ void Creature::update(float elapsed, float time_of_day) { //movements not synced
                 const float distance = 0.6f;
                 float speed = 1 - cos(M_2_PI * pow(x - 1, 2));
                 transform->position += distance * speed * angle + downwards_speed * elapsed;
+
+                //SFX
+                if(!sfx_loop_played && animation_player->position > 0.5f) {
+                    if(sfx_count < 20) {
+                        Sound::play_3D(Sound::sample_map->at("FLO_Bounce"), 1.0f, glm::vec3(
+                                               transform->make_local_to_world() * glm::vec4(transform->position, 1.0f)),
+                                       1.0f + 0.2 * sfx_count, 6.0f);
+                        sfx_count++;
+                    }
+                    sfx_loop_played = true;
+                } else if(sfx_loop_played && animation_player->position < 0.5f) {
+                    sfx_loop_played = false;
+                }
             }
         }
     }
@@ -121,6 +146,9 @@ void Creature::on_picture() {
 
 void Creature::play_animation(std::string const &anim_name, bool loop, float speed)
 {
+    //reset sfx variables
+    sfx_count = 0;
+    sfx_loop_played = false;
     // If current animation is equal to the one currently playing, do nothing
     if (animation_player && anim_name == animation_player->anim.name) return;
 

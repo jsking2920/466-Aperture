@@ -93,6 +93,9 @@ struct Creature {
 
     Scene::Transform *focal_point = nullptr;
 
+    //animation
+    bool sfx_loop_played = false;
+    uint32_t sfx_count = 0;
 
 };
 

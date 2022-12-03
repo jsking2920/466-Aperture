@@ -7,6 +7,7 @@
 #include <string>
 #include <cmath>
 #include <map>
+#include <unordered_map>
 
 //Game audio system. Simplified from f18-base3.
 //Uses 48kHz sampling rate.
@@ -25,7 +26,7 @@ struct Sample {
 	std::vector< float > data;
 };
 
-extern const std::map<std::string, Sample> *sample_map;
+extern const std::unordered_map<std::string, Sample> *sample_map;
 
 //Ramp<> manages values that should be smoothly interpolated
 //  to a target over a certain amount of time:
