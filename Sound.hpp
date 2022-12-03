@@ -70,9 +70,12 @@ struct PlayingSample {
 	// may result in bad results. Instead, use the functions above, which perform locking!
 	std::vector< float > const &data; //reference to sample data being played
 	uint32_t i = 0; //next data value to read
+    float blit = 0.f; //blit value for speeding up/slowing down
 	bool loop = false; //should playback loop after data runs out?
 	bool stopping = false; //is playing stopping?
 	bool stopped = false; //was playback stopped (either by running out of sample, or by stop())?
+    //does not support changing pitch mid sample
+    float pitch = 1.0f;
 
 	Ramp< float > volume = Ramp< float >(1.0f);
 
@@ -83,10 +86,10 @@ struct PlayingSample {
 	Ramp< glm::vec3 > position = Ramp< glm::vec3 >(std::numeric_limits< float >::quiet_NaN());
 	Ramp< float > half_volume_radius = std::numeric_limits< float >::quiet_NaN();
 
-	PlayingSample(Sample const &sample_, float volume_, float pan_, bool loop_)
-		: data(sample_.data), loop(loop_), volume(volume_), pan(pan_) { }
-	PlayingSample(Sample const &sample_, float volume_, glm::vec3 const &position_, float half_volume_radius_, bool loop_)
-		: data(sample_.data), loop(loop_), volume(volume_), position(position_), half_volume_radius(half_volume_radius_) { }
+	PlayingSample(Sample const &sample_, float volume_, float pan_, bool loop_, float pitch_ = 1)
+		: data(sample_.data), loop(loop_), pitch(pitch_), volume(volume_), pan(pan_) { }
+	PlayingSample(Sample const &sample_, float volume_, glm::vec3 const &position_, float half_volume_radius_, bool loop_, float pitch_ = 1)
+		: data(sample_.data), loop(loop_), pitch(pitch_), volume(volume_), position(position_), half_volume_radius(half_volume_radius_) { }
 };
 
 // ------- global functions -------
@@ -100,13 +103,15 @@ void shutdown(); //call Sound::shutdown() from main.cpp to gracefully(-ish) exit
 std::shared_ptr< PlayingSample > play(
 	Sample const &sample,
 	float volume = 1.0f,
-	float pan = 0.0f //-1.0f == hard left, 1.0f == hard right
+    float pitch = 1.0f,
+	float pan = 0.0f //-1.0f == hard left, 1.0f == hard right,
 );
 //The play_3D version will play a sample in '3D' mode (that is, panning determined by listener position):
 std::shared_ptr< PlayingSample > play_3D(
 	Sample const &sample,
 	float volume,
 	glm::vec3 const &position,
+    float pitch = 1.0f,
 	float half_volume_radius = std::numeric_limits< float >::infinity()
 );
 
@@ -115,6 +120,7 @@ std::shared_ptr< PlayingSample > play_3D(
 std::shared_ptr< PlayingSample > loop(
 	Sample const &sample,
 	float volume = 1.0f,
+    float pitch = 1.0f,
 	float pan = 0.0f //-1.0f == hard left, 1.0f == hard right
 );
 //The loop_3D version will loop a sample in '3D' mode (that is, panning determined by listener position):
@@ -122,6 +128,7 @@ std::shared_ptr< PlayingSample > loop_3D(
 	Sample const &sample,
 	float volume,
 	glm::vec3 const &position,
+    float pitch = 1.0f,
 	float half_volume_radius = std::numeric_limits< float >::infinity()
 );
 

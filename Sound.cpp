@@ -102,24 +102,24 @@ void Sound::unlock() {
 	if (device) SDL_UnlockAudioDevice(device);
 }
 
-std::shared_ptr< Sound::PlayingSample > Sound::play(Sample const &sample, float play_volume, float pan) {
-	std::shared_ptr< Sound::PlayingSample > playing_sample = std::make_shared< Sound::PlayingSample >(sample, play_volume, pan, false);
+std::shared_ptr< Sound::PlayingSample > Sound::play(Sample const &sample, float play_volume, float pitch, float pan) {
+	std::shared_ptr< Sound::PlayingSample > playing_sample = std::make_shared< Sound::PlayingSample >(sample, play_volume, pan, false, pitch);
 	lock();
 	playing_samples.emplace_back(playing_sample);
 	unlock();
 	return playing_sample;
 }
 
-std::shared_ptr< Sound::PlayingSample > Sound::play_3D(Sample const &sample, float play_volume, glm::vec3 const &position, float half_volume_radius) {
-	std::shared_ptr< Sound::PlayingSample > playing_sample = std::make_shared< Sound::PlayingSample >(sample, play_volume, position, half_volume_radius, false);
+std::shared_ptr< Sound::PlayingSample > Sound::play_3D(Sample const &sample, float play_volume, glm::vec3 const &position, float pitch, float half_volume_radius) {
+	std::shared_ptr< Sound::PlayingSample > playing_sample = std::make_shared< Sound::PlayingSample >(sample, play_volume, position, half_volume_radius, false, pitch);
 	lock();
 	playing_samples.emplace_back(playing_sample);
 	unlock();
 	return playing_sample;
 }
 
-std::shared_ptr< Sound::PlayingSample > Sound::loop(Sample const &sample, float play_volume, float pan) {
-	std::shared_ptr< Sound::PlayingSample > playing_sample = std::make_shared< Sound::PlayingSample >(sample, play_volume, pan, true);
+std::shared_ptr< Sound::PlayingSample > Sound::loop(Sample const &sample, float play_volume, float pitch, float pan) {
+	std::shared_ptr< Sound::PlayingSample > playing_sample = std::make_shared< Sound::PlayingSample >(sample, play_volume, pan, true, pitch);
 	lock();
 	playing_samples.emplace_back(playing_sample);
 	unlock();
@@ -128,8 +128,8 @@ std::shared_ptr< Sound::PlayingSample > Sound::loop(Sample const &sample, float 
 
 
 
-std::shared_ptr< Sound::PlayingSample > Sound::loop_3D(Sample const &sample, float play_volume, glm::vec3 const &position, float half_volume_radius) {
-	std::shared_ptr< Sound::PlayingSample > playing_sample = std::make_shared< Sound::PlayingSample >(sample, play_volume, position, half_volume_radius, true);
+std::shared_ptr< Sound::PlayingSample > Sound::loop_3D(Sample const &sample, float play_volume, glm::vec3 const &position, float pitch, float half_volume_radius) {
+	std::shared_ptr< Sound::PlayingSample > playing_sample = std::make_shared< Sound::PlayingSample >(sample, play_volume, position, half_volume_radius, true, pitch);
 	lock();
 	playing_samples.emplace_back(playing_sample);
 	unlock();
@@ -395,15 +395,33 @@ void mix_audio(void *, Uint8 *buffer_, int len) {
 		pan_step.r = (end_pan.r - start_pan.r) / MIX_SAMPLES;
 
 		assert(playing_sample.i < playing_sample.data.size());
+        assert(playing_sample.blit < 1.0f);
+        assert(playing_sample.blit >= 0.0f);
 
 		for (uint32_t i = 0; i < MIX_SAMPLES; ++i) {
 			//mix one sample based on current pan values:
-			buffer[i].l += pan.l * playing_sample.data[playing_sample.i];
-			buffer[i].r += pan.r * playing_sample.data[playing_sample.i];
+            float current_sample;
+            if(playing_sample.i >= playing_sample.data.size() - 1) {
+                current_sample = playing_sample.data[playing_sample.i];
+            } else {
+                current_sample =
+                        (1 - playing_sample.blit) * playing_sample.data[playing_sample.i] + playing_sample.blit * playing_sample.data[playing_sample.i + 1];
+            }
+			buffer[i].l += pan.l * current_sample;
+			buffer[i].r += pan.r * current_sample;
 
 			//update position in sample:
 			playing_sample.i += 1;
-			if (playing_sample.i == playing_sample.data.size()) {
+            playing_sample.blit += playing_sample.pitch - 1;
+
+            //skip samples if blit is over 1
+            if(playing_sample.blit >= 1.0f) {
+                uint32_t additional_samples = (uint32_t)playing_sample.blit;
+                playing_sample.i += additional_samples;
+                playing_sample.blit -= (float)additional_samples;
+            }
+
+			if (playing_sample.i >= playing_sample.data.size()) {
 				if (playing_sample.loop) {
 					playing_sample.i = 0;
 				} else {
