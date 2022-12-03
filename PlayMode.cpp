@@ -3,7 +3,7 @@
 #include "LitColorTextureProgram.hpp"
 #include "BoneLitColorTextureProgram.hpp"
 
-#include "depth_program.hpp"
+#include "ShadowProgram.hpp"
 
 #include "DrawLines.hpp"
 #include "Mesh.hpp"

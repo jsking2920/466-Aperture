@@ -1,5 +1,5 @@
 //From https://github.com/ixchow/15-466-f18-base3/
-#include "depth_program.hpp"
+#include "ShadowProgram.hpp"
 
 #include "gl_compile_program.hpp"
 #include "gl_errors.hpp"

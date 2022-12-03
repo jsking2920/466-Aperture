@@ -2,7 +2,7 @@
 #include "Scene.hpp"
 #include "glm/gtx/string_cast.hpp"
 #include "BoneLitColorTextureProgram.hpp"
-#include "depth_program.hpp"
+#include "ShadowProgram.hpp"
 
 std::map< std::string, Creature > Creature::creature_map = std::map< std::string, Creature >();
 std::map< std::string, std::vector < std::string > > Creature::creature_stats_map = std::map< std::string, std::vector < std::string > >();
