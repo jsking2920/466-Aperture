@@ -235,7 +235,7 @@ bool WalkMesh::cross_edge(WalkPoint const &start, WalkPoint *end_, glm::quat *ro
     glm::vec3 end_normal = to_world_triangle_normal(end);
 	
 	//if walking on a triangle too steep, don't
-	if (glm::dot(end_normal, glm::vec3(0.0f, 0.0f, 1.0f)) < MAX_ANGLE)
+	if (abs(glm::dot(end_normal, glm::vec3(0.0f, 0.0f, 1.0f))) < MAX_ANGLE)
 	{
 		end = start;
 		rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f); //identity quat (wxyz init order)

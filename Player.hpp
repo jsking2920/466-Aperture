@@ -53,11 +53,14 @@ struct Player {
 	WalkMesh const* walk_mesh;
 	WalkPoint at;
 
+	float walk_speed = 6.0f;
+	float run_speed = 12.0f;
 	float speed = 6.0f;
 
 	float base_cam_z;
 	float crouch_offset = 0.8f;
 	bool is_crouched = false;
+	bool is_running = false;
 	
 	// Camera in scene, at head of player; will be pitched by mouse up/down motion ("Eyes" of player)
 	Scene::Camera* camera;
@@ -69,6 +72,7 @@ struct Player {
 	std::list<std::shared_ptr<Picture>> pictures; // TODO: add an album view in game to look at these
 	
 	void SetCrouch(bool is_crouched); // Adjusts z pos of player's cameras so it looks like they crouched
+	void SetRun(bool _is_running); // Adjusts speed of player
 	void Move(glm::vec2 direction, float elapsed); // un-normalized, cardinal directions such as (-1.0f, 0.0f) -> left button only held, (1.0f, 1.0f) -> right and up buttons held, etc. 
 	void OnMouseMotion(glm::vec2 mouse_motion);
     float get_speed(); //for halving speed in cam mode

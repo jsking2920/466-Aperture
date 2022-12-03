@@ -296,6 +296,16 @@ void Player::SetCrouch(bool _is_crouched) {
 	is_crouched = _is_crouched;
 }
 
+void Player::SetRun(bool _is_running) {
+	if (_is_running) {
+		speed = run_speed;
+	}
+	else {
+		speed = walk_speed;
+	}
+	is_running = _is_running;
+}
+
 float Player::get_speed() {
 
     if (in_cam_view) {

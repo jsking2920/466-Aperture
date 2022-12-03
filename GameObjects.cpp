@@ -5,6 +5,8 @@
 #include "ShadowProgram.hpp"
 #include "Sound.hpp"
 
+//#define _USE_MATH_DEFINES << gives redefine warning ??
+#define M_2_PI     0.636619772367581343076
 #include <math.h>
 
 std::map< std::string, Creature > Creature::creature_map = std::map< std::string, Creature >();
@@ -114,7 +116,7 @@ void Creature::update(float elapsed, float time_of_day) { //movements not synced
                 const glm::vec3 angle = glm::normalize(glm::vec3(0.5f, 0.f, 1.0f));
                 const float x = fmod(animation_player->position + 0.6f, 1.0f);
                 const float distance = 0.6f;
-                float speed = 1 - cos(M_2_PI * pow(x - 1, 2));
+                float speed = 1.f - cosf(float(M_2_PI) * powf(x - 1, 2));
                 transform->position += distance * speed * angle + downwards_speed * elapsed;
 
                 //SFX
@@ -122,7 +124,7 @@ void Creature::update(float elapsed, float time_of_day) { //movements not synced
                     if(sfx_count < 20) {
                         Sound::play_3D(Sound::sample_map->at("FLO_Bounce"), 1.0f, glm::vec3(
                                                transform->make_local_to_world() * glm::vec4(transform->position, 1.0f)),
-                                       1.0f + 0.2 * sfx_count, 6.0f);
+                                       1.0f + 0.2f * sfx_count, 6.0f);
                         sfx_count++;
                     }
                     sfx_loop_played = true;

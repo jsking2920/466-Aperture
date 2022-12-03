@@ -895,6 +895,7 @@ void PlayMode::playing_update(float elapsed) {
             }
         }
 		if (player->is_crouched != lctrl.pressed) player->SetCrouch(lctrl.pressed);
+		if (player->is_running != lshift.pressed) player->SetRun(lshift.pressed);
 	}
 
 	// Player camera logic 

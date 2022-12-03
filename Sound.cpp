@@ -249,7 +249,7 @@ void compute_pan_from_listener_and_position(
 		// (feel free to change it, of course)
 		//want att = 0.5f at distance == half_volume_radius
 //		float att = 1.0f / (1.0f + (distance / source_half_radius));
-        float att = 1.0f / (1.0f + (pow(distance, 2) / source_half_radius));
+        float att = 1.0f / (1.0f + (powf(distance, 2) / source_half_radius));
 		*left *= att;
 		*right *= att;
 	}
