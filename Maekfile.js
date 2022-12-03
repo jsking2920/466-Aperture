@@ -196,7 +196,7 @@ const pack_sprites_names = [
 const game_exe = maek.LINK([...game_names, ...common_names], 'dist/aperture');
 const show_meshes_exe = maek.LINK([...show_meshes_names, ...common_names], 'scenes/show-meshes');
 const show_scene_exe = maek.LINK([...show_scene_names, ...common_names], 'scenes/show-scene');
-const pack_sprites_exe = maek.LINK([...show_scene_names, ...common_names], 'sprites/pack-sprites');
+const pack_sprites_exe = maek.LINK([...pack_sprites_names, ...common_names], 'sprites/pack-sprites');
 
 //set the default target to the game (and copy the readme files):
 maek.TARGETS = [game_exe, show_meshes_exe, show_scene_exe, pack_sprites_exe, ...copies];

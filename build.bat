@@ -27,10 +27,12 @@ node Maekfile.js -j1
 ECHO ==============================================
 
 Echo Exporting and packing sprites...
-python3 sprites/make-sprites-win.py
+:: make sure "name" is set properly in make-sprites-win.py
+python3 sprites/make-sprites-win.py 
+ECHO ==============================================
 
 Echo All done! Starting game
-.\dist\game.exe
+.\dist\aperture.exe
 
 
 

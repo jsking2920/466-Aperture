@@ -270,10 +270,10 @@ int main(int argc, char **argv) {
 						break;
 					}
 				}
-				if (ll != glm::uvec2(-1)) break;
+				if (ll != glm::uvec2(-1U)) break;
 			}
 
-			if (ll == glm::uvec2(-1)) {
+			if (ll == glm::uvec2(-1U)) {
 				//std::cout << "Failed to pack at " << size.x << "x" << size.y;
 				if (size.x <= size.y) size.x *= 2;
 				else size.y *= 2;
@@ -351,14 +351,14 @@ int main(int argc, char **argv) {
 			glm::uvec2 const &ll = packing.lls[si];
 
 			datas.emplace_back();
-			auto &data = datas.back();
-			data.name_begin = uint32_t(strings.size());
+			auto &data_ = datas.back();
+			data_.name_begin = uint32_t(strings.size());
 			strings.insert(strings.end(), sprite.name.begin(), sprite.name.end());
-			data.name_end = uint32_t(strings.size());
-			data.min_px = glm::vec2(ll);
-			data.max_px = glm::vec2(ll + sprite.size);
+			data_.name_end = uint32_t(strings.size());
+			data_.min_px = glm::vec2(ll);
+			data_.max_px = glm::vec2(ll + sprite.size);
 			//convert anchor to ll-origin:
-			data.anchor_px = glm::vec2(
+			data_.anchor_px = glm::vec2(
 				ll.x + sprite.anchor.x,
 				ll.y + sprite.size.y - sprite.anchor.y
 			);

@@ -66,8 +66,8 @@ Load< std::map< std::string, std::vector < std::string > > > creature_stats_map_
     return &Creature::creature_stats_map;
 });
 
-Load< SpriteAtlas > ui_sprite_atlas(LoadTagDefault, []() -> SpriteAtlas const* {
-	return new SpriteAtlas(data_path("assets/sprites/ui_sprites")); // Each atlas needs to have a .atlas and .png file with this name at this path
+Load< SpriteAtlas > planet_sprite_atlas(LoadTagDefault, []() -> SpriteAtlas const* {
+	return new SpriteAtlas(data_path("assets/sprites/the-planet")); // Each atlas needs to have a .atlas and .png file with this name at this path
 });
 
 GLuint main_meshes_for_lit_color_texture_program = 0;
@@ -839,6 +839,9 @@ void PlayMode::menu_draw_ui(glm::uvec2 const& drawable_size) {
 
 	display_text->draw("APERTURE", 0.3f * float(drawable_size.x), 0.5f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 	body_text->draw("press enter to start", 0.35f * float(drawable_size.x), 0.4f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+
+	DrawSprites draw(*planet_sprite_atlas, glm::vec2(0, 0), glm::vec2(1920, 1080), drawable_size);
+	draw.draw(planet_sprite_atlas->lookup("hill-bg"), glm::vec2(0.5f * float(drawable_size.x), 0.5f * float(drawable_size.x)), 1.0f);
 }
 
 // -------- Playing functions -----------

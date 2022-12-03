@@ -3,9 +3,9 @@
 # From: https://github.com/15-466/15-466-f19-base6/tree/master/sprites
 #This exists mainly to work around the (many) problems with doing (simple) CLI things on windows. Like lack of shell globbing.
 
-# intended to be run from root of repo
+# intended to be run from root of repo; results will end up in /dist/assets/sprites
 
-name = "the-planet" # name of spritees to be extracted and packed (must be shared by .xcf and .list file in the same directory)
+name = "the-planet" # name of sprites to be extracted and packed (must be shared by .xcf and .list file in the /sprites directory)
 gimp = "C:\\Program Files\\GIMP 2\\bin\\gimp-console-2.10.exe"
 
 import subprocess
@@ -40,5 +40,5 @@ print(pngs)
 
 subprocess.run([
 	"./sprites/pack-sprites.exe",
-	"./dist/assets/sprites/"
+	"./dist/assets/sprites/" + name
 ] + pngs, check=True)
