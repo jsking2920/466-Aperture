@@ -98,9 +98,9 @@ void Creature::update(float elapsed, float time_of_day) { //movements not synced
             } else if(animation_player->anim.name == "Action1") {
                 const glm::vec3 downwards_speed = glm::vec3(0.f, 0.f, -0.3f);
                 const glm::vec3 angle = glm::normalize(glm::vec3(0.5f, 0.f, 1.0f));
-                const float x = fmod(animation_player->position + 0.6f, 1);
+                const float x = fmod(animation_player->position + 0.6f, 1.0f);
                 const float distance = 0.6f;
-                const float speed = 1 - cos(M_2_PI * pow(x - 1, 2));
+                float speed = 1 - cos(M_2_PI * pow(x - 1, 2));
                 transform->position += distance * speed * angle + downwards_speed * elapsed;
             }
         }
