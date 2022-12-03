@@ -24,12 +24,7 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
         return;
     }
 
-    PictureCreatureInfo subject_info = stats.creatures_in_frame.front();
-
-    //trigger on_picture behaviors of subject (could be all creatures in frame)
-    if(glm::length(subject_info.player_to_creature) < std::max(10.f, 8 * subject_info.creature->radius)) {
-        subject_info.creature->on_picture();
-    }
+    subject_info = stats.creatures_in_frame.front();
 
     //grade subject
     {
@@ -50,8 +45,12 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
                       });
     }
 
-
     title = adjectives[rand() % adjectives->size()] + " " + subject_info.creature->name;
+
+    //trigger on_picture behaviors of subject (could be all creatures in frame)
+    if(glm::length(subject_info.player_to_creature) < std::max(10.f, 8 * subject_info.creature->radius)) {
+        subject_info.creature->on_picture();
+    }
 }
 
 std::list<ScoreElement> Picture::score_creature(PictureCreatureInfo &creature_info, PictureInfo &stats) {

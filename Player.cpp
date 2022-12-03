@@ -101,9 +101,13 @@ void PlayerCamera::TakePicture(Scene &scene) {
     }
 	*/
 
-    player->pictures->emplace_back(stats);
-    Picture &picture = player->pictures->back();
-	std::cout << picture.get_scoring_string() << std::endl;
+    auto temp = std::make_shared<Picture>(stats);
+
+    player->pictures.push_back(temp);
+    std::shared_ptr<Picture> picture = player->pictures.back();
+    //update creature stats map
+    Creature::creature_stats_map.at(picture->subject_info.creature->code).on_picture_taken(picture);
+	std::cout << picture->get_scoring_string() << std::endl;
 
 	// TODO: move save picture out of here to make it user-prompted
     // picture.save_picture_png();
@@ -197,12 +201,11 @@ Player::Player(Scene::Transform* _transform, WalkMesh const* _walk_mesh, Scene::
 	player_camera->scene_camera->transform->parent = camera->transform;
 	player_camera->scene_camera->fovy = camera->fovy;
 
-    pictures = new std::list<Picture>();
+    pictures = std::list<std::shared_ptr<Picture>>();
 }
 
 Player::~Player() {
 	delete player_camera;
-    delete pictures;
 }
 
 void Player::OnMouseMotion(glm::vec2 mouse_motion) {

@@ -17,6 +17,7 @@
 struct Picture;
 
 struct CreatureStats {
+    CreatureStats() = default;
     CreatureStats(std::vector< std::string >& strings);
 
     //Creature info
@@ -29,7 +30,8 @@ struct CreatureStats {
     //Creature statistics
     int times_photographed = 0;
     bool is_discovered() { return times_photographed > 0; }
-    Picture *best_picture;
+    std::shared_ptr<Picture> best_picture = nullptr;
+    void on_picture_taken(std::shared_ptr<Picture> picture);
 
     //index for switch statements
     int switch_index;

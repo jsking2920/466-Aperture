@@ -21,6 +21,15 @@ CreatureStats::CreatureStats(std::vector< std::string >& strings)
     switch_index = std::stoi(strings[strings.size() - 1]);
 }
 
+void CreatureStats::on_picture_taken(std::shared_ptr<Picture> picture) {
+    times_photographed++;
+
+    //save picture if better than current highest picture
+    if(!best_picture || picture->get_total_score() > best_picture->get_total_score()) {
+        best_picture = picture;
+    }
+}
+
 Creature::Creature(std::string code_, int number_) : code(code_), number(number_) {
     //populate metadata based on creature_stats
     CreatureStats &creature_stats = creature_stats_map.at(code);

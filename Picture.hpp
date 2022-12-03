@@ -3,6 +3,7 @@
 #include "Scene.hpp"
 #include "GameObjects.hpp"
 #include <glm/glm.hpp>
+#include <iostream>
 
 struct Creature;
 
@@ -22,10 +23,7 @@ struct PictureCreatureInfo {
 };
 
 //data about the picture that is used for scoring
-struct PictureInfo { 
-    
-    PictureCreatureInfo creatureInfo;
-
+struct PictureInfo {
     glm::vec2 dimensions;
     std::shared_ptr<std::vector<GLfloat>> data;
 
@@ -39,8 +37,11 @@ struct PictureInfo {
 struct Picture {
     
     PictureInfo pictureInfo;
+    PictureCreatureInfo subject_info;
+
 
     Picture() = default;
+    Picture(const Picture&) { std::cout << "yes\n"; }
     explicit Picture(PictureInfo &stats);
 
     glm::vec2 dimensions;

@@ -1009,9 +1009,9 @@ void PlayMode::playing_draw_ui(glm::uvec2 const& drawable_size) {
 
 	if (score_text_is_showing) {
 		// Draw text of last picture taken
-		if (!player->pictures->empty()) {
-			body_text->draw(player->pictures->back().title, 0.025f * float(drawable_size.x), 0.95f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
-			body_text->draw("Score: " + std::to_string(player->pictures->back().get_total_score()), 0.025f * float(drawable_size.x), 0.9f * float(drawable_size.y), 0.8f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		if (!player->pictures.empty()) {
+			body_text->draw(player->pictures.back()->title, 0.025f * float(drawable_size.x), 0.95f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+			body_text->draw("Score: " + std::to_string(player->pictures.back()->get_total_score()), 0.025f * float(drawable_size.x), 0.9f * float(drawable_size.y), 0.8f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 		}
 	}
 }
@@ -1038,10 +1038,10 @@ void PlayMode::journal_draw_ui(glm::uvec2 const& drawable_size) {
 
 	handwriting_text->draw("JOURNAL", 0.45f * float(drawable_size.x), 0.85f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 
-	float offset = 0.8f / (player->pictures->size() + 1.0f);
+	float offset = 0.8f / (player->pictures.size() + 1.0f);
 	int i = 1;
-	for (auto p = player->pictures->begin(); p != player->pictures->end(); ++p) {
-		handwriting_text->draw(p->title, 0.35f * float(drawable_size.x), (0.8f - (offset * i)) * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+	for (auto p = player->pictures.begin(); p != player->pictures.end(); ++p) {
+		handwriting_text->draw((*p)->title, 0.35f * float(drawable_size.x), (0.8f - (offset * i)) * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 		i++;
 	}
 }
