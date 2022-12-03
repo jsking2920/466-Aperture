@@ -69,7 +69,7 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
         glBindTexture(GL_TEXTURE_2D, tex);
 
         // Upload pixel data
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dimensions.x, dimensions.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei)dimensions.x, (GLsizei)dimensions.y, 0, GL_RGBA, GL_FLOAT, &data);
 
         // Set filtering and wrapping parameters
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
