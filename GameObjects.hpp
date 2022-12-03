@@ -3,6 +3,7 @@
 #include "Mode.hpp"
 #include "Scene.hpp"
 #include "BoneAnimation.hpp"
+#include "Picture.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
@@ -13,11 +14,32 @@
 33 characters and then a number
 */
 
+struct Picture;
+
+struct CreatureStats {
+    CreatureStats(std::vector< std::string >& strings);
+
+    //Creature info
+    std::string code = "ERR";
+    std::string name = "Unknown Creature";
+    std::string description = "No Description";
+    int score = 1000;
+    float radius = 0.5f;
+
+    //Creature statistics
+    int times_photographed = 0;
+    bool is_discovered() { return times_photographed > 0; }
+    Picture *best_picture;
+
+    //index for switch statements
+    int switch_index;
+};
+
 //idea: make a mast struct/class that's the creature
 struct Creature {
     // Reference to the creatures
     static std::map< std::string, Creature > creature_map;
-    static std::map< std::string, std::vector < std::string > > creature_stats_map;
+    static std::map< std::string, CreatureStats > creature_stats_map;
 
     //constructor
     Creature() = default;

@@ -5,21 +5,33 @@
 #include "ShadowProgram.hpp"
 
 std::map< std::string, Creature > Creature::creature_map = std::map< std::string, Creature >();
-std::map< std::string, std::vector < std::string > > Creature::creature_stats_map = std::map< std::string, std::vector < std::string > >();
+std::map< std::string, CreatureStats > Creature::creature_stats_map = std::map< std::string, CreatureStats >();
 
+
+CreatureStats::CreatureStats(std::vector< std::string >& strings)
+{
+    assert(strings.size() == 6); //if assert fails, you probably added a field to the csv that must be added here!
+    code = strings[0];
+    name = strings[1];
+    description = strings[2];
+    score = std::stoi(strings[3]);
+    radius = std::stof(strings[4]);
+
+    //must be last
+    switch_index = std::stoi(strings[strings.size() - 1]);
+}
 
 Creature::Creature(std::string code_, int number_) : code(code_), number(number_) {
     //populate metadata based on creature_stats
-    std::vector < std::string > &creature_stats = creature_stats_map[code];
-    assert(code == creature_stats[0]);
-    assert(creature_stats.size() == 6); //if assert fails, you probably added a field to the csv that must be added here!
-    name = creature_stats[1];
-    description = creature_stats[2];
-    score = std::stoi(creature_stats[3]);
-    radius = std::stof(creature_stats[4]);
+    CreatureStats &creature_stats = creature_stats_map.at(code);
+    assert(code == creature_stats.code);
+    name = creature_stats.name;
+    description = creature_stats.description;
+    score = creature_stats.score;
+    radius = creature_stats.radius;
 
     //must be last
-    switch_index = std::stoi(creature_stats[creature_stats.size() - 1]);
+    switch_index = creature_stats.switch_index;
 }
 
 //add to constructor?
@@ -148,4 +160,3 @@ std::string Creature::get_code_and_number(std::string code, int number) {
     }
     return full_code;
 }
-

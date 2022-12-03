@@ -24,7 +24,7 @@
 #include <random>
 
 
-Load< std::map< std::string, std::vector < std::string > > > creature_stats_map_load(LoadTagEarly, []() -> std::map< std::string, std::vector < std::string > > const* {
+Load< std::map< std::string, CreatureStats > > creature_stats_map_load(LoadTagEarly, []() -> std::map< std::string, CreatureStats > const* {
     //Automatically parses Creature csv and puts results in Creature::creature_stats_map
     //TODO: make the stats a struct, not a vector of strings (low priority)
     Creature::creature_stats_map.clear();
@@ -42,11 +42,10 @@ Load< std::map< std::string, std::vector < std::string > > > creature_stats_map_
         size_t delimiter_pos = 0;
         //get code
         delimiter_pos = buffer.find(',');
-        std::string code = buffer.substr(0, delimiter_pos);
+        const std::string code = buffer.substr(0, delimiter_pos);
         buffer.erase(0, delimiter_pos + 1);
 
-        Creature::creature_stats_map.emplace(std::piecewise_construct, make_tuple(code), std::make_tuple());
-        std::vector<std::string> &row = Creature::creature_stats_map[code];
+        std::vector<std::string> row;
         //row.reserve(buffer.length);
         row.push_back(code);
 
@@ -61,6 +60,8 @@ Load< std::map< std::string, std::vector < std::string > > > creature_stats_map_
         buffer.erase(0, delimiter_pos + 1);
         //push back switch index
         row.push_back(std::to_string(index));
+        CreatureStats temp(row);
+        Creature::creature_stats_map.emplace(std::piecewise_construct, std::make_tuple(code), std::forward_as_tuple(row));
     }
     return &Creature::creature_stats_map;
 });
@@ -100,7 +101,7 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
         Scene::Drawable &drawable = scene.drawables.back();
 
         //to find if creature (has anims)
-        auto is_creature = [&](std::pair< std::string, std::vector < std::string > > pair) {
+        auto is_creature = [&](std::pair< std::string, CreatureStats > pair) {
             return pair.first == transform->name.substr(0, 3);
         };
 

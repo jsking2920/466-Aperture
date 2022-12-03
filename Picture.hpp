@@ -4,6 +4,8 @@
 #include "GameObjects.hpp"
 #include <glm/glm.hpp>
 
+struct Creature;
+
 struct ScoreElement {
 
     ScoreElement(std::string _name, uint32_t _value) : name(_name), value(_value) {};
