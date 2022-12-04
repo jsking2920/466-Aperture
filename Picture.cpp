@@ -7,6 +7,8 @@
 #include "GL.hpp"
 #include <glm/glm.hpp>
 #include "gl_errors.hpp"
+#include "Framebuffers.hpp"
+#include "gl_check_fb.hpp"
 // for glm::value_ptr()
 #include <glm/gtc/type_ptr.hpp>
 
@@ -69,10 +71,8 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
         // Bind the new texture object
         glBindTexture(GL_TEXTURE_2D, tex);
 
-        // Upload pixel data
+        // init the texture
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, (GLsizei)dimensions.x, (GLsizei)dimensions.y, 0, GL_RGB, GL_FLOAT, data->data());
-
-//        glBindFramebuffer(GL_FRAMEBUFFER, picture_fb);
 
         // Set filtering and wrapping parameters
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -80,6 +80,12 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glGenerateMipmap(GL_TEXTURE_2D);
+
+        //attach texture to picture_fb and tone map to it
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.picture_fb);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
+        gl_check_fb(); //performance?
+        framebuffers.tone_map_to_screen(framebuffers.picture_fb);
 
         // Unbind the texture object:
         glBindTexture(GL_TEXTURE_2D, 0);
