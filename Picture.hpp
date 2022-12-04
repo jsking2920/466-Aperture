@@ -16,7 +16,7 @@ struct ScoreElement {
 
 struct PictureCreatureInfo {
 
-    Creature* creature;
+    Creature* creature = nullptr;
     float frag_count;
     glm::vec3 player_to_creature;
     std::vector<bool> are_focal_points_in_frame;

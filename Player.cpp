@@ -106,7 +106,9 @@ void PlayerCamera::TakePicture(Scene &scene) {
     player->pictures.push_back(temp);
     std::shared_ptr<Picture> picture = player->pictures.back();
     //update creature stats map
-    Creature::creature_stats_map.at(picture->subject_info.creature->code).on_picture_taken(picture);
+    if(picture->subject_info.creature) {
+        Creature::creature_stats_map.at(picture->subject_info.creature->code).on_picture_taken(picture);
+    }
 	std::cout << picture->get_scoring_string() << std::endl;
 
 	// TODO: move save picture out of here to make it user-prompted
