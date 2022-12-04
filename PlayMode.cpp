@@ -68,8 +68,8 @@ Load< std::map< std::string, CreatureStats > > creature_stats_map_load(LoadTagEa
     return &Creature::creature_stats_map;
 });
 
-Load< SpriteAtlas > planet_sprite_atlas(LoadTagDefault, []() -> SpriteAtlas const* {
-	return new SpriteAtlas(data_path("assets/sprites/the-planet")); // Each atlas needs to have a .atlas and .png file with this name at this path
+Load< SpriteAtlas > ui_sprites_atlas(LoadTagDefault, []() -> SpriteAtlas const* {
+	return new SpriteAtlas(data_path("assets/sprites/ui_sprites")); // Each atlas needs to have a .atlas and .png file with this name at this path
 });
 
 GLuint main_meshes_for_lit_color_texture_program = 0;
@@ -262,9 +262,6 @@ PlayMode::PlayMode() : scene(*main_scene) {
 	handwriting_text = new TextRenderer(data_path("assets/fonts/PoorStory-Regular.ttf"), handwriting_font_size);
 	body_text = new TextRenderer(data_path("assets/fonts/Sono-Regular.ttf"), body_font_size);
 	barcode_text = new TextRenderer(data_path("assets/fonts/LibreBarcode128Text-Regular.ttf"), barcode_font_size);
-
-	// Get sprite atlas
-	//ui_sprites = &ui_sprite_atlas;
 
     //load audio samples
     sample_map = *audio_samples;
@@ -854,9 +851,6 @@ void PlayMode::menu_draw_ui(glm::uvec2 const& drawable_size) {
 
 	display_text->draw("APERTURE", 0.3f * float(drawable_size.x), 0.5f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 	body_text->draw("press enter to start", 0.35f * float(drawable_size.x), 0.4f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
-
-	DrawSprites draw(*planet_sprite_atlas, glm::vec2(0, 0), glm::vec2(1920, 1080), drawable_size);
-	draw.draw(planet_sprite_atlas->lookup("hill-bg"), glm::vec2(0.5f * float(drawable_size.x), 0.5f * float(drawable_size.x)), 1.0f);
 }
 
 // -------- Playing functions -----------
@@ -1065,14 +1059,19 @@ void PlayMode::journal_update(float elapsed) {
 
 void PlayMode::journal_draw_ui(glm::uvec2 const& drawable_size) {
 
-	handwriting_text->draw("JOURNAL", 0.45f * float(drawable_size.x), 0.85f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+	// Draw blank book background for journal
+	DrawSprites draw(*ui_sprites_atlas, glm::vec2(0, 0), glm::vec2(1920, 1080), drawable_size);
+	draw.draw(ui_sprites_atlas->lookup("journal_bg"), glm::vec2(0.62f * float(drawable_size.x), 0.65f * float(drawable_size.y)), 1.0f);
+	
+	// Page title
+	handwriting_text->draw("JOURNAL", 0.25f * float(drawable_size.x), 0.75f * float(drawable_size.y), 1.0f, journal_text_color, float(drawable_size.x), float(drawable_size.y));
 
 	// Draw every picture taken by the player
 	float offset = 0.8f / (player->pictures.size() + 1.0f);
 	int i = 1;
 	for (auto p = player->pictures.begin(); p != player->pictures.end(); ++p) {
 		// title
-		handwriting_text->draw((*p)->title, 0.15f * float(drawable_size.x), (0.8f - (offset * i)) * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		handwriting_text->draw((*p)->title, 0.15f * float(drawable_size.x), (0.8f - (offset * i)) * float(drawable_size.y), 1.0f, journal_text_color, float(drawable_size.x), float(drawable_size.y));
 		// actual picture
 		DrawPicture pic(**p, drawable_size);
 		// scale is relative to entire screen resolution, so 1 means full screen coverage

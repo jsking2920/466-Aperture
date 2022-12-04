@@ -99,9 +99,8 @@ struct PlayMode : Mode {
 	uint8_t body_font_size = 48;
 	TextRenderer* barcode_text = nullptr;
 	uint8_t barcode_font_size = 36;
-	
-	// UI
-	//SpriteAtlas* ui_sprites = nullptr;
+
+	glm::vec3 journal_text_color = glm::vec3(0.22f, 0.21f, 0.19f);
 
 	float score_text_popup_timer = 0.0f;
 	float score_text_popup_duration = 2.0f;

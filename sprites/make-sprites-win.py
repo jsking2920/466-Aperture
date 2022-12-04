@@ -5,7 +5,7 @@
 
 # intended to be run from root of repo; results will end up in /dist/assets/sprites
 
-name = "the-planet" # name of sprites to be extracted and packed (must be shared by .xcf and .list file in the /sprites directory)
+name = "ui_sprites" # name of sprites to be extracted and packed (must be shared by .xcf and .list file in the /sprites directory)
 gimp = "C:\\Program Files\\GIMP 2\\bin\\gimp-console-2.10.exe"
 
 import subprocess
