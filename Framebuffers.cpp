@@ -369,7 +369,7 @@ void Framebuffers::tone_map_to_screen(GLuint texture) {
     GL_ERRORS();
 }
 
-constexpr uint32_t KERNEL_RADIUS = 30;
+constexpr uint32_t KERNEL_RADIUS = 20;
 std::array< float, KERNEL_RADIUS > bloom_kernel = ([](){
     std::array< float, KERNEL_RADIUS > weights;
     //compute a bloom kernel as a somewhat peaked distribution,

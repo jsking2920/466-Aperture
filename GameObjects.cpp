@@ -6,7 +6,7 @@
 #include "Sound.hpp"
 
 //#define _USE_MATH_DEFINES << gives redefine warning ??
-#define M_2_PI     0.636619772367581343076
+//#define M_2_PI     0.636619772367581343076
 #include <math.h>
 
 std::map< std::string, Creature > Creature::creature_map = std::map< std::string, Creature >();
