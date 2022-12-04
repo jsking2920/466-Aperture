@@ -69,7 +69,7 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
         glBindTexture(GL_TEXTURE_2D, tex);
 
         // Upload pixel data
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei)dimensions.x, (GLsizei)dimensions.y, 0, GL_RGBA, GL_FLOAT, &data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, (GLsizei)dimensions.x, (GLsizei)dimensions.y, 0, GL_RGB, GL_FLOAT, data->data());
 
         // Set filtering and wrapping parameters
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -78,7 +78,7 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glGenerateMipmap(GL_TEXTURE_2D);
 
-        //unbind the texture object:
+        // Unbind the texture object:
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 }

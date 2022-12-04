@@ -1042,10 +1042,16 @@ void PlayMode::journal_draw_ui(glm::uvec2 const& drawable_size) {
 
 	handwriting_text->draw("JOURNAL", 0.45f * float(drawable_size.x), 0.85f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 
+	// Draw every picture taken by the player
 	float offset = 0.8f / (player->pictures->size() + 1.0f);
 	int i = 1;
 	for (auto p = player->pictures->begin(); p != player->pictures->end(); ++p) {
-		handwriting_text->draw(p->title, 0.35f * float(drawable_size.x), (0.8f - (offset * i)) * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		// title
+		handwriting_text->draw(p->title, 0.15f * float(drawable_size.x), (0.8f - (offset * i)) * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		// actual picture
+		DrawPicture pic(*p, drawable_size);
+		// scale is relative to entire screen resolution, so 1 means full screen coverage
+		pic.draw(glm::vec2(0.5f * float(drawable_size.x), (0.8f - (offset * i)) * float(drawable_size.y)), 0.1f);
 		i++;
 	}
 }
