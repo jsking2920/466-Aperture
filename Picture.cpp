@@ -22,42 +22,41 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
         title = "Pure Emptiness";
         score_elements.emplace_back("Relatable", (uint32_t)500);
         score_elements.emplace_back("Deep", (uint32_t)500);
-        return;
-    }
-
-    if (stats.creatures_in_frame.empty()) {
+    } else if (stats.creatures_in_frame.empty()) {
         //TODO: once we add in some points for nature, make this better
         title = "Beautiful Nature";
         score_elements.emplace_back("So peaceful!", (uint32_t)2000);
-        return;
+    } else {
+
+        PictureCreatureInfo subject_info = stats.creatures_in_frame.front();
+
+        //trigger on_picture behaviors of subject (could be all creatures in frame)
+        subject_info.creature->on_picture();
+
+        //grade subject
+        {
+            //Magnificence
+            score_elements.emplace_back(subject_info.creature->name, subject_info.creature->score);
+            auto result = score_creature(subject_info, stats);
+            score_elements.insert(score_elements.end(), result.begin(),
+                                  result.end()); //from https://stackoverflow.com/q/1449703
+        }
+
+        {
+            //Add bonus points for additional subjects
+            std::for_each(std::next(stats.creatures_in_frame.begin()), stats.creatures_in_frame.end(),
+                          [&](PictureCreatureInfo creature_info) {
+                              auto result = score_creature(creature_info, stats);
+                              int total_score = creature_info.creature->score;
+                              std::for_each(result.begin(), result.end(),
+                                            [&](ScoreElement el) { total_score += el.value; });
+                              score_elements.emplace_back("Bonus " + creature_info.creature->transform->name,
+                                                          (uint32_t) (total_score / 10));
+                          });
+        }
+
+        title = adjectives[rand() % adjectives->size()] + " " + subject_info.creature->name;
     }
-
-    PictureCreatureInfo subject_info = stats.creatures_in_frame.front();
-
-    //trigger on_picture behaviors of subject (could be all creatures in frame)
-    subject_info.creature->on_picture();
-
-    //grade subject
-    {
-        //Magnificence
-        score_elements.emplace_back(subject_info.creature->name, subject_info.creature->score);
-        auto result = score_creature(subject_info, stats);
-        score_elements.insert(score_elements.end(), result.begin(), result.end()); //from https://stackoverflow.com/q/1449703
-    }
-
-    {
-        //Add bonus points for additional subjects
-        std::for_each(std::next(stats.creatures_in_frame.begin()), stats.creatures_in_frame.end(),
-                      [&](PictureCreatureInfo creature_info) {
-                          auto result = score_creature(creature_info, stats);
-                          int total_score = creature_info.creature->score;
-                          std::for_each(result.begin(), result.end(), [&](ScoreElement el) { total_score += el.value; });
-                          score_elements.emplace_back("Bonus " + creature_info.creature->transform->name, (uint32_t)(total_score / 10));
-                      });
-    }
-
-    title = adjectives[rand() % adjectives->size()] + " " + subject_info.creature->name;
-
     // Create a texture for this picture, to be used for drawing it
     {
         // Upload the texture data to the GPU
