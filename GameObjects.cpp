@@ -85,33 +85,33 @@ void Creature::update(float elapsed, float time_of_day) { //movements not synced
     animation_player->update(elapsed);
 
     //in hindsight I probably should have just done a big if statement but this is more efficient i believe
-    switch(switch_index) {
+    switch (switch_index) {
         case 0: { //FLOATER
-            if(!animation_player) { break; }
+            if (!animation_player) { break; }
             //floater idle anim
-            else if(animation_player->anim.name == "Idle") {
+            else if (animation_player->anim.name == "Idle") {
                 //gentle float up and down
-                const float cycle_time = 3.f;
+                const float cycle_time = 3.0f;
                 const float height = 0.15f;
                 const float distance = sin((time_of_day + 4 * number) / cycle_time) * elapsed * height;
-                transform->position += glm::vec3(transform->make_world_to_local() * glm::vec4(0.0f, 0.f, distance, 0.0f));
+                transform->position += glm::vec3(transform->make_world_to_local() * glm::vec4(0.0f, 0.0f, distance, 0.0f));
 
                 //SFX
-                if(!sfx_loop_played && animation_player->position > 0.5f) {
-                    if(rand() % 4 == 0) {
+                if (!sfx_loop_played && animation_player->position > 0.5f) {
+                    if (rand() % 4 == 0) {
                         float random = ((float) rand() / (RAND_MAX));
-                        Sound::play_3D(Sound::sample_map->at("FLO_Idle"), 1.0f, glm::vec3(transform->make_local_to_world() * glm::vec4(transform->position, 1.0f)), random/4 + 0.875f, 5.0f);
+                        Sound::play_3D(Sound::sample_map->at("FLO_Idle"), 1.0f, glm::vec3(transform->make_local_to_world() * glm::vec4(transform->position, 1.0f)), random / 4.0f + 0.875f, 5.0f);
                     }
                     sfx_loop_played = true;
-                } else if(sfx_loop_played && animation_player->position < 0.5f) {
+                } else if (sfx_loop_played && animation_player->position < 0.5f) {
                     sfx_loop_played = false;
                 }
-            } else if(animation_player->anim.name == "Action1") {
-                const glm::vec3 downwards_speed = glm::vec3(0.f, 0.f, -0.3f);
-                const glm::vec3 angle = glm::normalize(glm::vec3(0.5f, 0.f, 1.0f));
+            } else if (animation_player->anim.name == "Action1") {
+                const glm::vec3 downwards_speed = glm::vec3(0.0f, 0.0f, -0.3f);
+                const glm::vec3 angle = glm::normalize(glm::vec3(0.5f, 0.0f, 1.0f));
                 const float x = fmod(animation_player->position + 0.8f, 1.0f);
                 const float distance = 0.05f;
-                float speed = 1 - cos((2 * M_PI) * pow(x - 1, 2));
+                float speed = 1.0f - (float)cos((2.0f * M_PI) * pow(x - 1.0f, 2));
                 transform->position += distance * speed * angle + downwards_speed * elapsed;
 
                 //SFX
