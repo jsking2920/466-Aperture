@@ -116,7 +116,7 @@ void Creature::update(float elapsed, float time_of_day) { //movements not synced
                 const glm::vec3 angle = glm::normalize(glm::vec3(0.5f, 0.f, 1.0f));
                 const float x = fmod(animation_player->position + 0.6f, 1.0f);
                 const float distance = 0.6f;
-                float speed = 1.f - cosf(float(M_2_PI) * powf(x - 1, 2));
+                float speed = 1.f - cosf(float(2 * M_PI) * powf(x - 1, 2));
                 transform->position += distance * speed * angle + downwards_speed * elapsed;
 
                 //SFX
