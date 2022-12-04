@@ -278,6 +278,24 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size, glm::uvec2 const &ne
         GL_ERRORS();
     }
 
+    // Resize picture_fb
+    {
+        // set up picture_fb if not yet named
+        if (picture_fb == 0) {
+            glGenFramebuffers(1, &picture_fb);
+            glBindFramebuffer(GL_FRAMEBUFFER, picture_fb);
+            //temporary bind to appease gl_check_fb()
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, screen_texture, 0);
+        }
+
+        // make sure picture_fb isn't borked
+        glBindFramebuffer(GL_FRAMEBUFFER, picture_fb);
+        gl_check_fb(); //<-- helper function to check framebuffer completeness
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        GL_ERRORS();
+    }
+
+
     // Check for gl errors
     GL_ERRORS();
 }

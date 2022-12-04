@@ -9,20 +9,32 @@
 @ECHO OFF
 ECHO Running pipeline and building game.exe
 ECHO ==============================================
+
 Echo Exporting meshes...
 "C:\Program Files\Blender Foundation\Blender 3.2\blender.exe" --background --python scenes/export-meshes.py -- scenes/proto-world2.blend dist/assets/proto-world2.pnct
 ECHO ==============================================
+
 Echo Exporting walkmesh...
 "C:\Program Files\Blender Foundation\Blender 3.2\blender.exe" --background --python scenes/export-walkmeshes.py -- scenes/proto-world2.blend:WalkMeshes dist/assets/proto-world2.w
 ECHO ==============================================
+
 Echo Exporting scene...
 "C:\Program Files\Blender Foundation\Blender 3.2\blender.exe" --background --python scenes/export-scene.py -- scenes/proto-world2.blend dist/assets/proto-world2.scene
 ECHO ==============================================
+
 Echo Running maekfile...
-node Maekfile.js -j1 &
+node Maekfile.js -j1
 ECHO ==============================================
+
+Echo Exporting and packing sprites...
+:: make sure "name" is set properly in make-sprites-win.py
+python3 sprites/make-sprites-win.py 
+ECHO ==============================================
+
 Echo All done! Starting game
-.\dist\game.exe
+.\dist\aperture.exe
+
+
 
 :: Some other possible commands
 :: Non-woring script for cleaning up transparent pixels in textures: python3 ./scenes/clean-textures.py ./dist/assets/textures/

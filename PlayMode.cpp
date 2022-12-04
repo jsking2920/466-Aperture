@@ -6,6 +6,8 @@
 #include "ShadowProgram.hpp"
 
 #include "DrawLines.hpp"
+#include "Sprite.hpp"
+#include "DrawSprites.hpp"
 #include "Mesh.hpp"
 #include "Load.hpp"
 #include "gl_errors.hpp"
@@ -20,10 +22,10 @@
 #include <filesystem>
 #include <fstream>
 #include <algorithm>
-
 #include <random>
 
 
+// -------- Loading functions -----------
 Load< std::map< std::string, CreatureStats > > creature_stats_map_load(LoadTagEarly, []() -> std::map< std::string, CreatureStats > const* {
     //Automatically parses Creature csv and puts results in Creature::creature_stats_map
     //TODO: make the stats a struct, not a vector of strings (low priority)
@@ -64,6 +66,10 @@ Load< std::map< std::string, CreatureStats > > creature_stats_map_load(LoadTagEa
         Creature::creature_stats_map.emplace(std::piecewise_construct, std::make_tuple(code), std::forward_as_tuple(row));
     }
     return &Creature::creature_stats_map;
+});
+
+Load< SpriteAtlas > planet_sprite_atlas(LoadTagDefault, []() -> SpriteAtlas const* {
+	return new SpriteAtlas(data_path("assets/sprites/the-planet")); // Each atlas needs to have a .atlas and .png file with this name at this path
 });
 
 GLuint main_meshes_for_lit_color_texture_program = 0;
@@ -224,6 +230,8 @@ Load< std::unordered_map<std::string, Sound::Sample> > audio_samples(LoadTagDefa
     return sample_map;
 });
 
+
+//* -------- Mode initializationand cleanup ---------- */
 PlayMode::PlayMode() : scene(*main_scene) {
 	
     // Change depth buffer comparison function to be leq instead of less to correctly occlude in object detection
@@ -254,6 +262,9 @@ PlayMode::PlayMode() : scene(*main_scene) {
 	handwriting_text = new TextRenderer(data_path("assets/fonts/PoorStory-Regular.ttf"), handwriting_font_size);
 	body_text = new TextRenderer(data_path("assets/fonts/Sono-Regular.ttf"), body_font_size);
 	barcode_text = new TextRenderer(data_path("assets/fonts/LibreBarcode128Text-Regular.ttf"), barcode_font_size);
+
+	// Get sprite atlas
+	//ui_sprites = &ui_sprite_atlas;
 
     //load audio samples
     sample_map = *audio_samples;
@@ -309,6 +320,7 @@ PlayMode::~PlayMode() {
 	delete player;
     Sound::sample_map = nullptr;
 }
+
 
 // -------- Main functions -----------
 bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size) {
@@ -825,6 +837,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	GL_ERRORS();
 }
 
+
 // -------- Menu functions -----------
 void PlayMode::menu_update(float elapsed) {
 
@@ -841,6 +854,9 @@ void PlayMode::menu_draw_ui(glm::uvec2 const& drawable_size) {
 
 	display_text->draw("APERTURE", 0.3f * float(drawable_size.x), 0.5f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 	body_text->draw("press enter to start", 0.35f * float(drawable_size.x), 0.4f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+
+	DrawSprites draw(*planet_sprite_atlas, glm::vec2(0, 0), glm::vec2(1920, 1080), drawable_size);
+	draw.draw(planet_sprite_atlas->lookup("hill-bg"), glm::vec2(0.5f * float(drawable_size.x), 0.5f * float(drawable_size.x)), 1.0f);
 }
 
 // -------- Playing functions -----------
@@ -1051,10 +1067,16 @@ void PlayMode::journal_draw_ui(glm::uvec2 const& drawable_size) {
 
 	handwriting_text->draw("JOURNAL", 0.45f * float(drawable_size.x), 0.85f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 
+	// Draw every picture taken by the player
 	float offset = 0.8f / (player->pictures.size() + 1.0f);
 	int i = 1;
 	for (auto p = player->pictures.begin(); p != player->pictures.end(); ++p) {
-		handwriting_text->draw((*p)->title, 0.35f * float(drawable_size.x), (0.8f - (offset * i)) * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		// title
+		handwriting_text->draw((*p)->title, 0.15f * float(drawable_size.x), (0.8f - (offset * i)) * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		// actual picture
+		DrawPicture pic(**p, drawable_size);
+		// scale is relative to entire screen resolution, so 1 means full screen coverage
+		pic.draw(glm::vec2(0.5f * float(drawable_size.x), (0.8f - (offset * i)) * float(drawable_size.y)), 0.1f);
 		i++;
 	}
 }

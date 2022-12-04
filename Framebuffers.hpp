@@ -42,6 +42,9 @@ struct Framebuffers {
     GLuint depth_effect_fb = 0;
     GLuint depth_effect_tex = 0;
 
+    //Object for picture transfer = 0;
+    GLuint picture_fb = 0;
+
     void tone_map_to_screen(GLuint texture); //copy ms_color_tex to screen with tone mapping applied
     void add_depth_of_field(float focal_distance, glm::vec3 player_pos); //do a basic bloom effect on the screen_texture
     void add_depth_effects(float fog_intensity, float fog_exp, glm::vec3 fog_color);

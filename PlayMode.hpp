@@ -101,6 +101,8 @@ struct PlayMode : Mode {
 	uint8_t barcode_font_size = 36;
 	
 	// UI
+	//SpriteAtlas* ui_sprites = nullptr;
+
 	float score_text_popup_timer = 0.0f;
 	float score_text_popup_duration = 2.0f;
 	bool score_text_is_showing = false;
