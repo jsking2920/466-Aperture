@@ -108,7 +108,7 @@ void Scene::draw(Drawable::PassType pass_type, glm::mat4 const &world_to_clip, g
     if (pass_type == Drawable::PassTypeDefault || pass_type == Drawable::PassTypeInCamera){
         //Iterate through all drawables that aren't marked as occluded, sending each one to OpenGL:
         for (auto const &drawable: drawables) {
-            if (drawable.render_to_screen && drawable.frag_count) {
+            if (drawable.render_to_screen /*&& drawable.frag_count*/) {
                 render_drawable(drawable, Drawable::ProgramTypeDefault, world_to_clip, world_to_light);
 //                std::cout << "drawing " << drawable.transform->name << std::endl;
             }
@@ -154,8 +154,8 @@ void Scene::draw(Drawable::PassType pass_type, glm::mat4 const &world_to_clip, g
 
 void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scene::Drawable &, GLuint>> &occlusion_results, std::vector<GLfloat> &data) {
     assert(camera.transform);
-//    glm::mat4 world_to_clip = camera.make_projection() * glm::mat4(camera.transform->make_world_to_local());
-//    glm::mat4x3 world_to_light = glm::mat4x3(1.0f);
+    glm::mat4 world_to_clip = camera.make_projection() * glm::mat4(camera.transform->make_world_to_local());
+    glm::mat4x3 world_to_light = glm::mat4x3(1.0f);
 
     //transform rgb16f texture to rgba8ui texture for export
     //code modeled after this snippet https://stackoverflow.com/questions/48938930/pixel-access-with-glgetteximage
@@ -163,10 +163,34 @@ void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scen
     glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_FLOAT, data.data());
     glBindTexture(GL_TEXTURE_2D, 0);
     GL_ERRORS();
+    //run query for each drawable
+    glEnable(GL_DEPTH_TEST);
+//    //bind renderbuffers for rendering
+////    glBindRenderbuffer(GL_RENDERBUFFER, framebuffers.ms_depth_rb);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.oc_fb);
+
+//    glClear(GL_COLOR_BUFFER_BIT);
 
     for(auto &drawable : drawables) {
-        if(drawable.frag_count> 0) {
-            occlusion_results.emplace_back(drawable, drawable.frag_count);
+//        GLuint query = drawable.query;
+//        if(!drawable.render_to_picture) {
+//            continue;
+//        }
+//        //query syntax from https://www.reddit.com/r/opengl/comments/1pv8qe/how_do_occlusion_queries_work/
+//        if(!glIsQuery(query)) {
+//            glGenQueries(1, &query);
+//        }
+//        glBeginQuery(GL_SAMPLES_PASSED, query);
+        drawable.queries.StartQuery();
+        render_drawable(drawable, Scene::Drawable::ProgramTypeShadow, world_to_clip, world_to_light);
+        drawable.queries.EndQuery();
+    }
+
+    //second loop for fetching to give gpu extra time to finish queries
+    for(auto &drawable : drawables) {
+        GLuint results = drawable.queries.wait_for_query();
+        if (results > 0) {
+            occlusion_results.emplace_back(drawable, results);
         }
     }
 

@@ -66,7 +66,7 @@ struct Scene {
         //conditional drawing
         bool render_to_screen = true;
         bool render_to_picture = true;
-        GLuint frag_count = 1; //for later use in object occlusion
+        GLuint frag_count = 0; //for later use in object occlusion
         bool uses_vertex_color = false;
         float roughness = 0.9f;
 
