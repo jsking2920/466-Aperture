@@ -1062,6 +1062,7 @@ void PlayMode::journal_draw_ui(glm::uvec2 const& drawable_size) {
 	// Draw blank book background for journal
 	DrawSprites draw(*ui_sprites_atlas, glm::vec2(0, 0), glm::vec2(1920, 1080), drawable_size);
 	draw.draw(ui_sprites_atlas->lookup("journal_bg"), glm::vec2(0.62f * float(drawable_size.x), 0.65f * float(drawable_size.y)), 1.0f);
+	draw.flush_sprite_buffer();
 	
 	// Page title
 	handwriting_text->draw("JOURNAL", 0.25f * float(drawable_size.x), 0.75f * float(drawable_size.y), 1.0f, journal_text_color, float(drawable_size.x), float(drawable_size.y));

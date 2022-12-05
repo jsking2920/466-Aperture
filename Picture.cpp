@@ -336,11 +336,7 @@ void DrawPicture::draw(glm::vec2 const& center, float scale, glm::u8vec4 const& 
     attribs.emplace_back(glm::vec2(min.x, min.y), glm::vec2(min_tc.x, min_tc.y), tint);
     attribs.emplace_back(glm::vec2(max.x, max.y), glm::vec2(max_tc.x, max_tc.y), tint);
     attribs.emplace_back(glm::vec2(min.x, max.y), glm::vec2(min_tc.x, max_tc.y), tint);
-}
 
-DrawPicture::~DrawPicture() {
-
-    if (attribs.empty()) return;
 
     //upload vertices to vertex_buffer:
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer); //set vertex_buffer as current
@@ -355,6 +351,9 @@ DrawPicture::~DrawPicture() {
 
     //use the mapping vertex_buffer_for_color_texture_program to fetch vertex data:
     glBindVertexArray(vertex_buffer_for_color_texture_program);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     //bind the sprite texture to location zero:
     glActiveTexture(GL_TEXTURE0);
@@ -371,6 +370,4 @@ DrawPicture::~DrawPicture() {
 
     //reset current program to none:
     glUseProgram(0);
-
-    //GL_ERRORS();
 }

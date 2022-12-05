@@ -218,10 +218,10 @@ void DrawSprites::get_text_extents(std::string const &text, glm::vec2 const &anc
 	}
 }
 
-DrawSprites::~DrawSprites() {
-	if (attribs.empty()) return;
+void DrawSprites::flush_sprite_buffer() {
 
-	//based on base0's PongMode::draw()
+	// No sprites have been "drawn" so there's nothing to do here
+	if (attribs.empty()) return;
 
 	//upload vertices to vertex_buffer:
 	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer); //set vertex_buffer as current
@@ -236,6 +236,9 @@ DrawSprites::~DrawSprites() {
 
 	//use the mapping vertex_buffer_for_color_texture_program to fetch vertex data:
 	glBindVertexArray(vertex_buffer_for_color_texture_program);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	//bind the sprite texture to location zero:
 	glActiveTexture(GL_TEXTURE0);

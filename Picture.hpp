@@ -78,8 +78,6 @@ struct DrawPicture {
 
     // Prepare aresources for a pic to be drawn
     DrawPicture(Picture const& pic, glm::uvec2 const& drawable_size);
-    // Tell DrawPicture to draw the picture with given parameters
+    // draw the picture with given parameters
     void draw(glm::vec2 const& center, float scale = 1.0f, glm::u8vec4 const& tint = glm::u8vec4(0xff, 0xff, 0xff, 0xff));
-    // Actually draws the picture on deallocation
-    ~DrawPicture();
 };
