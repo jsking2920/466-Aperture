@@ -75,7 +75,7 @@ struct PlayMode : Mode {
 	float end_day_time = 230.0f; // Time player ends of everyday (11:00pm)
 
 	float time_scale = 4.0f; // multiplier for speed of time (starts at 4x for menu visuals)
-    float time_scale_debug = 16.0f; // multiplier for debug reasons
+    float time_scale_debug = 1.0f; // multiplier for debug reasons
 
 	float sunrise = 75.0f; // sunrise at 7:30am
 	float sunset = 210.0f; // sunset at 9pm

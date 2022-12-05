@@ -1159,32 +1159,45 @@ void PlayMode::night_update(float elapsed) {
 		// Clear out unsaved pics and zoom through the night
 		finished_reviewing_pics = true;
 		player->ClearPictures();
-		time_scale = 16.0f;
-	}
 
-
-	// swap to playing at start of day
-	if (finished_reviewing_pics && time_of_day < end_day_time && time_of_day >= start_day_time) {
-		//TODO: reset player position/etc
+		// swap to playing at start of day
+		// reset player position
+		player->at = cur_spawn;
+		player->transform->position = player->walk_mesh->to_world_point(player->at);
 
 		// Reset camera zoom, focus, and battery
 		player->player_camera->Reset(true);
 
+		time_of_day = start_day_time;
 		time_scale = 1.0f;
 		cur_state = playing;
-		return;
 	}
 }
 
 void PlayMode::night_draw_ui(glm::uvec2 const& drawable_size) {
 
 	// Draw clock
-	body_text->draw(TextRenderer::format_time_of_day(time_of_day, day_length), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+	// body_text->draw(TextRenderer::format_time_of_day(time_of_day, day_length), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 
 	if (!finished_reviewing_pics) {
-		DrawPicture pic(*player->pictures[cur_pic_to_review].get(), drawable_size);
-		pic.draw(glm::vec2(0.5f * float(drawable_size.x), 0.6f * float(drawable_size.y)), 0.75f);
+		Picture &p = *player->pictures[cur_pic_to_review].get();
 
-		body_text->draw("Enter to save, delete to skip", 0.35f * float(drawable_size.x), 0.1f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		// Draw pic being reviewed with some score info and the like
+		DrawPicture pic(p, drawable_size);
+		pic.draw(glm::vec2(0.315f * float(drawable_size.x), 0.6f * float(drawable_size.y)), 0.6f);
+
+		// Picture Title
+		display_text->draw(p.title, 0.635f * float(drawable_size.x), 0.85f * float(drawable_size.y), 0.5f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		// Scoring elements
+		std::list<std::string> scoring_elements = p.get_scoring_strings();
+		float offset = 0.0f;
+		float spacing = float(drawable_size.y) * 0.035f;
+		for (auto s = scoring_elements.begin(); s != scoring_elements.end(); s++) {
+			body_text->draw(*s, 0.635f * float(drawable_size.x), (0.75f * float(drawable_size.y)) - offset, 0.5f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+			offset += spacing;
+		}
+
+		// Instructions for saving/skipping a pic
+		body_text->draw("(press ENTER to save picture or DELETE to skip it)", 0.31f * float(drawable_size.x), 0.05f * float(drawable_size.y), 0.5f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 	}
 }

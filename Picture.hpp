@@ -54,6 +54,7 @@ struct Picture {
     std::list<ScoreElement> score_creature(PictureCreatureInfo &creature_info, PictureInfo &picture_info);
     uint32_t get_total_score();
     std::string get_scoring_string();
+    std::list<std::string> get_scoring_strings(); // list of scoring elements formatted for picture reviewing
     void save_picture_png(); // saves picture as a png to dist/PhotoAlbum/ (creating folder if needed)
 
     static const std::string adjectives[];

@@ -160,7 +160,7 @@ std::list<ScoreElement> Picture::score_creature(PictureCreatureInfo &creature_in
         }
         //bonus points for shallow depth of field
         if(score > 2500.f && stats.focal_distance < 5.f) {
-            result.emplace_back("Depth of Field!", (uint32_t)((5.f - stats.focal_distance) * 500.f));
+            result.emplace_back("Depth of Field", (uint32_t)((5.f - stats.focal_distance) * 500.f));
         }
     }
 
@@ -181,6 +181,18 @@ std::string Picture::get_scoring_string() {
        ret += el.name + ": +" + std::to_string(el.value) + "\n";
     });
     ret += "Total Score: " + std::to_string(get_total_score()) + "\n\n";
+    return ret;
+}
+
+std::list<std::string> Picture::get_scoring_strings() {
+
+    std::list<std::string> ret = std::list<std::string>();
+
+    std::for_each(score_elements.begin(), score_elements.end(), [&](ScoreElement el) {
+        ret.push_back(el.name + ": +" + std::to_string(el.value));
+    });
+    ret.push_back("");
+    ret.push_back("Total Score: " + std::to_string(get_total_score()) + "");
     return ret;
 }
 
