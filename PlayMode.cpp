@@ -844,7 +844,7 @@ void PlayMode::menu_update(float elapsed) {
 	// start game on enter, swap to playing state
 	if (enter.downs > 0) {
 		time_of_day = start_day_time;
-		time_scale = 1.0f;
+		time_scale = TIME_SCALE_DEFAULT;
 		cur_state = playing;
 		return;
 	}
@@ -871,14 +871,14 @@ void PlayMode::playing_update(float elapsed) {
 			player->SetCrouch(false);
 			score_text_is_showing = false;
 
-			time_scale = 1.0f; // time doesn't stop while in journal but it could
+			time_scale = TIME_SCALE_DEFAULT; // time doesn't stop while in journal but it could
 
 			cur_state = journal;
 			return;
 		}
 
 		// swap to night state at end of day
-		if (time_of_day >= end_day_time) {
+		if (time_of_day >= end_day_time && time_of_day < start_day_time) {
 
 			player->in_cam_view = false;
 			player->SetCrouch(false);
@@ -1049,7 +1049,7 @@ void PlayMode::playing_draw_ui(glm::uvec2 const& drawable_size) {
 void PlayMode::journal_update(float elapsed) {
 
 	// swap to night state at end of day, even if in journal
-	if (time_of_day >= end_day_time) {
+	if (time_of_day >= end_day_time && time_of_day < start_day_time) {
 		time_scale = 8.0f; // zoom through night
 		cur_state = night;
 		return;
@@ -1057,7 +1057,7 @@ void PlayMode::journal_update(float elapsed) {
 
 	// close journal on tab, swap to playing state
 	if (tab.downs == 1) {
-		time_scale = 1.0f; // if time freezes in journal, would need to start it moving again
+		time_scale = TIME_SCALE_DEFAULT; // if time freezes in journal, would need to start it moving again
 		cur_state = playing;
 		return;
 	}
@@ -1085,13 +1085,13 @@ void PlayMode::journal_draw_ui(glm::uvec2 const& drawable_size) {
 void PlayMode::night_update(float elapsed) {
 
 	// swap to playing at start of day
-	if (time_of_day < end_day_time && time_of_day >= start_day_time) {
+	if (time_of_day >= start_day_time) {
 		//TODO: reset player position/etc
 
 		// Reset camera zoom, focus, and battery
 		player->player_camera->Reset(true);
 
-		time_scale = 1.0f;
+		time_scale = TIME_SCALE_DEFAULT;
 		cur_state = playing;
 		return;
 	}
