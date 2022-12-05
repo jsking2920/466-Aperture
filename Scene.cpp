@@ -124,23 +124,23 @@ void Scene::draw(Drawable::PassType pass_type, glm::mat4 const &world_to_clip, g
         //Iterate through all drawables with quert
         for(Drawable &drawable : drawables) {
             if (drawable.render_to_screen) {
-                drawable.queries.StartQuery();
+                //drawable.queries.StartQuery();
                 //use shadow pass to ensure no shader effects
                 render_drawable(drawable, Scene::Drawable::ProgramTypeShadow, world_to_clip, world_to_light);
-                drawable.queries.EndQuery();
+                //drawable.queries.EndQuery();
 
-                std::optional<GLuint> result = drawable.queries.most_recent_query();
+//                std::optional<GLuint> result = drawable.queries.most_recent_query();
 
-                if(result.has_value()) {
+//                if(result.has_value()) {
 //                    std::cout << "setting frag count for " << drawable.transform->name << "to " << result.value() << std::endl;
-                    drawable.frag_count = result.value();
-                }
+//                    drawable.frag_count = result.value();
+//                }
             }
         }
     } else if(pass_type == Drawable::PassTypePrepass) {
         //Render all visible objects only to depth buffer & vertex buffer
         for (auto const &drawable: drawables) {
-            if (drawable.render_to_screen && drawable.frag_count) {
+            if (drawable.render_to_screen /*&& drawable.frag_count*/) {
                 render_drawable(drawable, Drawable::ProgramTypeShadow, world_to_clip, world_to_light);
             }
         }
@@ -157,12 +157,6 @@ void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scen
 //    glm::mat4 world_to_clip = camera.make_projection() * glm::mat4(camera.transform->make_world_to_local());
 //    glm::mat4x3 world_to_light = glm::mat4x3(1.0f);
 
-    //TODO: This gets called BEFORE the frame is drawn. This means that there may be inaccuracies with the frame buffer,
-    //and it is possible (but very improbable) that creatures will be detected if they were visible the frame before
-    //the picture was taken but not the frame the picture was taken. We can fix this by running occlusion tests every frame
-    //as we would for occlusion culling and using that information instead. For now, I am saving the picture before
-    //occlusion queries are run, because if I did not, post-processing wouldn't be applied. I think. I dunno. It's midnight.
-
     //transform rgb16f texture to rgba8ui texture for export
     //code modeled after this snippet https://stackoverflow.com/questions/48938930/pixel-access-with-glgetteximage
     glBindTexture(GL_TEXTURE_2D, framebuffers.screen_texture);
@@ -170,47 +164,11 @@ void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scen
     glBindTexture(GL_TEXTURE_2D, 0);
     GL_ERRORS();
 
-    //run query for each drawable
-//    glEnable(GL_DEPTH_TEST);
-//    //bind renderbuffers for rendering
-////    glBindRenderbuffer(GL_RENDERBUFFER, framebuffers.ms_depth_rb);
-//    glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.ms_fb);
-//
-//    glClear(GL_COLOR_BUFFER_BIT);
-
     for(auto &drawable : drawables) {
-//        GLuint query = drawable.query;
-//        if(!drawable.render_to_picture) {
-//            continue;
-//        }
-//        //query syntax from https://www.reddit.com/r/opengl/comments/1pv8qe/how_do_occlusion_queries_work/
-//        if(!glIsQuery(query)) {
-//            glGenQueries(1, &query);
-//        }
-//        glBeginQuery(GL_SAMPLES_PASSED, query);
-//        render_drawable(drawable, Scene::Drawable::ProgramTypeShadow, world_to_clip, world_to_light);
-//        glEndQuery(GL_SAMPLES_PASSED);
-//
-//
-//        GLuint samples_passed = 0;
-//        glGetQueryObjectuiv(query, GL_QUERY_RESULT, &samples_passed);
-//
-////        GLuint has_finished;
-////        glGetQueryObjectuiv(query, GL_QUERY_RESULT_AVAILABLE, &has_finished);
-////        std::cout << drawable.transform->name << "finished: " << has_finished << std::endl;
-
         if(drawable.frag_count> 0) {
             occlusion_results.emplace_back(drawable, drawable.frag_count);
         }
     }
-
-//    glBindRenderbuffer(GL_RENDERBUFFER, 0);
-//    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-//
-//    glUseProgram(0);
-//    glBindVertexArray(0);
-//
-//    GL_ERRORS();
 
 }
 
@@ -257,7 +215,6 @@ void Scene::render_drawable(Scene::Drawable const &drawable, Scene::Drawable::Pr
         glm::mat3 normal_to_light = glm::inverse(glm::transpose(glm::mat3(object_to_light)));
         glUniformMatrix3fv(pipeline.NORMAL_TO_LIGHT_mat3, 1, GL_FALSE, glm::value_ptr(normal_to_light));
     }
-    GL_ERRORS();
 
     //set uses vertex color uniform
     if (pipeline.USES_VERTEX_COLOR != -1U) {
@@ -267,13 +224,11 @@ void Scene::render_drawable(Scene::Drawable const &drawable, Scene::Drawable::Pr
         }
         glUniform1ui(pipeline.USES_VERTEX_COLOR, uses_vertex_color);
     }
-    GL_ERRORS();
 
     //set any requested custom uniforms:
     if (pipeline.set_uniforms) {
         pipeline.set_uniforms();
     }
-    GL_ERRORS();
 
     //set up textures:
     for (uint32_t i = 0; i < Drawable::Pipeline::TextureCount; ++i) {

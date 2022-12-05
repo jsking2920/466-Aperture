@@ -88,13 +88,18 @@ std::optional<GLuint> FragCountQueryAsync::most_recent_query()
   GLint startResultAvailable{};
   glGetQueryObjectiv(queries[index], GL_QUERY_RESULT_AVAILABLE, &startResultAvailable);
   if(startResultAvailable) {
+//      std::cout << index << " available\n";
+
       //at least one is available
       while(check_count < count_) { //stop if we check all possible ones
           index = (index + 1) % capacity_;
           glGetQueryObjectiv(queries[index], GL_QUERY_RESULT_AVAILABLE, &startResultAvailable);
           if(!startResultAvailable) {
+//              std::cout << index << " unavailable\n";
               index = (index - 1) % capacity_; //if not available, go back to the most recent available one
               break;
+          } else {
+//              std::cout << index << " available\n";
           }
           check_count++;
       } //if loop guard breaks, all were ready, and index is the most recent query, which was ready
@@ -105,7 +110,7 @@ std::optional<GLuint> FragCountQueryAsync::most_recent_query()
 //          std::cout << "partially finished\n";
 //      }
   } else {
-//      std::cout << "oldest not finished\n"; //DEBUG
+//      std::cout << index << " oldest not finished\n"; //DEBUG
       return std::nullopt; //oldest is not finished
   }
 
@@ -113,6 +118,7 @@ std::optional<GLuint> FragCountQueryAsync::most_recent_query()
   // pop query and retrieve result
   count_--;
   GLuint result{};
+//    std::cout << index << " taken\n";
   glGetQueryObjectuiv(queries[index], GL_QUERY_RESULT, &result);
     GL_ERRORS();
   return result;
