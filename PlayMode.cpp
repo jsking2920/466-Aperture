@@ -363,6 +363,22 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			r.downs += 1;
 			r.pressed = true;
 		}
+		else if (evt.key.keysym.sym == SDLK_RIGHT) {
+			right_arrow.downs += 1;
+			right_arrow.pressed = true;
+		}
+		else if (evt.key.keysym.sym == SDLK_LEFT) {
+			left_arrow.downs += 1;
+			left_arrow.pressed = true;
+		}
+		else if (evt.key.keysym.sym == SDLK_BACKSPACE) {
+			backspace.downs += 1;
+			backspace.pressed = true;
+		}
+		else if (evt.key.keysym.sym == SDLK_DELETE) {
+			del.downs += 1;
+			del.pressed = true;
+		}
 	} else if (evt.type == SDL_KEYUP) {
 		if (evt.key.keysym.sym == SDLK_a) {
 			left.pressed = false;
@@ -391,6 +407,18 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
         }
 		else if (evt.key.keysym.sym == SDLK_r) {
 			r.pressed = false;
+		}
+		else if (evt.key.keysym.sym == SDLK_RIGHT) {
+			right_arrow.pressed = false;
+		}
+		else if (evt.key.keysym.sym == SDLK_LEFT) {
+			left_arrow.pressed = false;
+		}
+		else if (evt.key.keysym.sym == SDLK_BACKSPACE) {
+			backspace.pressed = false;
+		}
+		else if (evt.key.keysym.sym == SDLK_DELETE) {
+			del.pressed = false;
 		}
 	} else if (evt.type == SDL_MOUSEBUTTONDOWN) {
 		if (SDL_GetRelativeMouseMode() == SDL_FALSE) {
@@ -475,6 +503,10 @@ void PlayMode::update(float elapsed) {
 	tab.downs = 0;
 	enter.downs = 0;
 	r.downs = 0;
+	right_arrow.downs = 0;
+	left_arrow.downs = 0;
+	del.downs = 0;
+	backspace.downs = 0;
 
 	mouse.moves = 0;
 	mouse.mouse_motion = glm::vec2(0, 0);
@@ -866,6 +898,8 @@ void PlayMode::playing_update(float elapsed) {
 			score_text_is_showing = false;
 
 			time_scale = 1.0f; // time doesn't stop while in journal but it could
+			
+			cur_journal_pg = 0; // Always open journal to first page
 
 			cur_state = journal;
 			return;
@@ -878,7 +912,9 @@ void PlayMode::playing_update(float elapsed) {
 			player->SetCrouch(false);
 			score_text_is_showing = false;
 
-			time_scale = 8.0f; // zoom through night
+			time_scale = 0.0f; // pause at night to review pics
+			cur_pic_to_review = 0;
+			finished_reviewing_pics = false;
 
 			cur_state = night;
 			return;
@@ -1044,7 +1080,9 @@ void PlayMode::journal_update(float elapsed) {
 
 	// swap to night state at end of day, even if in journal
 	if (time_of_day >= end_day_time) {
-		time_scale = 8.0f; // zoom through night
+		time_scale = 0.0f; // pause at night to review pics
+		cur_pic_to_review = 0;
+		finished_reviewing_pics = false;
 		cur_state = night;
 		return;
 	}
@@ -1052,8 +1090,17 @@ void PlayMode::journal_update(float elapsed) {
 	// close journal on tab, swap to playing state
 	if (tab.downs == 1) {
 		time_scale = 1.0f; // if time freezes in journal, would need to start it moving again
+		cur_journal_pg = 0;
 		cur_state = playing;
 		return;
+	}
+	// Page left on a or left arrow
+	else if (left.downs > 0 || left_arrow.downs > 0) {
+		//page left
+	}
+	// Page right on d or right arrow
+	else if (right.downs > 0 || right_arrow.downs > 0) {
+		// page right
 	}
 }
 
@@ -1084,8 +1131,40 @@ void PlayMode::journal_draw_ui(glm::uvec2 const& drawable_size) {
 // -------- Nightime functions -----------
 void PlayMode::night_update(float elapsed) {
 
+
+	/*
+		As pictures taken through the day, they accumulate in player.pictures
+		If a pic is taken that is the best of a given creature, it is store in that creatures struct
+		At the end of the day, player sees all pictures taken and gets a chance to save them
+		 - saving them puts them in scrapbook in journal, and saves them to hard drive
+		player.pictures is cleared at end of day
+	*/
+
+	// Player still has pictures to review
+	if (!finished_reviewing_pics && cur_pic_to_review < player->pictures.size()) {
+		// TODO: make these buttons
+		// save pic being reviewed on enter
+		if (enter.downs > 0) {
+			saved_pictures.push_back(player->pictures[cur_pic_to_review]);
+			player->pictures[cur_pic_to_review]->save_picture_png();
+			cur_pic_to_review++;
+		}
+		// skip pic being reviewed on delete or backspace
+		else if (del.downs > 0 || backspace.downs > 0) {
+			cur_pic_to_review++;
+		}
+	}
+	
+	if (cur_pic_to_review >= player->pictures.size()) {
+		// Clear out unsaved pics and zoom through the night
+		finished_reviewing_pics = true;
+		player->ClearPictures();
+		time_scale = 16.0f;
+	}
+
+
 	// swap to playing at start of day
-	if (time_of_day < end_day_time && time_of_day >= start_day_time) {
+	if (finished_reviewing_pics && time_of_day < end_day_time && time_of_day >= start_day_time) {
 		//TODO: reset player position/etc
 
 		// Reset camera zoom, focus, and battery
@@ -1101,4 +1180,11 @@ void PlayMode::night_draw_ui(glm::uvec2 const& drawable_size) {
 
 	// Draw clock
 	body_text->draw(TextRenderer::format_time_of_day(time_of_day, day_length), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+
+	if (!finished_reviewing_pics) {
+		DrawPicture pic(*player->pictures[cur_pic_to_review].get(), drawable_size);
+		pic.draw(glm::vec2(0.5f * float(drawable_size.x), 0.6f * float(drawable_size.y)), 0.75f);
+
+		body_text->draw("Enter to save, delete to skip", 0.35f * float(drawable_size.x), 0.1f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+	}
 }

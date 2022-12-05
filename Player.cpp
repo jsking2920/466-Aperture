@@ -106,13 +106,10 @@ void PlayerCamera::TakePicture(Scene &scene) {
     player->pictures.push_back(temp);
     std::shared_ptr<Picture> picture = player->pictures.back();
     //update creature stats map
-    if(picture->subject_info.creature) {
+    if (picture->subject_info.creature) {
         Creature::creature_stats_map.at(picture->subject_info.creature->code).on_picture_taken(picture);
     }
 	std::cout << picture->get_scoring_string() << std::endl;
-
-	// TODO: move save picture out of here to make it user-prompted
-    // picture.save_picture_png();
 
 	cur_battery -= 1;
 }
@@ -179,6 +176,7 @@ void PlayerCamera::Reset(bool reset_battery) {
 	}
 }
 
+
 // Player
 //========================================
 
@@ -203,11 +201,16 @@ Player::Player(Scene::Transform* _transform, WalkMesh const* _walk_mesh, Scene::
 	player_camera->scene_camera->transform->parent = camera->transform;
 	player_camera->scene_camera->fovy = camera->fovy;
 
-    pictures = std::list<std::shared_ptr<Picture>>();
+    pictures = std::vector<std::shared_ptr<Picture>>();
 }
 
 Player::~Player() {
 	delete player_camera;
+}
+
+// Clear all pictures taken at the end of the day. Saved pictures are store in a list in Playmode and best pictures for each creature are stored with each creature
+void Player::ClearPictures() {
+	pictures.clear();
 }
 
 void Player::OnMouseMotion(glm::vec2 mouse_motion) {

@@ -69,12 +69,13 @@ struct Player {
 	// false = view from "eyes"/camera, true = view from PlayerCamera "viewport" (picture taking mode)
 	bool in_cam_view = false;
 	// List of pics player has taken
-	std::list<std::shared_ptr<Picture>> pictures; // TODO: add an album view in game to look at these
+	std::vector<std::shared_ptr<Picture>> pictures;
 	
 	void SetCrouch(bool is_crouched); // Adjusts z pos of player's cameras so it looks like they crouched
 	void SetRun(bool _is_running); // Adjusts speed of player
 	void Move(glm::vec2 direction, float elapsed); // un-normalized, cardinal directions such as (-1.0f, 0.0f) -> left button only held, (1.0f, 1.0f) -> right and up buttons held, etc. 
 	void OnMouseMotion(glm::vec2 mouse_motion);
     float get_speed(); //for halving speed in cam mode
+	void ClearPictures();
 };
 

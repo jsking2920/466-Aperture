@@ -43,7 +43,7 @@ struct PlayMode : Mode {
 	struct Button {
 		uint8_t downs = 0;
 		bool pressed = false;
-	} left, right, down, up, lmb, rmb, lctrl, tab, enter, lshift, r;
+	} left, right, down, up, lmb, rmb, lctrl, tab, enter, lshift, r, right_arrow, left_arrow, del, backspace;
 	struct Mouse {
 		glm::vec2 mouse_motion = glm::vec2(0, 0);
 		uint8_t moves = 0;
@@ -75,7 +75,7 @@ struct PlayMode : Mode {
 	float end_day_time = 230.0f; // Time player ends of everyday (11:00pm)
 
 	float time_scale = 4.0f; // multiplier for speed of time (starts at 4x for menu visuals)
-    float time_scale_debug = 1.0f; // multiplier for debug reasons
+    float time_scale_debug = 16.0f; // multiplier for debug reasons
 
 	float sunrise = 75.0f; // sunrise at 7:30am
 	float sunset = 210.0f; // sunset at 9pm
@@ -100,8 +100,18 @@ struct PlayMode : Mode {
 	TextRenderer* barcode_text = nullptr;
 	uint8_t barcode_font_size = 36;
 
+	// Journal UI
 	glm::vec3 journal_text_color = glm::vec3(0.22f, 0.21f, 0.19f);
+	uint8_t cur_journal_pg = 0; // player can flip through journal pages [HOF/pokedex, scrapbook, ..., scrapbook, camera manual]
+	// List of pics player has saved
+	std::vector<std::shared_ptr<Picture>> saved_pictures;
 
+	// Nighttime UI
+	uint16_t cur_pic_to_review = 0;
+	bool finished_reviewing_pics = false;
+
+
+	// Playing UI
 	float score_text_popup_timer = 0.0f;
 	float score_text_popup_duration = 2.0f;
 	bool score_text_is_showing = false;
