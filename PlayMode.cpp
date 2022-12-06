@@ -88,8 +88,8 @@ Load< BoneAnimation > test_banims(LoadTagDefault, []() -> BoneAnimation const * 
 	return ret;
 });
 Load< BoneAnimation > test_banims2(LoadTagDefault, [](){
-	auto ret = new BoneAnimation(data_path("assets/animations/monkey.banims"));
-	BoneAnimation::animation_map.emplace(std::make_pair("monkey", ret));
+	auto ret = new BoneAnimation(data_path("assets/animations/anim_MEP.banims"));
+	BoneAnimation::animation_map.emplace(std::make_pair("MEP", ret));
 	return ret;
 });
 
@@ -116,6 +116,7 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 		if (transform->name.length() == 6 &&
                 std::find_if(creature_stats_map_load->begin(), creature_stats_map_load->end(), is_creature) != creature_stats_map_load->end()) {
             //animated object pipeline setup
+			std::cout<<"found "<<transform->name<<std::endl;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault] = bone_lit_color_texture_program_pipeline;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = *banims_for_bone_lit_color_texture_program;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
