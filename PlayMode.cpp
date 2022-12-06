@@ -111,13 +111,12 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
             return pair.first == transform->name.substr(0, 3);
         };
 
-		std::cout << "mesh name: " << mesh_name << std::endl;
-
 		//TODO: for stuff that has animations, add a section where it samples the animation
         //only change shader if the object has a creature code
 		if (transform->name.length() == 6 &&
                 std::find_if(creature_stats_map_load->begin(), creature_stats_map_load->end(), is_creature) != creature_stats_map_load->end()) {
             //animated object pipeline setup
+			std::cout<<"found "<<transform->name<<std::endl;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault] = bone_lit_color_texture_program_pipeline;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = *banims_for_bone_lit_color_texture_program;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
