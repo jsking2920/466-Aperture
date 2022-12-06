@@ -68,8 +68,8 @@ Load< std::map< std::string, CreatureStats > > creature_stats_map_load(LoadTagEa
     return &Creature::creature_stats_map;
 });
 
-Load< SpriteAtlas > planet_sprite_atlas(LoadTagDefault, []() -> SpriteAtlas const* {
-	return new SpriteAtlas(data_path("assets/sprites/the-planet")); // Each atlas needs to have a .atlas and .png file with this name at this path
+Load< SpriteAtlas > ui_sprites_atlas(LoadTagDefault, []() -> SpriteAtlas const* {
+	return new SpriteAtlas(data_path("assets/sprites/ui_sprites")); // Each atlas needs to have a .atlas and .png file with this name at this path
 });
 
 GLuint main_meshes_for_lit_color_texture_program = 0;
@@ -246,15 +246,27 @@ PlayMode::PlayMode() : scene(*main_scene) {
 	}
 	if (player_transform == nullptr) throw std::runtime_error("Player transform not found.");
 	
-	// Set up player
+	// Set up player and camera
 	{
 		// Check for camera in scene for player's eyes
-		if (scene.cameras.size() != 1) throw std::runtime_error("Expecting scene to have exactly one camera, specifically at the player's head, but it has " + std::to_string(scene.cameras.size()));
-		
+		if (scene.cameras.size() != 2) {
+			std::cout << "Expecting scene to have exactly two cameras, specifically at the player's head and one overhead for the menu, but it has " + std::to_string(scene.cameras.size()) << std::endl;
+		}
+		Scene::Camera* player_cam = nullptr;
+
+		for (auto c = scene.cameras.begin(); c != scene.cameras.end(); c++) {
+			if (c->transform->name == "overhead_cam") {
+				overhead_cam = &(*c);
+			}
+			else {
+				player_cam = &(*c);
+			}
+		}
+
 		// Create new transform for Player's PlayerCamera
 		scene.transforms.emplace_back();
 
-		player = new Player(player_transform, &main_walkmeshes->lookup("WalkMe"), &scene.cameras.back(), &scene.transforms.back());
+		player = new Player(player_transform, &main_walkmeshes->lookup("WalkMe"), player_cam/*& scene.cameras.back()*/, &scene.transforms.back());
 		cur_spawn = player->at;
 	}
 	
@@ -263,9 +275,6 @@ PlayMode::PlayMode() : scene(*main_scene) {
 	handwriting_text = new TextRenderer(data_path("assets/fonts/PoorStory-Regular.ttf"), handwriting_font_size);
 	body_text = new TextRenderer(data_path("assets/fonts/Sono-Regular.ttf"), body_font_size);
 	barcode_text = new TextRenderer(data_path("assets/fonts/LibreBarcode128Text-Regular.ttf"), barcode_font_size);
-
-	// Get sprite atlas
-	//ui_sprites = &ui_sprite_atlas;
 
     //load audio samples
     sample_map = *audio_samples;
@@ -367,6 +376,22 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			r.downs += 1;
 			r.pressed = true;
 		}
+		else if (evt.key.keysym.sym == SDLK_RIGHT) {
+			right_arrow.downs += 1;
+			right_arrow.pressed = true;
+		}
+		else if (evt.key.keysym.sym == SDLK_LEFT) {
+			left_arrow.downs += 1;
+			left_arrow.pressed = true;
+		}
+		else if (evt.key.keysym.sym == SDLK_BACKSPACE) {
+			backspace.downs += 1;
+			backspace.pressed = true;
+		}
+		else if (evt.key.keysym.sym == SDLK_DELETE) {
+			del.downs += 1;
+			del.pressed = true;
+		}
 	} else if (evt.type == SDL_KEYUP) {
 		if (evt.key.keysym.sym == SDLK_a) {
 			left.pressed = false;
@@ -395,6 +420,18 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
         }
 		else if (evt.key.keysym.sym == SDLK_r) {
 			r.pressed = false;
+		}
+		else if (evt.key.keysym.sym == SDLK_RIGHT) {
+			right_arrow.pressed = false;
+		}
+		else if (evt.key.keysym.sym == SDLK_LEFT) {
+			left_arrow.pressed = false;
+		}
+		else if (evt.key.keysym.sym == SDLK_BACKSPACE) {
+			backspace.pressed = false;
+		}
+		else if (evt.key.keysym.sym == SDLK_DELETE) {
+			del.pressed = false;
 		}
 	} else if (evt.type == SDL_MOUSEBUTTONDOWN) {
 		if (SDL_GetRelativeMouseMode() == SDL_FALSE) {
@@ -479,6 +516,10 @@ void PlayMode::update(float elapsed) {
 	tab.downs = 0;
 	enter.downs = 0;
 	r.downs = 0;
+	right_arrow.downs = 0;
+	left_arrow.downs = 0;
+	del.downs = 0;
+	backspace.downs = 0;
 
 	mouse.moves = 0;
 	mouse.mouse_motion = glm::vec2(0, 0);
@@ -855,9 +896,6 @@ void PlayMode::menu_draw_ui(glm::uvec2 const& drawable_size) {
 
 	display_text->draw("APERTURE", 0.3f * float(drawable_size.x), 0.5f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 	body_text->draw("press enter to start", 0.35f * float(drawable_size.x), 0.4f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
-
-	DrawSprites draw(*planet_sprite_atlas, glm::vec2(0, 0), glm::vec2(1920, 1080), drawable_size);
-	draw.draw(planet_sprite_atlas->lookup("hill-bg"), glm::vec2(0.5f * float(drawable_size.x), 0.5f * float(drawable_size.x)), 1.0f);
 }
 
 // -------- Playing functions -----------
@@ -870,9 +908,10 @@ void PlayMode::playing_update(float elapsed) {
             Sound::play(Sound::sample_map->at("Page_Turn"));
 			player->in_cam_view = false;
 			player->SetCrouch(false);
-			score_text_is_showing = false;
 
 			time_scale = TIME_SCALE_DEFAULT; // time doesn't stop while in journal but it could
+
+			cur_journal_pg = 0; // Always open journal to first page
 
 			cur_state = journal;
 			return;
@@ -883,9 +922,10 @@ void PlayMode::playing_update(float elapsed) {
 
 			player->in_cam_view = false;
 			player->SetCrouch(false);
-			score_text_is_showing = false;
 
-			time_scale = 8.0f; // zoom through night
+			time_scale = 0.0f; // pause at night to review pics
+			cur_pic_to_review = 0;
+			started_reviewing_pics = false;
 
 			cur_state = night;
 			return;
@@ -954,8 +994,6 @@ void PlayMode::playing_update(float elapsed) {
 		// Snap a pic on left click, if in camera view and has remaining battery
 		if (player->in_cam_view && lmb.downs == 1 && player->player_camera->cur_battery > 0) {
 			player->player_camera->TakePicture(scene);
-			score_text_is_showing = true;
-			score_text_popup_timer = 0.0f;
 		}
 	}
 
@@ -964,18 +1002,6 @@ void PlayMode::playing_update(float elapsed) {
         Creature &creature = pair.second;
         creature.update(elapsed, time_of_day);
     });
-
-	// UI
-	{
-		if (score_text_is_showing) {
-			if (score_text_popup_timer >= score_text_popup_duration) {
-				score_text_is_showing = false;
-			}
-			else {
-				score_text_popup_timer += elapsed;
-			}
-		}
-	}
 }
 
 void PlayMode::playing_draw_ui(glm::uvec2 const& drawable_size) {
@@ -1036,14 +1062,6 @@ void PlayMode::playing_draw_ui(glm::uvec2 const& drawable_size) {
 		// Draw clock
 		body_text->draw(TextRenderer::format_time_of_day(time_of_day, day_length), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 	}
-
-	if (score_text_is_showing) {
-		// Draw text of last picture taken
-		if (!player->pictures.empty()) {
-			body_text->draw(player->pictures.back()->title, 0.025f * float(drawable_size.x), 0.95f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
-			body_text->draw("Score: " + std::to_string(player->pictures.back()->get_total_score()), 0.025f * float(drawable_size.x), 0.9f * float(drawable_size.y), 0.8f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
-		}
-	}
 }
 
 // -------- Journal functions -----------
@@ -1051,7 +1069,9 @@ void PlayMode::journal_update(float elapsed) {
 
 	// swap to night state at end of day, even if in journal
 	if (time_of_day >= end_day_time && time_of_day < start_day_time) {
-		time_scale = 8.0f; // zoom through night
+		time_scale = 0.0f; // pause at night to review pics
+		cur_pic_to_review = 0;
+		started_reviewing_pics = false;
 		cur_state = night;
 		return;
 	}
@@ -1059,21 +1079,36 @@ void PlayMode::journal_update(float elapsed) {
 	// close journal on tab, swap to playing state
 	if (tab.downs == 1) {
 		time_scale = TIME_SCALE_DEFAULT; // if time freezes in journal, would need to start it moving again
+		cur_journal_pg = 0;
 		cur_state = playing;
 		return;
+	}
+	// Page left on a or left arrow
+	else if (left.downs > 0 || left_arrow.downs > 0) {
+		//page left
+	}
+	// Page right on d or right arrow
+	else if (right.downs > 0 || right_arrow.downs > 0) {
+		// page right
 	}
 }
 
 void PlayMode::journal_draw_ui(glm::uvec2 const& drawable_size) {
 
-	handwriting_text->draw("JOURNAL", 0.45f * float(drawable_size.x), 0.85f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+	// Draw blank book background for journal
+	DrawSprites draw(*ui_sprites_atlas, glm::vec2(0, 0), glm::vec2(1920, 1080), drawable_size);
+	draw.draw(ui_sprites_atlas->lookup("journal_bg"), glm::vec2(0.62f * float(drawable_size.x), 0.65f * float(drawable_size.y)), 1.0f);
+	draw.flush_sprite_buffer();
+
+	// Page title
+	handwriting_text->draw("JOURNAL", 0.25f * float(drawable_size.x), 0.75f * float(drawable_size.y), 1.0f, journal_text_color, float(drawable_size.x), float(drawable_size.y));
 
 	// Draw every picture taken by the player
 	float offset = 0.8f / (player->pictures.size() + 1.0f);
 	int i = 1;
 	for (auto p = player->pictures.begin(); p != player->pictures.end(); ++p) {
 		// title
-		handwriting_text->draw((*p)->title, 0.15f * float(drawable_size.x), (0.8f - (offset * i)) * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		handwriting_text->draw((*p)->title, 0.15f * float(drawable_size.x), (0.8f - (offset * i)) * float(drawable_size.y), 1.0f, journal_text_color, float(drawable_size.x), float(drawable_size.y));
 		// actual picture
 		DrawPicture pic(**p, drawable_size);
 		// scale is relative to entire screen resolution, so 1 means full screen coverage
@@ -1085,21 +1120,90 @@ void PlayMode::journal_draw_ui(glm::uvec2 const& drawable_size) {
 // -------- Nightime functions -----------
 void PlayMode::night_update(float elapsed) {
 
-	// swap to playing at start of day
-	if (time_of_day >= start_day_time) {
-		//TODO: reset player position/etc
 
-		// Reset camera zoom, focus, and battery
-		player->player_camera->Reset(true);
+	/*
+		As pictures taken through the day, they accumulate in player.pictures
+		If a pic is taken that is the best of a given creature, it is store in that creatures struct
+		At the end of the day, player sees all pictures taken and gets a chance to save them
+		 - saving them puts them in scrapbook in journal, and saves them to hard drive
+		player.pictures is cleared at end of day
+	*/
 
-		time_scale = TIME_SCALE_DEFAULT;
-		cur_state = playing;
-		return;
+	if (!started_reviewing_pics) {
+		if (enter.downs > 0) {
+			started_reviewing_pics = true;
+			finished_reviewing_pics = player->pictures.size() == 0;
+		}
+	}
+	else {
+		if (cur_pic_to_review < player->pictures.size()) {
+			// TODO: make these buttons
+			// save pic being reviewed on enter
+			if (enter.downs > 0) {
+				saved_pictures.push_back(player->pictures[cur_pic_to_review]);
+				player->pictures[cur_pic_to_review]->save_picture_png();
+				cur_pic_to_review++;
+			}
+			// skip pic being reviewed on delete or backspace
+			else if (del.downs > 0 || backspace.downs > 0) {
+				cur_pic_to_review++;
+			}
+		}
+
+		if (cur_pic_to_review >= player->pictures.size()) {
+			// Clear out unsaved pics and zoom through the night
+			finished_reviewing_pics = true;
+			player->ClearPictures();
+
+			// swap to playing at start of day
+			// reset player position
+			player->at = cur_spawn;
+			player->transform->position = player->walk_mesh->to_world_point(player->at);
+
+			// Reset camera zoom, focus, and battery
+			player->player_camera->Reset(true);
+
+			time_of_day = start_day_time;
+			time_scale = TIME_SCALE_DEFAULT;
+			cur_state = playing;
+		}
 	}
 }
 
 void PlayMode::night_draw_ui(glm::uvec2 const& drawable_size) {
 
 	// Draw clock
-	body_text->draw(TextRenderer::format_time_of_day(time_of_day, day_length), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+	// body_text->draw(TextRenderer::format_time_of_day(time_of_day, day_length), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+
+	if (!started_reviewing_pics) {
+		display_text->draw("End of Day", 0.31f * float(drawable_size.x), 0.5f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+
+		if (player->pictures.size() > 0) {
+			body_text->draw("(press ENTER to review your photos)", 0.36f * float(drawable_size.x), 0.05f * float(drawable_size.y), 0.5f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		}
+		else {
+			body_text->draw("(press ENTER to sleep)", 0.41f * float(drawable_size.x), 0.05f * float(drawable_size.y), 0.5f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		}
+	}
+	else if (!finished_reviewing_pics) {
+		Picture &p = *player->pictures[cur_pic_to_review].get();
+
+		// Draw pic being reviewed with some score info and the like
+		DrawPicture pic(p, drawable_size);
+		pic.draw(glm::vec2(0.315f * float(drawable_size.x), 0.6f * float(drawable_size.y)), 0.6f);
+
+		// Picture Title
+		display_text->draw(p.title, 0.635f * float(drawable_size.x), 0.85f * float(drawable_size.y), 0.5f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		// Scoring elements
+		std::list<std::string> scoring_elements = p.get_scoring_strings();
+		float offset = 0.0f;
+		float spacing = float(drawable_size.y) * 0.035f;
+		for (auto s = scoring_elements.begin(); s != scoring_elements.end(); s++) {
+			body_text->draw(*s, 0.635f * float(drawable_size.x), (0.75f * float(drawable_size.y)) - offset, 0.5f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+			offset += spacing;
+		}
+
+		// Instructions for saving/skipping a pic
+		body_text->draw("(press ENTER to save picture or DELETE to skip it)", 0.31f * float(drawable_size.x), 0.05f * float(drawable_size.y), 0.5f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+	}
 }

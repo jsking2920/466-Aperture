@@ -3,6 +3,7 @@
 
 //The 'PlayMode' mode plays the game:
 #include "PlayMode.hpp"
+#include "GP22IntroMode.hpp"
 
 //For asset loading:
 #include "Load.hpp"
@@ -150,7 +151,8 @@ int main(int argc, char **argv) {
 	std::cout << "Assets loaded." << std::endl;
 
 	//------------ create game mode + make current --------------
-	Mode::set_current(std::make_shared< PlayMode >());
+	//Mode::set_current(std::make_shared< PlayMode >());
+	Mode::set_current(std::make_shared< GP22IntroMode >(std::make_shared< PlayMode >())); // Splash screen mode that transitions to PlayMode
 
 	//------------ main loop ------------
 

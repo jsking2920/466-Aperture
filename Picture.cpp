@@ -160,7 +160,7 @@ std::list<ScoreElement> Picture::score_creature(PictureCreatureInfo &creature_in
         }
         //bonus points for shallow depth of field
         if(score > 2500.f && stats.focal_distance < 5.f) {
-            result.emplace_back("Depth of Field!", (uint32_t)((5.f - stats.focal_distance) * 500.f));
+            result.emplace_back("Depth of Field", (uint32_t)((5.f - stats.focal_distance) * 500.f));
         }
     }
 
@@ -181,6 +181,18 @@ std::string Picture::get_scoring_string() {
        ret += el.name + ": +" + std::to_string(el.value) + "\n";
     });
     ret += "Total Score: " + std::to_string(get_total_score()) + "\n\n";
+    return ret;
+}
+
+std::list<std::string> Picture::get_scoring_strings() {
+
+    std::list<std::string> ret = std::list<std::string>();
+
+    std::for_each(score_elements.begin(), score_elements.end(), [&](ScoreElement el) {
+        ret.push_back(el.name + ": +" + std::to_string(el.value));
+    });
+    ret.push_back("");
+    ret.push_back("Total Score: " + std::to_string(get_total_score()) + "");
     return ret;
 }
 
@@ -336,11 +348,7 @@ void DrawPicture::draw(glm::vec2 const& center, float scale, glm::u8vec4 const& 
     attribs.emplace_back(glm::vec2(min.x, min.y), glm::vec2(min_tc.x, min_tc.y), tint);
     attribs.emplace_back(glm::vec2(max.x, max.y), glm::vec2(max_tc.x, max_tc.y), tint);
     attribs.emplace_back(glm::vec2(min.x, max.y), glm::vec2(min_tc.x, max_tc.y), tint);
-}
 
-DrawPicture::~DrawPicture() {
-
-    if (attribs.empty()) return;
 
     //upload vertices to vertex_buffer:
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer); //set vertex_buffer as current
@@ -355,6 +363,9 @@ DrawPicture::~DrawPicture() {
 
     //use the mapping vertex_buffer_for_color_texture_program to fetch vertex data:
     glBindVertexArray(vertex_buffer_for_color_texture_program);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     //bind the sprite texture to location zero:
     glActiveTexture(GL_TEXTURE0);
@@ -371,6 +382,4 @@ DrawPicture::~DrawPicture() {
 
     //reset current program to none:
     glUseProgram(0);
-
-    //GL_ERRORS();
 }

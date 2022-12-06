@@ -32,9 +32,8 @@ struct DrawSprites {
 	//Measure text:
 	void get_text_extents(std::string const &name, glm::vec2 const &anchor, float scale, glm::vec2 *min, glm::vec2 *max);
 
-
-	//Actually draws the sprites on deallocation:
-	~DrawSprites();
+	// Actually draw all sprites that have been accumulated
+	void flush_sprite_buffer();
 
 	//--- internals ---
 	SpriteAtlas const &atlas;
