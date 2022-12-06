@@ -7,6 +7,14 @@ SNA idle 0-40 action 40-80
 PEN idle 0-60 action 60-90
 MEP idle 0-60 action 60-120
 
+
+expected behavior?
+TAN - think whales: hovers above ground, moving slowly, growls if you take a picture of it
+TRI - angry goose: stays stationary on the ground, runs/drifts towareds the player agressively
+SNA - crawls slowly on the ground, hides in shell once close
+PEN - this is the penguin equivalent in our game! waddles around, flaps wings randomly?
+MEP - more active floater? 
+
 //big ass command
 "C:\Program Files\Blender Foundation\Blender 3.3\blender.exe" --background --python scenes\export-scene.py -- scenes\proto-world2.blend dist\assets\proto-world2.scene && "C:\Program Files\Blender Foundation\Blender 3.3\blender.exe" --background --python scenes\export-meshes.py -- scenes\proto-world2.blend dist\assets\proto-world2.pnct && "C:\Program Files\Blender Foundation\Blender 3.3\blender.exe" --background --python scenes\export-walkmeshes.py -- scenes\proto-world2.blend:WalkMeshes dist\assets\proto-world2.w
 
