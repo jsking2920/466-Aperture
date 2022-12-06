@@ -33,6 +33,7 @@
 #ifdef _WIN32
 extern "C" { uint32_t GetACP(); }
 #endif
+
 int main(int argc, char **argv) {
 #ifdef _WIN32
 	{ //when compiled on windows, check that code page is forced to utf-8 (makes file loading/saving work right):
@@ -50,7 +51,7 @@ int main(int argc, char **argv) {
 #endif
 
 	//------------  initialization ------------
-
+    system("setenv GL_ENABLE_DEBUG_ATTACH YES");
 	//Initialize SDL library:
 	SDL_Init(SDL_INIT_VIDEO);
 
