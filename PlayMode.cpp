@@ -88,8 +88,8 @@ Load< BoneAnimation > test_banims(LoadTagDefault, []() -> BoneAnimation const * 
 	return ret;
 });
 Load< BoneAnimation > test_banims2(LoadTagDefault, [](){
-	auto ret = new BoneAnimation(data_path("assets/animations/monkey.banims"));
-	BoneAnimation::animation_map.emplace(std::make_pair("monkey", ret));
+	auto ret = new BoneAnimation(data_path("assets/animations/anim_MEP.banims"));
+	BoneAnimation::animation_map.emplace(std::make_pair("MEP", ret));
 	return ret;
 });
 
@@ -110,6 +110,8 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
         auto is_creature = [&](std::pair< std::string, CreatureStats > pair) {
             return pair.first == transform->name.substr(0, 3);
         };
+
+		std::cout << "mesh name: " << mesh_name << std::endl;
 
 		//TODO: for stuff that has animations, add a section where it samples the animation
         //only change shader if the object has a creature code
