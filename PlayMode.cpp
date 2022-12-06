@@ -332,7 +332,7 @@ PlayMode::PlayMode() : scene(*main_scene) {
 	{
 		active_camera = overhead_cam;
 		// Hide player
-		player->transform->position -= glm::vec3(0.0f, -10.0f, 0.0f);
+		player->transform->position -= glm::vec3(0.0f, 0.0f, 10.0f);
 	}
 }
 
@@ -895,6 +895,13 @@ void PlayMode::menu_update(float elapsed) {
 		cur_state = playing;
 		return;
 	}
+
+	// Give cam a little back and forth sway (this math is more what you would call "artistic" than "scientific")
+	overhead_cam_timer += elapsed / 4.0f;
+	overhead_cam_timer = overhead_cam_timer >= float(M_PI) * 2 ? 0.0f : overhead_cam_timer; // timer loops over [0, 2pi]
+	float angle = glm::sin(overhead_cam_timer) * 0.05f;
+
+	overhead_cam->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(0.0f, 0.0f, 1.0f)) * overhead_cam->transform->rotation;
 }
 
 void PlayMode::menu_draw_ui(glm::uvec2 const& drawable_size) {
@@ -1185,6 +1192,13 @@ void PlayMode::night_update(float elapsed) {
 			cur_state = playing;
 		}
 	}
+
+	// Give cam a little back and forth sway (this math is more what you would call "artistic" than "scientific")
+	overhead_cam_timer += elapsed / 4.0f;
+	overhead_cam_timer = overhead_cam_timer >= float(M_PI) * 2 ? 0.0f : overhead_cam_timer; // timer loops over [0, 2pi]
+	float angle = glm::sin(overhead_cam_timer) * 0.05f;
+
+	overhead_cam->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(0.0f, 0.0f, 1.0f)) * overhead_cam->transform->rotation;
 }
 
 void PlayMode::night_draw_ui(glm::uvec2 const& drawable_size) {

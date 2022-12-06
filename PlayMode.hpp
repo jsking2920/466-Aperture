@@ -121,4 +121,5 @@ struct PlayMode : Mode {
     const float footstep_time = 2.5f;
 
 	Scene::Camera* overhead_cam = nullptr;
+	float overhead_cam_timer = 0.0f;
 };
