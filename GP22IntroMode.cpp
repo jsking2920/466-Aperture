@@ -584,7 +584,7 @@ GP22IntroMode::~GP22IntroMode() {
 }
 
 bool GP22IntroMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size) {
-	if (evt.type == SDL_KEYDOWN) {
+	if (evt.type == SDL_KEYDOWN || evt.type == SDL_MOUSEBUTTONDOWN) {
 		//on any key press, skip the rest of the intro:
 		music->set_volume(0.0f, 1.0f / 10.0f);
 		Mode::set_current(next_mode);

@@ -61,6 +61,9 @@ struct PlayMode : Mode {
 	// Local copy of the game scene
 	Scene scene;
 
+	// Camera to draw from
+	Scene::Camera* active_camera = nullptr;
+
 	// Audio
     std::unordered_map<std::string, Sound::Sample> sample_map;
 	std::shared_ptr< Sound::PlayingSample > music_loop;
