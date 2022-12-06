@@ -111,8 +111,9 @@ struct PlayMode : Mode {
 	bool started_reviewing_pics = false;
 	bool finished_reviewing_pics = false;
 
-
     //Audio
     float time_since_last_footstep = 1.0f;
     const float footstep_time = 2.5f;
+
+	Scene::Camera* overhead_cam = nullptr;
 };

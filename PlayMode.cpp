@@ -245,15 +245,27 @@ PlayMode::PlayMode() : scene(*main_scene) {
 	}
 	if (player_transform == nullptr) throw std::runtime_error("Player transform not found.");
 	
-	// Set up player
+	// Set up player and camera
 	{
 		// Check for camera in scene for player's eyes
-		if (scene.cameras.size() != 1) throw std::runtime_error("Expecting scene to have exactly one camera, specifically at the player's head, but it has " + std::to_string(scene.cameras.size()));
-		
+		if (scene.cameras.size() != 2) {
+			std::cout << "Expecting scene to have exactly two cameras, specifically at the player's head and one overhead for the menu, but it has " + std::to_string(scene.cameras.size()) << std::endl;
+		}
+		Scene::Camera* player_cam = nullptr;
+
+		for (auto c = scene.cameras.begin(); c != scene.cameras.end(); c++) {
+			if (c->transform->name == "overhead_cam") {
+				overhead_cam = &(*c);
+			}
+			else {
+				player_cam = &(*c);
+			}
+		}
+
 		// Create new transform for Player's PlayerCamera
 		scene.transforms.emplace_back();
 
-		player = new Player(player_transform, &main_walkmeshes->lookup("WalkMe"), &scene.cameras.back(), &scene.transforms.back());
+		player = new Player(player_transform, &main_walkmeshes->lookup("WalkMe"), player_cam/*& scene.cameras.back()*/, &scene.transforms.back());
 		cur_spawn = player->at;
 	}
 	
