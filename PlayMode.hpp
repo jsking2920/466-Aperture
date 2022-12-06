@@ -75,7 +75,7 @@ struct PlayMode : Mode {
 	float end_day_time = 230.0f; // Time player ends of everyday (11:00pm)
 
 	float time_scale = 4.0f; // multiplier for speed of time (starts at 4x for menu visuals)
-    float time_scale_debug = 1.0f; // multiplier for debug reasons
+    float time_scale_debug = 16.0f; // multiplier for debug reasons
 
 	float sunrise = 75.0f; // sunrise at 7:30am
 	float sunset = 210.0f; // sunset at 9pm
@@ -106,15 +106,11 @@ struct PlayMode : Mode {
 	// List of pics player has saved
 	std::vector<std::shared_ptr<Picture>> saved_pictures;
 
-	// Nighttime UI
+	// Night UI
 	uint16_t cur_pic_to_review = 0;
+	bool started_reviewing_pics = false;
 	bool finished_reviewing_pics = false;
 
-
-	// Playing UI
-	float score_text_popup_timer = 0.0f;
-	float score_text_popup_duration = 2.0f;
-	bool score_text_is_showing = false;
 
     //Audio
     float time_since_last_footstep = 1.0f;

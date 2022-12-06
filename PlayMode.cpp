@@ -895,7 +895,6 @@ void PlayMode::playing_update(float elapsed) {
             Sound::play(Sound::sample_map->at("Page_Turn"));
 			player->in_cam_view = false;
 			player->SetCrouch(false);
-			score_text_is_showing = false;
 
 			time_scale = 1.0f; // time doesn't stop while in journal but it could
 			
@@ -910,11 +909,10 @@ void PlayMode::playing_update(float elapsed) {
 
 			player->in_cam_view = false;
 			player->SetCrouch(false);
-			score_text_is_showing = false;
 
 			time_scale = 0.0f; // pause at night to review pics
 			cur_pic_to_review = 0;
-			finished_reviewing_pics = false;
+			started_reviewing_pics = false;
 
 			cur_state = night;
 			return;
@@ -983,8 +981,6 @@ void PlayMode::playing_update(float elapsed) {
 		// Snap a pic on left click, if in camera view and has remaining battery
 		if (player->in_cam_view && lmb.downs == 1 && player->player_camera->cur_battery > 0) {
 			player->player_camera->TakePicture(scene);
-			score_text_is_showing = true;
-			score_text_popup_timer = 0.0f;
 		}
 	}
 
@@ -993,18 +989,6 @@ void PlayMode::playing_update(float elapsed) {
         Creature &creature = pair.second;
         creature.update(elapsed, time_of_day);
     });
-
-	// UI
-	{
-		if (score_text_is_showing) {
-			if (score_text_popup_timer >= score_text_popup_duration) {
-				score_text_is_showing = false;
-			}
-			else {
-				score_text_popup_timer += elapsed;
-			}
-		}
-	}
 }
 
 void PlayMode::playing_draw_ui(glm::uvec2 const& drawable_size) {
@@ -1065,14 +1049,6 @@ void PlayMode::playing_draw_ui(glm::uvec2 const& drawable_size) {
 		// Draw clock
 		body_text->draw(TextRenderer::format_time_of_day(time_of_day, day_length), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 	}
-
-	if (score_text_is_showing) {
-		// Draw text of last picture taken
-		if (!player->pictures.empty()) {
-			body_text->draw(player->pictures.back()->title, 0.025f * float(drawable_size.x), 0.95f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
-			body_text->draw("Score: " + std::to_string(player->pictures.back()->get_total_score()), 0.025f * float(drawable_size.x), 0.9f * float(drawable_size.y), 0.8f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
-		}
-	}
 }
 
 // -------- Journal functions -----------
@@ -1082,7 +1058,7 @@ void PlayMode::journal_update(float elapsed) {
 	if (time_of_day >= end_day_time) {
 		time_scale = 0.0f; // pause at night to review pics
 		cur_pic_to_review = 0;
-		finished_reviewing_pics = false;
+		started_reviewing_pics = false;
 		cur_state = night;
 		return;
 	}
@@ -1140,37 +1116,44 @@ void PlayMode::night_update(float elapsed) {
 		player.pictures is cleared at end of day
 	*/
 
-	// Player still has pictures to review
-	if (!finished_reviewing_pics && cur_pic_to_review < player->pictures.size()) {
-		// TODO: make these buttons
-		// save pic being reviewed on enter
+	if (!started_reviewing_pics) {
 		if (enter.downs > 0) {
-			saved_pictures.push_back(player->pictures[cur_pic_to_review]);
-			player->pictures[cur_pic_to_review]->save_picture_png();
-			cur_pic_to_review++;
-		}
-		// skip pic being reviewed on delete or backspace
-		else if (del.downs > 0 || backspace.downs > 0) {
-			cur_pic_to_review++;
+			started_reviewing_pics = true;
+			finished_reviewing_pics = player->pictures.size() == 0;
 		}
 	}
-	
-	if (cur_pic_to_review >= player->pictures.size()) {
-		// Clear out unsaved pics and zoom through the night
-		finished_reviewing_pics = true;
-		player->ClearPictures();
+	else {
+		if (cur_pic_to_review < player->pictures.size()) {
+			// TODO: make these buttons
+			// save pic being reviewed on enter
+			if (enter.downs > 0) {
+				saved_pictures.push_back(player->pictures[cur_pic_to_review]);
+				player->pictures[cur_pic_to_review]->save_picture_png();
+				cur_pic_to_review++;
+			}
+			// skip pic being reviewed on delete or backspace
+			else if (del.downs > 0 || backspace.downs > 0) {
+				cur_pic_to_review++;
+			}
+		}
 
-		// swap to playing at start of day
-		// reset player position
-		player->at = cur_spawn;
-		player->transform->position = player->walk_mesh->to_world_point(player->at);
+		if (cur_pic_to_review >= player->pictures.size()) {
+			// Clear out unsaved pics and zoom through the night
+			finished_reviewing_pics = true;
+			player->ClearPictures();
 
-		// Reset camera zoom, focus, and battery
-		player->player_camera->Reset(true);
+			// swap to playing at start of day
+			// reset player position
+			player->at = cur_spawn;
+			player->transform->position = player->walk_mesh->to_world_point(player->at);
 
-		time_of_day = start_day_time;
-		time_scale = 1.0f;
-		cur_state = playing;
+			// Reset camera zoom, focus, and battery
+			player->player_camera->Reset(true);
+
+			time_of_day = start_day_time;
+			time_scale = 1.0f;
+			cur_state = playing;
+		}
 	}
 }
 
@@ -1179,7 +1162,17 @@ void PlayMode::night_draw_ui(glm::uvec2 const& drawable_size) {
 	// Draw clock
 	// body_text->draw(TextRenderer::format_time_of_day(time_of_day, day_length), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 
-	if (!finished_reviewing_pics) {
+	if (!started_reviewing_pics) {
+		display_text->draw("End of Day", 0.31f * float(drawable_size.x), 0.5f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		
+		if (player->pictures.size() > 0) {
+			body_text->draw("(press ENTER to review your photos)", 0.36f * float(drawable_size.x), 0.05f * float(drawable_size.y), 0.5f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		}
+		else {
+			body_text->draw("(press ENTER to sleep)", 0.41f * float(drawable_size.x), 0.05f * float(drawable_size.y), 0.5f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		}
+	}
+	else if (!finished_reviewing_pics) {
 		Picture &p = *player->pictures[cur_pic_to_review].get();
 
 		// Draw pic being reviewed with some score info and the like
