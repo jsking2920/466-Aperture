@@ -81,12 +81,6 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glGenerateMipmap(GL_TEXTURE_2D);
 
-        //attach texture to picture_fb and tone map to it
-        glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.picture_fb);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
-        gl_check_fb(); //performance?
-        framebuffers.tone_map_to_screen(framebuffers.picture_fb);
-
         // Unbind the texture object:
         glBindTexture(GL_TEXTURE_2D, 0);
     }

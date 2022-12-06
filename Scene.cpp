@@ -159,7 +159,9 @@ void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scen
 
     //transform rgb16f texture to rgba8ui texture for export
     //code modeled after this snippet https://stackoverflow.com/questions/48938930/pixel-access-with-glgetteximage
-    glBindTexture(GL_TEXTURE_2D, framebuffers.screen_texture);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffers.picture_fb);
+    framebuffers.tone_map_to_screen(framebuffers.screen_texture);
+    glBindTexture(GL_TEXTURE_2D, framebuffers.picture_tex);
     glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_FLOAT, data.data());
     glBindTexture(GL_TEXTURE_2D, 0);
     GL_ERRORS();

@@ -278,6 +278,27 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size, glm::uvec2 const &ne
         GL_ERRORS();
     }
 
+    // Resize picture_tex
+    {
+        // Set up picture_tex if not yet named
+        if (picture_tex == 0) glGenTextures(1, &picture_tex);
+
+        // resize screen_texture and set parameters
+        glBindTexture(GL_TEXTURE_2D, picture_tex);
+        glTexImage2D(GL_TEXTURE_2D, 0,
+                     GL_RGB16F, //<-- storage will be RGB 16-bit half-float
+                     size.x, size.y, 0, //width, height, border
+                     GL_RGB, GL_FLOAT, //<-- source data (if we were uploading it) would be floating point RGB
+                     nullptr //<-- don't upload data, just allocate on-GPU storage
+        );
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        GL_ERRORS();
+    }
+
     // Resize picture_fb
     {
         // set up picture_fb if not yet named
@@ -285,7 +306,8 @@ void Framebuffers::realloc(glm::uvec2 const &drawable_size, glm::uvec2 const &ne
             glGenFramebuffers(1, &picture_fb);
             glBindFramebuffer(GL_FRAMEBUFFER, picture_fb);
             //temporary bind to appease gl_check_fb()
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, screen_texture, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, picture_tex, 0);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
 
         // make sure picture_fb isn't borked
@@ -317,7 +339,6 @@ struct ToneMapProgram {
                 // https://www.w3.org/TR/WCAG21/#dfn-relative-luminance
                 "  const vec3 luminosityFactor = vec3(0.2126, 0.7152, 0.0722);\n"
                 "  vec3 grayscale = vec3(dot(color, luminosityFactor));\n"
-                "\n"
                 "  return mix(grayscale, color, 1.0 + value);\n"
                 "}\n"
                 "vec3 adjustExposure(vec3 color, float value) {\n"
@@ -386,6 +407,7 @@ void Framebuffers::tone_map_to_screen(GLuint texture) {
     glUseProgram(0);
     GL_ERRORS();
 }
+
 
 constexpr uint32_t KERNEL_RADIUS = 20;
 std::array< float, KERNEL_RADIUS > bloom_kernel = ([](){
@@ -527,6 +549,44 @@ struct BlurYProgram {
 
 Load< BlurYProgram > blur_y_program(LoadTagEarly);
 
+
+void Framebuffers::tone_map_to_buffer(GLuint texture, GLuint buffer) {
+    glBindFramebuffer(GL_FRAMEBUFFER, buffer);
+    glDisable(GL_BLEND);
+    glDisable(GL_DEPTH_TEST);
+
+    GLint ret = 0;
+
+    glUseProgram(blur_y_program->program);
+    glBindVertexArray(empty_vao);
+    glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &ret);
+
+    std::cout << ret << std::endl;
+
+    glActiveTexture(GL_TEXTURE0);
+    //glBindTexture(GL_TEXTURE_2D, shadow_color_tex);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+
+    //Add depth of field, store into pp_fb/screen_texture
+    glBindFramebuffer(GL_FRAMEBUFFER, buffer);
+
+    glUseProgram(tone_map_program->program);
+    glBindVertexArray(empty_vao);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, depth_effect_tex);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glBindVertexArray(0);
+    glUseProgram(0);
+    GL_ERRORS();
+}
+
 //assisted by this tutorial https://lettier.github.io/3d-game-shaders-for-beginners/depth-of-field.html
 struct DepthOfFieldProgram {
     DepthOfFieldProgram() {
@@ -659,7 +719,6 @@ void Framebuffers::add_depth_of_field(float focal_distance, glm::vec3 player_pos
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     //glDisable(GL_BLEND);
-    GL_ERRORS();
 
     //Add depth of field, store into pp_fb/screen_texture
     glBindFramebuffer(GL_FRAMEBUFFER, pp_fb);
