@@ -255,18 +255,21 @@ PlayMode::PlayMode() : scene(*main_scene) {
 		Scene::Camera* player_cam = nullptr;
 
 		for (auto c = scene.cameras.begin(); c != scene.cameras.end(); c++) {
-			if (c->transform->name == "overhead_cam") {
+			if (c->transform->name == "overhead_camera") {
 				overhead_cam = &(*c);
 			}
-			else {
+			else if (c->transform->name == "player_camera") {
 				player_cam = &(*c);
 			}
+		}
+		if (player_cam == nullptr || overhead_cam == nullptr) {
+			std::runtime_error("Missing either 'overhead_camera' or 'player_cam' in the scene");
 		}
 
 		// Create new transform for Player's PlayerCamera
 		scene.transforms.emplace_back();
 
-		player = new Player(player_transform, &main_walkmeshes->lookup("WalkMe"), player_cam/*& scene.cameras.back()*/, &scene.transforms.back());
+		player = new Player(player_transform, &main_walkmeshes->lookup("WalkMe"), player_cam, &scene.transforms.back());
 		cur_spawn = player->at;
 	}
 	
@@ -323,6 +326,13 @@ PlayMode::PlayMode() : scene(*main_scene) {
 			Creature &critter = creature_pair.second;
             critter.play_animation("Idle", true, 1.0f);
 		}
+	}
+
+	// Set up menu screen
+	{
+		active_camera = overhead_cam;
+		// Hide player
+		player->transform->position -= glm::vec3(0.0f, 0.0f, 10.0f);
 	}
 }
 
@@ -532,23 +542,13 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 	// Update camera aspect ratios for drawable
 	{
-		player->camera->aspect = float(drawable_size.x) / float(drawable_size.y);
-		player->player_camera->scene_camera->aspect = float(drawable_size.x) / float(drawable_size.y);
-		player->camera->drawable_size = drawable_size;
-		player->player_camera->scene_camera->drawable_size = drawable_size;
+		active_camera->aspect = float(drawable_size.x) / float(drawable_size.y);
+		active_camera->drawable_size = drawable_size;
 
         // Based on: https://github.com/15-466/15-466-f20-framebuffer
         // Make sure framebuffers are the same size as the window:
         framebuffers.realloc(drawable_size, glm::vec2(1024, 1024));
 	}
-
-    // Set active camera
-    Scene::Camera *active_camera;
-    if (player->in_cam_view) {
-        active_camera = player->player_camera->scene_camera;
-    } else {
-        active_camera = player->camera;
-    }
 
 	// Handle scene lighting, forward lighting based on https://github.com/15-466/15-466-f19-base6/blob/master/DemoLightingForwardMode.cpp
 	{
@@ -887,9 +887,21 @@ void PlayMode::menu_update(float elapsed) {
 	if (enter.downs > 0) {
 		time_of_day = start_day_time;
 		time_scale = TIME_SCALE_DEFAULT;
+		active_camera = player->camera;
+
+		// reset player position, unhiding them
+		player->transform->position = player->walk_mesh->to_world_point(player->at);
+
 		cur_state = playing;
 		return;
 	}
+
+	// Give cam a little back and forth sway (this math is more what you would call "artistic" than "scientific")
+	overhead_cam_timer += elapsed / 4.0f;
+	overhead_cam_timer = overhead_cam_timer >= float(M_PI) * 2 ? 0.0f : overhead_cam_timer; // timer loops over [0, 2pi]
+	float angle = glm::sin(overhead_cam_timer) * 0.05f;
+
+	overhead_cam->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(0.0f, 0.0f, 1.0f)) * overhead_cam->transform->rotation;
 }
 
 void PlayMode::menu_draw_ui(glm::uvec2 const& drawable_size) {
@@ -926,6 +938,8 @@ void PlayMode::playing_update(float elapsed) {
 			time_scale = 0.0f; // pause at night to review pics
 			cur_pic_to_review = 0;
 			started_reviewing_pics = false;
+
+			active_camera = overhead_cam;
 
 			cur_state = night;
 			return;
@@ -964,6 +978,12 @@ void PlayMode::playing_update(float elapsed) {
 
 		// Toggle player view on right click
 		if (rmb.downs > 0) {
+			if (player->in_cam_view) {
+				active_camera = player->camera;
+			}
+			else {
+				active_camera = player->player_camera->scene_camera;
+			}
 			player->in_cam_view = !player->in_cam_view;
 		}
 
@@ -1072,6 +1092,7 @@ void PlayMode::journal_update(float elapsed) {
 		time_scale = 0.0f; // pause at night to review pics
 		cur_pic_to_review = 0;
 		started_reviewing_pics = false;
+		active_camera = overhead_cam;
 		cur_state = night;
 		return;
 	}
@@ -1165,9 +1186,19 @@ void PlayMode::night_update(float elapsed) {
 
 			time_of_day = start_day_time;
 			time_scale = TIME_SCALE_DEFAULT;
+
+			active_camera = player->camera;
+
 			cur_state = playing;
 		}
 	}
+
+	// Give cam a little back and forth sway (this math is more what you would call "artistic" than "scientific")
+	overhead_cam_timer += elapsed / 4.0f;
+	overhead_cam_timer = overhead_cam_timer >= float(M_PI) * 2 ? 0.0f : overhead_cam_timer; // timer loops over [0, 2pi]
+	float angle = glm::sin(overhead_cam_timer) * 0.05f;
+
+	overhead_cam->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(0.0f, 0.0f, 1.0f)) * overhead_cam->transform->rotation;
 }
 
 void PlayMode::night_draw_ui(glm::uvec2 const& drawable_size) {

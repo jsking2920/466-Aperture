@@ -52,7 +52,6 @@ int main(int argc, char **argv) {
 #endif
 
 	//------------  initialization ------------
-    system("setenv GL_ENABLE_DEBUG_ATTACH YES");
 	//Initialize SDL library:
 	SDL_Init(SDL_INIT_VIDEO);
 

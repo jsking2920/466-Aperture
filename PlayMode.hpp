@@ -61,6 +61,9 @@ struct PlayMode : Mode {
 	// Local copy of the game scene
 	Scene scene;
 
+	// Camera to draw from
+	Scene::Camera* active_camera = nullptr;
+
 	// Audio
     std::unordered_map<std::string, Sound::Sample> sample_map;
 	std::shared_ptr< Sound::PlayingSample > music_loop;
@@ -118,4 +121,5 @@ struct PlayMode : Mode {
     const float footstep_time = 2.5f;
 
 	Scene::Camera* overhead_cam = nullptr;
+	float overhead_cam_timer = 0.0f;
 };
