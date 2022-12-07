@@ -182,6 +182,28 @@ void Sound::PlayingSample::set_half_volume_radius(float new_radius, float ramp) 
 	Sound::unlock();
 }
 
+void Sound::PlayingSample::set_paused(bool paused_, float ramp, float final_volume) {
+    Sound::lock();
+    if(paused_ == paused) {
+        //already pausing
+        Sound::unlock();
+        return;
+    }
+    if(paused_) {
+        //pausing
+        pause_queued = true;
+        volume.ramp = ramp;
+        volume.target = 0.0f;
+    } else {
+        //unpausing
+        pause_queued = false;
+        paused = false;
+        volume.ramp = ramp;
+        volume.target = final_volume;
+    }
+    Sound::unlock();
+}
+
 void Sound::PlayingSample::stop(float ramp) {
 	Sound::lock();
 	if (!(stopping || stopped)) {
@@ -348,7 +370,10 @@ void mix_audio(void *, Uint8 *buffer_, int len) {
 	//add audio from each playing sample into the buffer:
 	for (auto si = playing_samples.begin(); si != playing_samples.end(); /* later */) {
 		Sound::PlayingSample &playing_sample = **si; //much more convenient than writing ** everywhere.
-
+        if(playing_sample.paused) {
+            ++si;
+            continue;
+        }
 		//Figure out sample panning/volume at start...
 		LR start_pan;
 		if (!(playing_sample.pan.value == playing_sample.pan.value)) {
@@ -395,7 +420,7 @@ void mix_audio(void *, Uint8 *buffer_, int len) {
 		pan_step.l = (end_pan.l - start_pan.l) / MIX_SAMPLES;
 		pan_step.r = (end_pan.r - start_pan.r) / MIX_SAMPLES;
 
-		assert(playing_sample.i < playing_sample.data.size());
+//		assert(playing_sample.i < playing_sample.data.size());
         assert(playing_sample.blit < 1.0f);
         assert(playing_sample.blit >= 0.0f);
 
@@ -403,6 +428,7 @@ void mix_audio(void *, Uint8 *buffer_, int len) {
 			//mix one sample based on current pan values:
             float current_sample;
             if(playing_sample.i >= playing_sample.data.size() - 1) {
+                //last sample, so don't blit
                 current_sample = playing_sample.data[playing_sample.i];
             } else {
                 current_sample =
@@ -441,7 +467,9 @@ void mix_audio(void *, Uint8 *buffer_, int len) {
 			auto old = si;
 			++si;
 			playing_samples.erase(old);
-		} else {
+        } else if(playing_sample.pause_queued && playing_sample.volume.value == 0.0f) {
+            playing_sample.paused = true;
+        } else {
 			++si;
 		}
 	}

@@ -16,6 +16,7 @@
 #include <map>
 
 #define TIME_SCALE_DEFAULT 1.25f
+#define MUSIC_VOLUME 0.5f
 
 struct PlayMode : Mode {
 	PlayMode();
@@ -66,7 +67,9 @@ struct PlayMode : Mode {
 
 	// Audio
     std::unordered_map<std::string, Sound::Sample> sample_map;
-	std::shared_ptr< Sound::PlayingSample > music_loop;
+    //pair for stereo
+	std::shared_ptr< Sound::PlayingSample > music_l;
+    std::shared_ptr< Sound::PlayingSample > music_r;
 
 	// Player
 	Player* player = nullptr;
