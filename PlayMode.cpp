@@ -223,7 +223,9 @@ Load< std::unordered_map<std::string, Sound::Sample> > audio_samples(LoadTagDefa
             "FLO_Bounce",
             "FLO_Idle",
             "Footstep",
-            "Page_Turn"
+            "Page_Turn",
+            "Strange_New_World.L",
+            "Strange_New_World.R",
     };
     for(std::string name : names) {
         sample_map->emplace(std::piecewise_construct, std::make_tuple(name), std::make_tuple(data_path("assets/audio/" + name + ".opus")));
@@ -892,6 +894,9 @@ void PlayMode::menu_update(float elapsed) {
 		// reset player position, unhiding them
 		player->transform->position = player->walk_mesh->to_world_point(player->at);
 
+        music_l = Sound::play(Sound::sample_map->at("Strange_New_World.L"), MUSIC_VOLUME, 1.0f, -1.0f);
+        music_r = Sound::play(Sound::sample_map->at("Strange_New_World.R"), MUSIC_VOLUME, 1.0f, 1.0f);
+
 		cur_state = playing;
 		return;
 	}
@@ -918,10 +923,12 @@ void PlayMode::playing_update(float elapsed) {
 		// open journal on tab, swap to journal state
 		if (tab.downs > 0) {
             Sound::play(Sound::sample_map->at("Page_Turn"));
+            music_l->set_paused(true, 2.0f/60.f);
+            music_r->set_paused(true, 2.0f/60.f);
 			player->in_cam_view = false;
 			player->SetCrouch(false);
 
-			time_scale = TIME_SCALE_DEFAULT; // time doesn't stop while in journal but it could
+			time_scale = 0.0f; // time doesn't stop while in journal but it could
 
 			cur_journal_pg = 0; // Always open journal to first page
 
@@ -1100,6 +1107,8 @@ void PlayMode::journal_update(float elapsed) {
 	// close journal on tab, swap to playing state
 	if (tab.downs == 1) {
 		time_scale = TIME_SCALE_DEFAULT; // if time freezes in journal, would need to start it moving again
+        music_l->set_paused(false, 0.5f, MUSIC_VOLUME);
+        music_r->set_paused(false, 0.5f, MUSIC_VOLUME);
 		cur_journal_pg = 0;
 		cur_state = playing;
 		return;

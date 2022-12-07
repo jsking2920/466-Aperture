@@ -63,6 +63,7 @@ struct PlayingSample {
 	//set the half-volume radius (use only on "3D" playing sounds):
 	void set_half_volume_radius(float new_radius, float ramp = 1.0f / 60.0f);
 
+    void set_paused(bool paused_, float ramp = 1.0f / 60.0f, float final_volume = 1.0f);
 	//'stop' will fade sample out over 'ramp' seconds and then remove it from the active samples:
 	void stop(float ramp = 1.0f / 60.0f);
 
@@ -77,6 +78,8 @@ struct PlayingSample {
 	bool stopped = false; //was playback stopped (either by running out of sample, or by stop())?
     //does not support changing pitch mid sample
     float pitch = 1.0f;
+    bool paused = false;
+    bool pause_queued = false;
 
 	Ramp< float > volume = Ramp< float >(1.0f);
 
