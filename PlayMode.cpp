@@ -88,7 +88,7 @@ Load< BoneAnimation > test_banims(LoadTagDefault, []() -> BoneAnimation const * 
 	return ret;
 });
 Load< BoneAnimation > test_banims2(LoadTagDefault, [](){
-	auto ret = new BoneAnimation(data_path("assets/animations/anim_MEP.banims"));
+	auto ret = new BoneAnimation(data_path("assets/animations/anim_TRI.banims"));
 	BoneAnimation::animation_map.emplace(std::make_pair("MEP", ret));
 	return ret;
 });
@@ -1087,7 +1087,8 @@ void PlayMode::playing_draw_ui(glm::uvec2 const& drawable_size) {
 	}
 	else {
 		// Draw clock
-		body_text->draw(TextRenderer::format_time_of_day(time_of_day, day_length), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+        //moved back an hour
+		body_text->draw(TextRenderer::format_time_of_day(fmod(time_of_day + day_length - 10.0f, day_length), day_length), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 	}
 }
 
