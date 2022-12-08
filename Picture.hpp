@@ -4,6 +4,7 @@
 #include "GameObjects.hpp"
 #include <glm/glm.hpp>
 #include <iostream>
+#include <unordered_set>
 
 struct Creature;
 
@@ -32,6 +33,7 @@ struct PictureInfo {
     uint32_t total_frag_count;
     std::list< std::pair<Scene::Drawable&, GLuint > > frag_counts;
     std::list< PictureCreatureInfo > creatures_in_frame;
+    std::unordered_set< std::string > plant_set;
 };
 
 struct Picture {

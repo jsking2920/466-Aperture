@@ -35,7 +35,8 @@ void PlayerCamera::TakePicture(Scene &scene) {
     PictureInfo stats;
     stats.data = std::make_shared<std::vector<GLfloat>>(3 * scene_camera->drawable_size.x * scene_camera->drawable_size.y);
     stats.dimensions = scene_camera->drawable_size;
-    stats.angle = eulerAngles(player->camera->transform->rotation);
+    //I have no idea why this is correct. If someone could tell me that would be great. -w
+    stats.angle = scene_camera->transform->get_world_rotation() * glm::vec3(0.0f, 0.0f, -1.0f);
     stats.focal_distance = cur_focus;
 
     //get fragment counts for each drawable
@@ -46,6 +47,7 @@ void PlayerCamera::TakePicture(Scene &scene) {
         return a.second > b.second;
     };
     stats.frag_counts.sort(sort_by_frag_count);
+    stats.total_frag_count = 0;
     std::for_each(stats.frag_counts.begin(), stats.frag_counts.end(), [&](auto pair) {
         stats.total_frag_count += pair.second;
     });
@@ -53,10 +55,17 @@ void PlayerCamera::TakePicture(Scene &scene) {
     //Set of creatures in frame, because there will be duplicates for body parts
     std::set< std::string > creature_set;
     for (auto &pair : stats.frag_counts) {
-        std::string name = pair.first.transform->name;
-        std::string code_id = name.substr(0, 6);
-        if (Creature::creature_map.count(code_id)) {
-            creature_set.insert(code_id);
+        if((float)pair.second/(float)stats.total_frag_count > 0.0012f) { //don't count tiny amounts of frags
+            std::string name = pair.first.transform->name;
+            std::string code_id = name.substr(0, 6);
+            if (Creature::creature_map.count(code_id)) {
+                creature_set.insert(code_id);
+            } else if (code_id.substr(0, 3) == "PLT") {
+                stats.plant_set.insert(code_id);
+            }
+//            std::cout << pair.first.transform->name << "in: " << (float)pair.second << std::endl;
+        } else {
+//            std::cout << pair.first.transform->name << " out: " << (float)pair.second << std::endl;
         }
     }
 
