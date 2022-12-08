@@ -28,7 +28,7 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
         //TODO: once we add in some points for nature, make this better
         title = "Beautiful Nature";
         score_elements.emplace_back("So peaceful!", (uint32_t)2000);
-        score_elements.emplace_back(std::to_string(stats.plant_set.size()) + " plants!", stats.plant_set.size() * 1000);
+        score_elements.emplace_back(std::to_string((uint32_t)stats.plant_set.size()) + " plants!", (uint32_t)stats.plant_set.size() * 1000);
     } else {
 
         subject_info = stats.creatures_in_frame.front();
@@ -42,7 +42,7 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
                                   result.end()); //from https://stackoverflow.com/q/1449703
         }
 
-        score_elements.emplace_back(std::to_string(stats.plant_set.size()) + " plants!", stats.plant_set.size() * 1000);
+        score_elements.emplace_back(std::to_string((uint32_t)stats.plant_set.size()) + " plants!", (uint32_t)stats.plant_set.size() * 1000);
 
         {
             //Add bonus points for additional subjects
