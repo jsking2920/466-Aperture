@@ -30,29 +30,58 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
         score_elements.emplace_back("So peaceful!", (uint32_t)2000);
         score_elements.emplace_back(std::to_string((uint32_t)stats.plant_set.size()) + " plants!", (uint32_t)stats.plant_set.size() * 1000);
     } else {
+        std::list<std::pair< uint32_t, PictureCreatureInfo *>> scores;
+        //Grade all subjects
+        std::for_each(stats.creatures_in_frame.begin(), stats.creatures_in_frame.end(),
+                      [&](PictureCreatureInfo &creature_info) {
+                          auto result = score_creature(creature_info, stats);
+                          int total_score = creature_info.creature->score;
+                          std::for_each(result.begin(), result.end(), [&](ScoreElement el) { total_score += el.value; });
+                          float distance = glm::length(creature_info.player_to_creature) - creature_info.creature->radius;
+                          //calculate blur using same calculation as blur shader in Framebuffers.cpp
+                          float percent;
+                          if (distance < stats.focal_distance) {
+                              percent = 1 - std::clamp(1 - (float)pow(distance/stats.focal_distance, 2), 0.f, 1.f);
+                          } else {
+                              percent = 1 - std::clamp((abs(stats.focal_distance - distance) - stats.focal_distance)/(2 * stats.focal_distance), 0.f, 1.f);
+                          }
+                          scores.emplace_back(std::make_pair((uint32_t) (pow(percent, 2) * total_score), &creature_info));
+                      });
+        scores.sort([&](auto &a, auto &b) {
+            return a.first > b.first;
+        });
 
-        subject_info = stats.creatures_in_frame.front();
+
+        subject_info = *scores.front().second;
 
         //grade subject
         {
             //Magnificence
-            score_elements.emplace_back(subject_info.creature->name, subject_info.creature->score);
+            score_elements.emplace_front(subject_info.creature->name, subject_info.creature->score);
             auto result = score_creature(subject_info, stats);
             score_elements.insert(score_elements.end(), result.begin(),
                                   result.end()); //from https://stackoverflow.com/q/1449703
         }
 
-        score_elements.emplace_back(std::to_string((uint32_t)stats.plant_set.size()) + " plants!", (uint32_t)stats.plant_set.size() * 1000);
-
         {
             //Add bonus points for additional subjects
-            std::for_each(std::next(stats.creatures_in_frame.begin()), stats.creatures_in_frame.end(),
+            std::for_each(stats.creatures_in_frame.begin(), stats.creatures_in_frame.end(),
                           [&](PictureCreatureInfo creature_info) {
-                              auto result = score_creature(creature_info, stats);
-                              int total_score = creature_info.creature->score;
-                              std::for_each(result.begin(), result.end(), [&](ScoreElement el) { total_score += el.value; });
-                              score_elements.emplace_back("Bonus " + creature_info.creature->name, (uint32_t)(total_score / 10));
+                                if(creature_info.creature->get_code_and_number() != subject_info.creature->get_code_and_number()) {
+                                    auto result = score_creature(creature_info, stats);
+                                    int total_score = creature_info.creature->score;
+                                    std::for_each(result.begin(), result.end(),
+                                                  [&](ScoreElement el) { total_score += el.value; });
+                                    score_elements.emplace_back("Bonus " + creature_info.creature->name,
+                                                                (uint32_t) (total_score / 10));
+                                }
                           });
+
+        }
+
+        if(stats.plant_set.size() >= 2) {
+            score_elements.emplace_back(std::to_string((uint32_t) stats.plant_set.size()) + " plants!",
+                                        (uint32_t) stats.plant_set.size() * 1000);
         }
 
             title = adjectives[rand() % adjectives->size()] + " " + subject_info.creature->name;
