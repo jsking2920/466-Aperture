@@ -2,3 +2,4 @@ Name,ID,PossibleVariations,NamingScheme
 GinkoBush,1,3,PLT_01_V1.xxx
 Dandelion,2,3,PLT_02_V1.xxx
 Berry,3,2,PLT_03_V1.xxx
+FlowerThing,4,3,PLT_04_V1.xxx
