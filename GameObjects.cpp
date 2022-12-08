@@ -295,7 +295,7 @@ void Creature::on_picture() {
             play_animation("Action1");
         }
         default: {
-            play_animation("Action1", false);
+            play_animation("Action1);
         }
     }
 }
