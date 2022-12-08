@@ -82,7 +82,9 @@ void Creature::init_transforms (Scene &scene) {
 }
 
 void Creature::update(float elapsed, float time_of_day) { //movements not synced to animations
-    animation_player->update(elapsed);
+    if(animation_player != nullptr) {
+        animation_player->update(elapsed);
+    }
 
     //in hindsight I probably should have just done a big if statement but this is more efficient i believe
     switch (switch_index) {
@@ -158,7 +160,7 @@ void Creature::play_animation(std::string const &anim_name, bool loop, float spe
     }
 
     // Try to retrive animation data based on animation name
-    BoneAnimation *bone_anim_set = animation_set_iter->second;
+    std::shared_ptr<BoneAnimation> bone_anim_set = animation_set_iter->second;
     BoneAnimation::Animation const * animation = &(bone_anim_set->lookup(anim_name));
 
     // Check looping or not

@@ -83,39 +83,40 @@ Load< MeshBuffer > main_meshes(LoadTagDefault, []() -> MeshBuffer const * {
 });
 
 // could be improved by just resturning BoneAnimation::animation_map and just using that
-Load< std::vector< BoneAnimation > > floater_banims(LoadTagDefault, []() -> std::vector< BoneAnimation > const * {
-    auto ret = new std::vector< BoneAnimation >;
-    ret->emplace_back(data_path("assets/animations/anim_FLO.banims"));
-	BoneAnimation::animation_map.emplace(std::make_pair("FLO", &ret->back()));
+Load< std::vector< std::shared_ptr<BoneAnimation> > > floater_banims(LoadTagDefault, []() -> std::vector< std::shared_ptr<BoneAnimation> > const * {
+    auto ret = new std::vector< std::shared_ptr<BoneAnimation> >;
+    ret->emplace_back(std::make_shared<BoneAnimation>(data_path("assets/animations/anim_FLO.banims")));
+//    std::cout << ret->back()->animations.size() << std::endl;
+	BoneAnimation::animation_map.emplace(std::make_pair("FLO", ret->back()));
 
-    ret->emplace_back(data_path("assets/animations/anim_MEP.banims"));
-    BoneAnimation::animation_map.emplace(std::make_pair("MEP", &ret->back()));
+    ret->emplace_back(std::make_shared<BoneAnimation>(data_path("assets/animations/anim_MEP.banims")));
+    BoneAnimation::animation_map.emplace(std::make_pair("MEP", ret->back()));
 
-    ret->emplace_back(data_path("assets/animations/anim_TAN.banims"));
-    BoneAnimation::animation_map.emplace(std::make_pair("TAN", &ret->back()));
+    ret->emplace_back(std::make_shared<BoneAnimation>(data_path("assets/animations/anim_TAN.banims")));
+    BoneAnimation::animation_map.emplace(std::make_pair("TAN", ret->back()));
 
-    ret->emplace_back(data_path("assets/animations/anim_TRI.banims"));
-    BoneAnimation::animation_map.emplace(std::make_pair("TRI", &ret->back()));
+    ret->emplace_back(std::make_shared<BoneAnimation>(data_path("assets/animations/anim_TRI.banims")));
+    BoneAnimation::animation_map.emplace(std::make_pair("TRI", ret->back()));
 
-    ret->emplace_back(data_path("assets/animations/anim_SNA.banims"));
-    BoneAnimation::animation_map.emplace(std::make_pair("SNA", &ret->back()));
+    ret->emplace_back(std::make_shared<BoneAnimation>(data_path("assets/animations/anim_SNA.banims")));
+    BoneAnimation::animation_map.emplace(std::make_pair("SNA", ret->back()));
 
-    ret->emplace_back(data_path("assets/animations/anim_PEN.banims"));
-    BoneAnimation::animation_map.emplace(std::make_pair("PEN", &ret->back()));
+    ret->emplace_back(std::make_shared<BoneAnimation>(data_path("assets/animations/anim_PEN.banims")));
+    BoneAnimation::animation_map.emplace(std::make_pair("PEN", ret->back()));
 	return ret;
 });
 
 Load< std::vector< GLuint > > banims_for_bone_lit_color_texture_program(LoadTagDefault, []() -> std::vector< GLuint > const * {
 	auto ret = new std::vector< GLuint >(floater_banims->size());
     for(int i = 0; i < floater_banims->size(); i++) {
-        ret->emplace_back(floater_banims->at(i).make_vao_for_program(bone_lit_color_texture_program->program));
+        ret->emplace_back(floater_banims->at(i)->make_vao_for_program(bone_lit_color_texture_program->program));
     }
     return ret;
 });
 Load< std::vector< GLuint > > banims_for_bone_shadow_program(LoadTagDefault, []() -> std::vector< GLuint > const * {
     auto ret = new std::vector< GLuint >(floater_banims->size());
     for(int i = 0; i < floater_banims->size(); i++) {
-        ret->emplace_back(floater_banims->at(i).make_vao_for_program(bone_shadow_program->program));
+        ret->emplace_back(floater_banims->at(i)->make_vao_for_program(bone_shadow_program->program));
     }
     return ret;
 });
@@ -141,8 +142,8 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault] = bone_lit_color_texture_program_pipeline;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = banims_for_bone_lit_color_texture_program->at(creature_index);
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
-			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = floater_banims->at(creature_index).mesh.start;
-			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = floater_banims->at(creature_index).mesh.count;
+			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = floater_banims->at(creature_index)->mesh.start;
+			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = floater_banims->at(creature_index)->mesh.count;
 			// std::cout << "found " << transform->name << std::endl;
 
             //set roughnesses, possibly should be from csv??
@@ -156,8 +157,8 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
             drawable.pipeline[Scene::Drawable::ProgramTypeShadow].program = bone_shadow_program_pipeline.program;
             drawable.pipeline[Scene::Drawable::ProgramTypeShadow].vao = banims_for_bone_shadow_program->at(creature_index);
             drawable.pipeline[Scene::Drawable::ProgramTypeShadow].type = mesh.type;
-            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].start = floater_banims->at(creature_index).mesh.start;
-            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].count = floater_banims->at(creature_index).mesh.count;
+            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].start = floater_banims->at(creature_index)->mesh.start;
+            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].count = floater_banims->at(creature_index)->mesh.count;
 
             drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_CLIP_mat4 = bone_shadow_program_pipeline.OBJECT_TO_CLIP_mat4;
             drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_LIGHT_mat4x3 = bone_shadow_program_pipeline.OBJECT_TO_LIGHT_mat4x3;
@@ -346,6 +347,9 @@ PlayMode::PlayMode() : scene(*main_scene) {
 	//animation initialization
 	{
 		for (auto &creature_pair : Creature::creature_map) {
+            if(creature_pair.first.substr(0, 3) == "FLO") {
+                continue;
+            }
 			Creature &critter = creature_pair.second;
             critter.play_animation("Idle", true, 1.0f);
 		}
