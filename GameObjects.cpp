@@ -134,7 +134,7 @@ void Creature::update(float elapsed, float time_of_day) { //movements not synced
         }
         default: {
 
-            std::cout << name << "fell through animation update" << std::endl;
+//            std::cout << name << "fell through animation update" << std::endl;
             break;
         }
     }

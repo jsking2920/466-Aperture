@@ -64,6 +64,7 @@ Load< std::map< std::string, CreatureStats > > creature_stats_map_load(LoadTagEa
         row.push_back(std::to_string(index));
         CreatureStats temp(row);
         Creature::creature_stats_map.emplace(std::piecewise_construct, std::make_tuple(code), std::forward_as_tuple(row));
+        index++;
     }
     return &Creature::creature_stats_map;
 });
