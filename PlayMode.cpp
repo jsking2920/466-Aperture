@@ -82,22 +82,42 @@ Load< MeshBuffer > main_meshes(LoadTagDefault, []() -> MeshBuffer const * {
 	return ret;
 });
 
-Load< BoneAnimation > test_banims(LoadTagDefault, []() -> BoneAnimation const * {
-	auto ret = new BoneAnimation(data_path("assets/animations/testanim.banims"));
-	BoneAnimation::animation_map.emplace(std::make_pair("FLO", ret));
-	return ret;
-});
-Load< BoneAnimation > test_banims2(LoadTagDefault, [](){
-	auto ret = new BoneAnimation(data_path("assets/animations/anim_TRI.banims"));
-	BoneAnimation::animation_map.emplace(std::make_pair("MEP", ret));
+// could be improved by just resturning BoneAnimation::animation_map and just using that
+Load< std::vector< BoneAnimation > > floater_banims(LoadTagDefault, []() -> std::vector< BoneAnimation > const * {
+    auto ret = new std::vector< BoneAnimation >;
+    ret->emplace_back(data_path("assets/animations/anim_FLO.banims"));
+	BoneAnimation::animation_map.emplace(std::make_pair("FLO", &ret->back()));
+
+    ret->emplace_back(data_path("assets/animations/anim_MEP.banims"));
+    BoneAnimation::animation_map.emplace(std::make_pair("MEP", &ret->back()));
+
+    ret->emplace_back(data_path("assets/animations/anim_TAN.banims"));
+    BoneAnimation::animation_map.emplace(std::make_pair("TAN", &ret->back()));
+
+    ret->emplace_back(data_path("assets/animations/anim_TRI.banims"));
+    BoneAnimation::animation_map.emplace(std::make_pair("TRI", &ret->back()));
+
+    ret->emplace_back(data_path("assets/animations/anim_SNA.banims"));
+    BoneAnimation::animation_map.emplace(std::make_pair("SNA", &ret->back()));
+
+    ret->emplace_back(data_path("assets/animations/anim_PEN.banims"));
+    BoneAnimation::animation_map.emplace(std::make_pair("PEN", &ret->back()));
 	return ret;
 });
 
-Load< GLuint > banims_for_bone_lit_color_texture_program(LoadTagDefault, [](){
-	return new GLuint(test_banims->make_vao_for_program(bone_lit_color_texture_program->program));
+Load< std::vector< GLuint > > banims_for_bone_lit_color_texture_program(LoadTagDefault, []() -> std::vector< GLuint > const * {
+	auto ret = new std::vector< GLuint >(floater_banims->size());
+    for(int i = 0; i < floater_banims->size(); i++) {
+        ret->emplace_back(floater_banims->at(i).make_vao_for_program(bone_lit_color_texture_program->program));
+    }
+    return ret;
 });
-Load< GLuint > banims_for_bone_shadow_program(LoadTagDefault, [](){
-    return new GLuint(test_banims->make_vao_for_program(bone_shadow_program->program));
+Load< std::vector< GLuint > > banims_for_bone_shadow_program(LoadTagDefault, []() -> std::vector< GLuint > const * {
+    auto ret = new std::vector< GLuint >(floater_banims->size());
+    for(int i = 0; i < floater_banims->size(); i++) {
+        ret->emplace_back(floater_banims->at(i).make_vao_for_program(bone_shadow_program->program));
+    }
+    return ret;
 });
 
 Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
@@ -115,13 +135,14 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
         //only change shader if the object has a creature code
 		if (transform->name.length() == 6 &&
                 std::find_if(creature_stats_map_load->begin(), creature_stats_map_load->end(), is_creature) != creature_stats_map_load->end()) {
+            int creature_index = creature_stats_map_load->at(transform->name.substr(0, 3)).switch_index;
             //animated object pipeline setup
 			std::cout<<"found "<<transform->name<<std::endl;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault] = bone_lit_color_texture_program_pipeline;
-			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = *banims_for_bone_lit_color_texture_program;
+			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = banims_for_bone_lit_color_texture_program->at(creature_index);
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
-			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = test_banims->mesh.start;
-			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = test_banims->mesh.count;
+			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = floater_banims->at(creature_index).mesh.start;
+			drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = floater_banims->at(creature_index).mesh.count;
 			// std::cout << "found " << transform->name << std::endl;
 
             //set roughnesses, possibly should be from csv??
@@ -133,10 +154,10 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 
             //Set up depth program
             drawable.pipeline[Scene::Drawable::ProgramTypeShadow].program = bone_shadow_program_pipeline.program;
-            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].vao = *banims_for_bone_shadow_program;
+            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].vao = banims_for_bone_shadow_program->at(creature_index);
             drawable.pipeline[Scene::Drawable::ProgramTypeShadow].type = mesh.type;
-            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].start = test_banims->mesh.start;
-            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].count = test_banims->mesh.count;
+            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].start = floater_banims->at(creature_index).mesh.start;
+            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].count = floater_banims->at(creature_index).mesh.count;
 
             drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_CLIP_mat4 = bone_shadow_program_pipeline.OBJECT_TO_CLIP_mat4;
             drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_LIGHT_mat4x3 = bone_shadow_program_pipeline.OBJECT_TO_LIGHT_mat4x3;
@@ -692,7 +713,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
         //get sun "position" to be the sun's angle away from the player in order to use it to create transformation matrix
         //from https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
-        glm::vec3 sun_pos = player->transform->position - glm::normalize(sun_angle) * 50.f;
+        glm::vec3 sun_pos = player->transform->position - glm::normalize(sun_angle) * 100.f;
         glm::mat4 lightView = glm::lookAt(sun_pos, player->transform->position, glm::vec3(0.f, 1.f, 0.f));//TODO: set sun distance correctly, check if correct firection & probably change angle
         glm::mat4 orthographic_projection = glm::ortho(-20.f, 20.f, -20.f, 20.f, 0.01f, 500.f);
         glm::mat4 const world_to_clip = orthographic_projection * lightView;
@@ -748,24 +769,24 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
     }
 
     // Run occlusion query using prepass sample buffer
-    {
-        glDepthMask(GL_FALSE); // depth buffer should be already filled
-        GL_ERRORS();
-        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-
-        // Render with occlusion pass
-        scene.draw(*active_camera, Scene::Drawable::PassTypeOcclusion);
-
-        // Reenable writing
-        glDepthMask(GL_TRUE);
-        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        glUseProgram(0);
-        glBindVertexArray(0);
-
-        GL_ERRORS();
-    }
+//    {
+//        glDepthMask(GL_FALSE); // depth buffer should be already filled
+//        GL_ERRORS();
+//        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+//
+//        // Render with occlusion pass
+//        scene.draw(*active_camera, Scene::Drawable::PassTypeOcclusion);
+//
+//        // Reenable writing
+//        glDepthMask(GL_TRUE);
+//        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+//        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+//
+//        glUseProgram(0);
+//        glBindVertexArray(0);
+//
+//        GL_ERRORS();
+//    }
 	
 	// Draw scene to multisampled framebuffer
 	{
@@ -1081,7 +1102,7 @@ void PlayMode::playing_draw_ui(glm::uvec2 const& drawable_size) {
 		// Some assorted DSLR type viewport readouts
 		// TODO: replace these with other functional things
 		// AUTO in palce of any Exposure/ISO settings
-		display_text->draw("AUTO", 0.45f * float(drawable_size.x), 0.025f * float(drawable_size.y), 0.25f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		display_text->draw("Focal Length: " + std::to_string(player->player_camera->cur_focus).substr(0, 3), 0.45f * float(drawable_size.x), 0.025f * float(drawable_size.y), 0.25f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 		// Just some numbers for the vibes, could be a date, time, shutter speed, etc.
 		display_text->draw("[2.9.020]", 0.9f * float(drawable_size.x), 0.025f * float(drawable_size.y), 0.25f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 	}
