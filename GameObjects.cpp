@@ -294,6 +294,9 @@ void Creature::on_picture() {
         case 0: { //FLOATER
             play_animation("Action1");
         }
+        default: {
+            play_animation("Action1", false);
+        }
     }
 }
 
