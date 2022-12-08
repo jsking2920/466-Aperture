@@ -28,6 +28,7 @@ WalkMesh::WalkMesh(std::vector< glm::vec3 > const &vertices_, std::vector< glm::
 	}
 
 	// DEBUG: are vertex normals consistent with geometric normals?
+	/*
 	for (auto const &tri : triangles) {
 		glm::vec3 const &a = vertices[tri.x];
 		glm::vec3 const &b = vertices[tri.y];
@@ -40,6 +41,7 @@ WalkMesh::WalkMesh(std::vector< glm::vec3 > const &vertices_, std::vector< glm::
 
 		assert(da > 0.1f && db > 0.1f && dc > 0.1f);
 	}
+	*/
 }
 
 // Project pt to the plane of triangle a,b,c and return the barycentric weights of the projected point:
