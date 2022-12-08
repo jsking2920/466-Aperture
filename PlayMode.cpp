@@ -1078,8 +1078,10 @@ void PlayMode::playing_update(float elapsed) {
 		// open journal on tab, swap to journal state
 		if (tab.downs > 0) {
             Sound::play(Sound::sample_map->at("Page_Turn"));
-            music_l->set_paused(true, 2.0f/60.f);
-            music_r->set_paused(true, 2.0f/60.f);
+            if(music_l && music_r) {
+                music_l->set_paused(true, 2.0f / 60.f);
+                music_r->set_paused(true, 2.0f / 60.f);
+            }
 			player->in_cam_view = false;
 			player->SetCrouch(false);
 
@@ -1263,8 +1265,10 @@ void PlayMode::journal_update(float elapsed) {
 	// close journal on tab, swap to playing state
 	if (tab.downs == 1) {
 		time_scale = TIME_SCALE_DEFAULT; // if time freezes in journal, would need to start it moving again
-        music_l->set_paused(false, 0.5f, MUSIC_VOLUME);
-        music_r->set_paused(false, 0.5f, MUSIC_VOLUME);
+        if(music_l && music_r) {
+            music_l->set_paused(false, 0.5f, MUSIC_VOLUME);
+            music_r->set_paused(false, 0.5f, MUSIC_VOLUME);
+        }
 		cur_journal_pg = 0;
 		cur_state = playing;
 		return;

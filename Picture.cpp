@@ -181,6 +181,14 @@ std::list<ScoreElement> Picture::score_creature(PictureCreatureInfo &creature_in
         }
     }
 
+    //Special Behaviors
+    {
+        if(creature_info.creature->code == "TAN" &&  creature_info.creature->animation_player->anim.name == "Action1") {
+            //roaring
+            result.emplace_back("ROAR", 2000);
+        }
+    }
+
     return result;
 }
 

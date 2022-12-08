@@ -83,6 +83,8 @@ struct Creature {
     void on_picture();
     void play_animation(std::string const &anim_name, bool loop = true, float speed = 1.0f);
 
+    glm::vec3 tan_calculate_pos_at(float time_of_day);
+
     //Initialization/parsing function form scene
     void init_transforms(Scene &scene);
     //Helper functions:
@@ -94,6 +96,7 @@ struct Creature {
     Scene::Transform *focal_point = nullptr;
 
     //animation
+    bool bool_flag = false;
     bool sfx_loop_played = false;
     uint32_t sfx_count = 0;
 
