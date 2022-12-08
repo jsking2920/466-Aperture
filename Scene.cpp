@@ -175,9 +175,9 @@ void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scen
 
     for(auto &drawable : drawables) {
 //        GLuint query = drawable.query;
-//        if(!drawable.render_to_picture) {
-//            continue;
-//        }
+        if(!drawable.render_to_picture) {
+            continue;
+        }
 //        //query syntax from https://www.reddit.com/r/opengl/comments/1pv8qe/how_do_occlusion_queries_work/
 //        if(!glIsQuery(query)) {
 //            glGenQueries(1, &query);
@@ -190,6 +190,9 @@ void Scene::render_picture(const Scene::Camera &camera, std::list<std::pair<Scen
 
     //second loop for fetching to give gpu extra time to finish queries
     for(auto &drawable : drawables) {
+        if(!drawable.render_to_picture) {
+            continue;
+        }
         GLuint results = drawable.queries.wait_for_query();
         if (results > 0) {
             occlusion_results.emplace_back(drawable, results);

@@ -28,9 +28,10 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
         //TODO: once we add in some points for nature, make this better
         title = "Beautiful Nature";
         score_elements.emplace_back("So peaceful!", (uint32_t)2000);
+        score_elements.emplace_back(std::to_string(stats.plant_set.size()) + " plants!", stats.plant_set.size() * 1000);
     } else {
 
-    subject_info = stats.creatures_in_frame.front();
+        subject_info = stats.creatures_in_frame.front();
 
         //grade subject
         {
@@ -41,26 +42,28 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
                                   result.end()); //from https://stackoverflow.com/q/1449703
         }
 
+        score_elements.emplace_back(std::to_string(stats.plant_set.size()) + " plants!", stats.plant_set.size() * 1000);
 
-    {
-        //Add bonus points for additional subjects
-        std::for_each(std::next(stats.creatures_in_frame.begin()), stats.creatures_in_frame.end(),
-                      [&](PictureCreatureInfo creature_info) {
-                          auto result = score_creature(creature_info, stats);
-                          int total_score = creature_info.creature->score;
-                          std::for_each(result.begin(), result.end(), [&](ScoreElement el) { total_score += el.value; });
-                          score_elements.emplace_back("Bonus " + creature_info.creature->transform->name, (uint32_t)(total_score / 10));
-                      });
-    }
-
-        title = adjectives[rand() % adjectives->size()] + " " + subject_info.creature->name;
-
-
-        //trigger on_picture behaviors of subject (could be all creatures in frame)
-        if(glm::length(subject_info.player_to_creature) < std::max(10.f, 8 * subject_info.creature->radius)) {
-            subject_info.creature->on_picture();
+        {
+            //Add bonus points for additional subjects
+            std::for_each(std::next(stats.creatures_in_frame.begin()), stats.creatures_in_frame.end(),
+                          [&](PictureCreatureInfo creature_info) {
+                              auto result = score_creature(creature_info, stats);
+                              int total_score = creature_info.creature->score;
+                              std::for_each(result.begin(), result.end(), [&](ScoreElement el) { total_score += el.value; });
+                              score_elements.emplace_back("Bonus " + creature_info.creature->name, (uint32_t)(total_score / 10));
+                          });
         }
-    }
+
+            title = adjectives[rand() % adjectives->size()] + " " + subject_info.creature->name;
+
+
+            //trigger on_picture behaviors of subject (could be all creatures in frame)
+//            if(glm::length(subject_info.player_to_creature) < std::max(10.f, 8 * subject_info.creature->radius)) {
+//                subject_info.creature->on_picture();
+//            }
+        }
+
     // Create a texture for this picture, to be used for drawing it
     {
         // Upload the texture data to the GPU
@@ -119,7 +122,7 @@ std::list<ScoreElement> Picture::score_creature(PictureCreatureInfo &creature_in
     }
 
     {
-        //Add points for angle
+        //Add points for angle of creature
         //in the future, change to a multiplier? and also change const params to be per creature
         const float best_degrees_deviated = 7.0f; //degrees away from the ideal angle for full points, keep in mind it's on a cos scale so not linear
         const float worst_degrees_deviated = 90.0f; //degrees away from the ideal angle for min points
@@ -136,6 +139,26 @@ std::list<ScoreElement> Picture::score_creature(PictureCreatureInfo &creature_in
         float normalized_dot =  (clamped_dot - lo) / (hi - lo);
         if (normalized_dot > 0.01f) {
             result.emplace_back("Angle", (uint32_t) (std::pow(normalized_dot, exponent) * 3000.0f));
+        }
+    }
+
+    {
+        //Add points for centering in frame (via angle of camera vs angle to creature
+        const float best_degrees_deviated = 19.f; //degrees away from angle for max points
+        const float worst_degrees_deviated = 60.0f; //degrees away from angle for min points
+        const float exponent = 3.f;
+
+        glm::vec3 player_to_creature_norm = glm::normalize(creature_info.player_to_creature);
+        //ranges from -1, pointing opposite the correct angle, to 1, pointing directly at the correct angle
+        float dot = glm::dot(player_to_creature_norm, stats.angle); //cos theta
+        //clamped between min and max values
+        float lo = (float)std::cos( worst_degrees_deviated * M_PI / 180.0f);
+        float hi = (float)std::cos(best_degrees_deviated * M_PI / 180.0f);
+        float clamped_dot = std::clamp(dot, lo, hi);
+        //normalized to be between 0 and 1
+        float normalized_dot =  (clamped_dot - lo) / (hi - lo);
+        if (normalized_dot > 0.45f) {
+            result.emplace_back("Subject Emphasis", (uint32_t) (std::pow(normalized_dot, exponent) * 3000.0f));
         }
     }
 
