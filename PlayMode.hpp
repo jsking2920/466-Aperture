@@ -79,7 +79,7 @@ struct PlayMode : Mode {
 	float time_of_day = 70.0f; // loops from 0 to day_length, starts at 7 AM (should be equal to start_day_time at initialization)
 
 	float day_length = 240.0f;// 192s = 1 day, total up time is 144s, 8 seconds = 1 hour
-	float start_day_time = 190.0; // Time player starts every day at (7:00am) 
+	float start_day_time = 70.0; // Time player starts every day at (7:00am)
 	float end_day_time = 10.0f; // Time player ends of everyday (1:00am)
 
 	float time_scale = 4.0f; // multiplier for speed of time (starts at 4x for menu visuals)

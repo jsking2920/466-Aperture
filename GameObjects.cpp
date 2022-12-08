@@ -214,46 +214,30 @@ void Creature::update(float elapsed, float time_of_day) { //movements not synced
             break;
         }
         case 1: { //MEEPER
-            if (!animation_player) { break; }
-                //floater idle anim
-            else if (animation_player->anim.name == "Idle") {
-                //gentle float up and down
-                const float cycle_time = 3.0f;
-                const float height = 0.15f;
-                const float distance = sin((time_of_day + 4 * number) / cycle_time) * elapsed * height;
-                transform->position += glm::vec3(transform->make_world_to_local() * glm::vec4(0.0f, 0.0f, distance, 0.0f));
-
-                //SFX
-                if (!sfx_loop_played && animation_player->position > 0.5f) {
-                    if (rand() % 4 == 0) {
-                        float random = ((float) rand() / (RAND_MAX));
-                        Sound::play_3D(Sound::sample_map->at("FLO_Idle"), 1.0f, glm::vec3(transform->make_local_to_world() * glm::vec4(transform->position, 1.0f)), random / 4.0f + 0.875f, 5.0f);
-                    }
-                    sfx_loop_played = true;
-                } else if (sfx_loop_played && animation_player->position < 0.5f) {
-                    sfx_loop_played = false;
-                }
-            } else if (animation_player->anim.name == "Action1") {
-                const glm::vec3 downwards_speed = glm::vec3(0.0f, 0.0f, -0.3f);
-                const glm::vec3 angle = glm::normalize(glm::vec3(0.5f, 0.0f, 1.0f));
-                const float x = fmod(animation_player->position + 0.8f, 1.0f);
-                const float distance = 0.05f;
-                float speed = 1.0f - (float)cos((2.0f * M_PI) * pow(x - 1.0f, 2));
-                transform->position += distance * speed * angle + downwards_speed * elapsed;
-
-                //SFX
-                if(!sfx_loop_played && animation_player->position > 0.4f) {
-                    if(sfx_count < 20) {
-                        Sound::play_3D(Sound::sample_map->at("FLO_Bounce"), 1.0f, glm::vec3(
-                                               transform->make_local_to_world() * glm::vec4(transform->position, 1.0f)),
-                                       1.0f + 0.2f * sfx_count, 8.0f);
-                        sfx_count++;
-                    }
-                    sfx_loop_played = true;
-                } else if(sfx_loop_played && animation_player->position < 0.4f) {
-                    sfx_loop_played = false;
-                }
-            }
+            //move towards home, unless
+            //random chance to move towards home
+//            if(animation_player->anim.name == "Idle") {
+//                if(!bool_flag && fmod(time_of_day * (float)number, 1.0f) < 0.5f) {
+//                    if(rand() % 5 == 0) {
+//                        //move towards home
+//                        if(transform->position != original_pos) {
+//                            transform->rotation = AimAtPoint(transform->position, original_pos);
+//                        }
+//                        play_animation("Action1", false);
+//                    }
+//                    bool_flag = true;
+//                } else if (bool_flag && fmod(time_of_day, 1.0f) > 0.5f) {
+//                    bool_flag = false;
+//                }
+//            } else { //moving
+//                //check for animation finished
+//                if(animation_player->done()) {
+//                    play_animation("Idle", true);
+//                }
+//                //move
+//                const float speed = 1.f;
+//                transform->position += speed * glm::vec3(1.0f, 0.0f, 0.0f) * elapsed;
+//            }
             break;
         }
         case 2: { //TAN
@@ -281,7 +265,6 @@ void Creature::update(float elapsed, float time_of_day) { //movements not synced
             break;
         }
         default: {
-
 //            std::cout << name << "fell through animation update" << std::endl;
             break;
         }

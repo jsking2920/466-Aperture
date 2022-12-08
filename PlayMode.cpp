@@ -491,6 +491,13 @@ PlayMode::PlayMode() : scene(*main_scene) {
 		// Hide player
 		player->transform->position -= glm::vec3(0.0f, 0.0f, 10.0f);
 	}
+
+    //set up original positions
+    {
+        for(auto &pair : Creature::creature_map) {
+            pair.second.original_pos = pair.second.transform->position;
+        }
+    }
 }
 
 PlayMode::~PlayMode() {
@@ -1357,6 +1364,10 @@ void PlayMode::night_update(float elapsed) {
 			time_scale = TIME_SCALE_DEFAULT;
 
 			active_camera = player->camera;
+
+            for(auto &pair : Creature::creature_map) {
+                pair.second.transform->position = pair.second.transform->position;
+            }
 
 			cur_state = playing;
 		}

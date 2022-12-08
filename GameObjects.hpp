@@ -96,6 +96,7 @@ struct Creature {
     Scene::Transform *focal_point = nullptr;
 
     //animation
+    glm::vec3 original_pos;
     bool bool_flag = false;
     bool sfx_loop_played = false;
     uint32_t sfx_count = 0;
