@@ -9,7 +9,7 @@
 #include <fstream>
 #include <algorithm>
 
-std::map< std::string, std::shared_ptr<BoneAnimation> > BoneAnimation::animation_map = std::map< std::string, std::shared_ptr<BoneAnimation> >();
+std::map< std::string, BoneAnimation * > BoneAnimation::animation_map = std::map< std::string, BoneAnimation * >();
 
 
 BoneAnimation::BoneAnimation(std::string const &filename) {

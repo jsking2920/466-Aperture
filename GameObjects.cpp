@@ -86,6 +86,7 @@ void Creature::update(float elapsed, float time_of_day) { //movements not synced
         animation_player->update(elapsed);
     }
 
+
     //in hindsight I probably should have just done a big if statement but this is more efficient i believe
     switch (switch_index) {
         case 0: { //FLOATER
@@ -129,6 +130,12 @@ void Creature::update(float elapsed, float time_of_day) { //movements not synced
                     sfx_loop_played = false;
                 }
             }
+            break;
+        }
+        default: {
+
+            std::cout << name << "fell through animation update" << std::endl;
+            break;
         }
     }
 }
@@ -160,7 +167,7 @@ void Creature::play_animation(std::string const &anim_name, bool loop, float spe
     }
 
     // Try to retrive animation data based on animation name
-    std::shared_ptr<BoneAnimation> bone_anim_set = animation_set_iter->second;
+    BoneAnimation * bone_anim_set = animation_set_iter->second;
     BoneAnimation::Animation const * animation = &(bone_anim_set->lookup(anim_name));
 
     // Check looping or not

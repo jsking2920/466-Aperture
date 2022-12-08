@@ -15,7 +15,7 @@
 // and a collection of animations defined on those bones
 
 struct BoneAnimation {
-	static std::map< std::string, std::shared_ptr<BoneAnimation> > animation_map;
+	static std::map< std::string, BoneAnimation * > animation_map;
 	//Skinned mesh:
 	GLuint buffer = 0;
 	Attrib Position;
