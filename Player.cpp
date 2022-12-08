@@ -44,7 +44,7 @@ void PlayerCamera::TakePicture(Scene &scene) {
 
     //sort by frag count
     auto sort_by_frag_count = [&](std::pair<Scene::Drawable &, GLuint> a, std::pair<Scene::Drawable &, GLuint> b) {
-        return a.second > b.second;
+        return a.second < b.second;
     };
     stats.frag_counts.sort(sort_by_frag_count);
     stats.total_frag_count = 0;

@@ -8,10 +8,31 @@
 //#define _USE_MATH_DEFINES << gives redefine warning ??
 //#define M_2_PI     0.636619772367581343076
 #include <math.h>
+#include <glm/gtx/quaternion.hpp>
 
 std::map< std::string, Creature > Creature::creature_map = std::map< std::string, Creature >();
 std::map< std::string, CreatureStats > Creature::creature_stats_map = std::map< std::string, CreatureStats >();
 
+//code from https://gamedev.stackexchange.com/questions/151823/get-enemy-chaser-object-to-face-player-object-opengl
+//THANK YOU SO MUCH THIS CAUSED ME HEADACHES
+glm::quat AimAtPoint(glm::vec3 chaserpos, glm::vec3 tgt)
+{
+    glm::vec3 x = ( tgt - chaserpos );
+    x = glm::normalize(x);
+// y is z cross x.
+    glm::vec3 y = glm::cross(glm::vec3(0,0,1), x);
+    y = glm::normalize(y);
+// z is x cross y.
+    glm::vec3 z = glm::cross(x, y);
+
+    glm::mat4 chasermat = glm::mat4(1.0f);
+    chasermat[0] = glm::vec4(x, 0);
+    chasermat[1] = glm::vec4(y, 0);
+    chasermat[2] = glm::vec4(z, 0);
+    chasermat[3] = glm::vec4(chaserpos, 1);
+
+    return glm::toQuat(chasermat);
+}
 
 CreatureStats::CreatureStats(std::vector< std::string >& strings)
 {
@@ -81,6 +102,66 @@ void Creature::init_transforms (Scene &scene) {
     assert(focal_points.size() > 0);
 }
 
+glm::vec3 Creature::tan_calculate_pos_at(float time_of_day) {
+    glm::vec3 ret;
+
+    //positions
+    const glm::vec3 start_pos(-100.f, 100.f, -20.0f);
+    const glm::vec3 finished_rising(-86.f, -2.f, 40.f);
+    const glm::vec3 circle_one_center(0, -96, 40);
+    const float circle_one_radius = 40.f;
+    const float circle_one_phase = 0.0f;
+    const glm::vec3 finished_charge = glm::vec3(circle_one_center.x + circle_one_radius * sin(1.0 * M_PI * (circle_one_phase)),
+                                                circle_one_center.y + circle_one_radius * cos(1.0 * M_PI * (circle_one_phase)), circle_one_center.z);
+    const glm::vec3 finished_circle_one = glm::vec3(circle_one_center.x + circle_one_radius * sin(1.0 * M_PI * (1 + circle_one_phase)),
+                                                    circle_one_center.y + circle_one_radius * cos(1.0 * M_PI * (1 + circle_one_phase)), circle_one_center.z);
+    const glm::vec3 circle_two_center(-67, -32, 40);
+    const float circle_two_radius = 60.f;
+    const float circle_two_phase = 0.5f;
+    const glm::vec3 start_circle_two = glm::vec3(circle_two_center.x + circle_two_radius * sin(1.65f * M_PI * (circle_two_phase)),
+                                                 circle_two_center.y + circle_two_radius * cos(1.65f * M_PI * (circle_two_phase)), circle_two_center.z);
+    const glm::vec3 finished_circle_two = glm::vec3(circle_two_center.x + circle_two_radius * sin(1.65f * M_PI * (1 + circle_two_phase)),
+                                                    circle_two_center.y + circle_two_radius * cos(1.65f * M_PI * (1 + circle_two_phase)), circle_two_center.z);
+    const glm::vec3 dive_finished(-53, -32, -20);
+
+
+    //times
+    const float start_time = 196;
+    const float finished_rising_time = 202;
+    const float finished_charge_time = 206;
+    const float finished_circle_one_time = 215;
+    const float start_circle_two_time = 218;
+    const float finished_circle_two_time = 232;
+    const float dive_finished_time = 238;
+    if(time_of_day < start_time) {
+        ret = start_pos;
+    } else if (time_of_day < finished_rising_time) {
+        //TODO: ROAR SFX
+        if(animation_player->anim.name == "Idle") {
+            play_animation("Action1", false);
+        }
+        ret = glm::mix(start_pos, finished_rising, (time_of_day - start_time) / (finished_rising_time - start_time));
+    } else if (time_of_day < finished_charge_time) {
+        ret = glm::mix(finished_rising, finished_charge, (time_of_day - finished_rising_time) / (finished_charge_time - finished_rising_time));
+    } else if (time_of_day < finished_circle_one_time) {
+        float t = (time_of_day - finished_charge_time) / (finished_circle_one_time - finished_charge_time);
+        ret = glm::vec3(circle_one_center.x + circle_one_radius * sin(1.0 * M_PI * (t + circle_one_phase)),
+                                  circle_one_center.y + circle_one_radius * cos(1.0 * M_PI * (t + circle_one_phase)), circle_one_center.z);
+    } else if (time_of_day < start_circle_two_time) {
+        ret = glm::mix(finished_circle_one, start_circle_two, (time_of_day - finished_circle_one_time) / (start_circle_two_time - finished_circle_one_time));
+    } else if (time_of_day < finished_circle_two_time) {
+        float t = (time_of_day - start_circle_two_time) / (finished_circle_two_time - start_circle_two_time);
+        ret = glm::vec3(circle_two_center.x + circle_two_radius * sin(1.65f * M_PI * (t + circle_two_phase)),
+                        circle_two_center.y + circle_two_radius * cos(1.65f * M_PI * (t + circle_two_phase)), circle_two_center.z);
+    } else if (time_of_day < dive_finished_time) {
+        ret = glm::mix(finished_circle_two, dive_finished, (time_of_day - finished_circle_two_time) / (dive_finished_time - finished_circle_two_time));
+    } else {
+        ret = dive_finished;
+    }
+    return ret;
+}
+
+
 void Creature::update(float elapsed, float time_of_day) { //movements not synced to animations
     if(animation_player != nullptr) {
         animation_player->update(elapsed);
@@ -128,6 +209,73 @@ void Creature::update(float elapsed, float time_of_day) { //movements not synced
                     sfx_loop_played = true;
                 } else if(sfx_loop_played && animation_player->position < 0.4f) {
                     sfx_loop_played = false;
+                }
+            }
+            break;
+        }
+        case 1: { //MEEPER
+            if (!animation_player) { break; }
+                //floater idle anim
+            else if (animation_player->anim.name == "Idle") {
+                //gentle float up and down
+                const float cycle_time = 3.0f;
+                const float height = 0.15f;
+                const float distance = sin((time_of_day + 4 * number) / cycle_time) * elapsed * height;
+                transform->position += glm::vec3(transform->make_world_to_local() * glm::vec4(0.0f, 0.0f, distance, 0.0f));
+
+                //SFX
+                if (!sfx_loop_played && animation_player->position > 0.5f) {
+                    if (rand() % 4 == 0) {
+                        float random = ((float) rand() / (RAND_MAX));
+                        Sound::play_3D(Sound::sample_map->at("FLO_Idle"), 1.0f, glm::vec3(transform->make_local_to_world() * glm::vec4(transform->position, 1.0f)), random / 4.0f + 0.875f, 5.0f);
+                    }
+                    sfx_loop_played = true;
+                } else if (sfx_loop_played && animation_player->position < 0.5f) {
+                    sfx_loop_played = false;
+                }
+            } else if (animation_player->anim.name == "Action1") {
+                const glm::vec3 downwards_speed = glm::vec3(0.0f, 0.0f, -0.3f);
+                const glm::vec3 angle = glm::normalize(glm::vec3(0.5f, 0.0f, 1.0f));
+                const float x = fmod(animation_player->position + 0.8f, 1.0f);
+                const float distance = 0.05f;
+                float speed = 1.0f - (float)cos((2.0f * M_PI) * pow(x - 1.0f, 2));
+                transform->position += distance * speed * angle + downwards_speed * elapsed;
+
+                //SFX
+                if(!sfx_loop_played && animation_player->position > 0.4f) {
+                    if(sfx_count < 20) {
+                        Sound::play_3D(Sound::sample_map->at("FLO_Bounce"), 1.0f, glm::vec3(
+                                               transform->make_local_to_world() * glm::vec4(transform->position, 1.0f)),
+                                       1.0f + 0.2f * sfx_count, 8.0f);
+                        sfx_count++;
+                    }
+                    sfx_loop_played = true;
+                } else if(sfx_loop_played && animation_player->position < 0.4f) {
+                    sfx_loop_played = false;
+                }
+            }
+            break;
+        }
+        case 2: { //TAN
+            const float smooth = 2.f;
+            glm::vec3 new_pos = tan_calculate_pos_at(time_of_day - elapsed + smooth);
+            transform->rotation = AimAtPoint(transform->position, new_pos);
+            transform->position += (new_pos - transform->position) * elapsed;
+            //random chance to roar
+            if(animation_player->anim.name == "Idle") {
+                if(!bool_flag && fmod(time_of_day, 1.0f) < 0.5f) {
+                    if(rand() % 8 == 0) {
+                        play_animation("Action1", false);
+                        //TODO: ROAR
+                    }
+                    bool_flag = true;
+                } else if (bool_flag && fmod(time_of_day, 1.0f) > 0.5f) {
+                    bool_flag = false;
+                }
+            } else { //roaring
+                //check for animation finished
+                if(animation_player->done()) {
+                    play_animation("Idle", true);
                 }
             }
             break;
