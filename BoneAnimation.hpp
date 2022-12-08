@@ -9,6 +9,8 @@
 #include <map>
 #include <string>
 #include <vector>
+#include<memory>
+
 
 //"BoneAnimation" holds a mesh loaded from a file along with skin weights,
 // a heirarchy of bones and their bind info,
