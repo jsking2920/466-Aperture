@@ -54,7 +54,7 @@ struct Player {
 	WalkPoint at;
 
 	float walk_speed = 6.0f;
-	float run_speed = 12.0f;
+	float run_speed = 9.0f;
 	float speed = 6.0f;
 
 	float base_cam_z;
