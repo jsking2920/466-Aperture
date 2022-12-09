@@ -1322,7 +1322,11 @@ void PlayMode::night_update(float elapsed) {
                 pair.second.reset();
             }
 
-			cur_state = playing;
+            music_l = Sound::play(Sound::sample_map->at("Strange_New_World.L"), MUSIC_VOLUME, 1.0f, -1.0f);
+            music_r = Sound::play(Sound::sample_map->at("Strange_New_World.R"), MUSIC_VOLUME, 1.0f, 1.0f);
+
+
+            cur_state = playing;
 		}
 	}
 

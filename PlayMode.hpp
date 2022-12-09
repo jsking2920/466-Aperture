@@ -16,7 +16,7 @@
 #include <map>
 
 #define TIME_SCALE_DEFAULT 1.25f
-#define MUSIC_VOLUME 0.5f
+#define MUSIC_VOLUME 0.4f
 
 struct PlayMode : Mode {
 	PlayMode();
