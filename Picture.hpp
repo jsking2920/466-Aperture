@@ -43,7 +43,7 @@ struct Picture {
 
     Picture() = default;
     Picture(const Picture&) { std::cout << "yes\n"; }
-    explicit Picture(PictureInfo &stats, glm::vec3& player_pos);
+    explicit Picture(PictureInfo &stats);
 
     glm::vec2 dimensions;
     // TODO: we probably don't need both of these

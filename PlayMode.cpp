@@ -1251,16 +1251,26 @@ void PlayMode::journal_draw_ui(glm::uvec2 const& drawable_size) {
 	// Page title
 	handwriting_text->draw("JOURNAL", 0.25f * float(drawable_size.x), 0.75f * float(drawable_size.y), 1.0f, journal_text_color, float(drawable_size.x), float(drawable_size.y));
 
-	// Draw every picture taken by the player
+	// Draw every picture saved by the player
 	float offset = 0.8f / (player->pictures.size() + 1.0f);
 	int i = 1;
-	for (auto p = player->pictures.begin(); p != player->pictures.end(); ++p) {
+	/*
+	for (auto p = saved_pictures.begin(); p != saved_pictures.end(); ++p) {
+		
+		
 		// title
 		handwriting_text->draw((*p)->title, 0.15f * float(drawable_size.x), (0.8f - (offset * i)) * float(drawable_size.y), 1.0f, journal_text_color, float(drawable_size.x), float(drawable_size.y));
 		// actual picture
 		DrawPicture pic(**p, drawable_size);
 		// scale is relative to entire screen resolution, so 1 means full screen coverage
 		pic.draw(glm::vec2(0.5f * float(drawable_size.x), (0.8f - (offset * i)) * float(drawable_size.y)), 0.1f);
+		i++;
+	}
+	*/
+
+	for (auto c = Creature::creature_stats_map.begin(); c != Creature::creature_stats_map.end(); ++c) {
+		// Creature name
+		handwriting_text->draw((*c).second.name, 0.15f * float(drawable_size.x), (0.8f - (offset * i)) * float(drawable_size.y), 1.0f, journal_text_color, float(drawable_size.x), float(drawable_size.y));
 		i++;
 	}
 }

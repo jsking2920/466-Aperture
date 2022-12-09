@@ -110,7 +110,7 @@ void PlayerCamera::TakePicture(Scene &scene) {
     }
 	*/
 
-	auto temp = std::make_shared<Picture>(stats, player->transform->position);
+	auto temp = std::make_shared<Picture>(stats);
 
     player->pictures.push_back(temp);
     std::shared_ptr<Picture> picture = player->pictures.back();
