@@ -329,7 +329,7 @@ void Creature::update(float elapsed, float time_of_day, glm::vec3 &player_pos) {
 }
 
 //animations to be triggered when picture is taken of the creature
-void Creature::on_picture() {
+void Creature::on_picture(glm::vec3& player_pos) {
     switch(switch_index) {
         case 0: { //FLOATER
             play_animation("Action1");

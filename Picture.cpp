@@ -17,9 +17,9 @@
 #include <filesystem>
 #include <math.h>
 
-const std::string Picture::adjectives[] = { "Majestic", "Beautiful", "Vibrant", "Grand", "Impressive", "Awe-inspiring", "Sublime", "Resplendent", "Striking", "Marvelous", "Alluring", "Gorgeous", "Glamorous", "Divine", "Exquisite", "Stunning", "Beauteous", "Breathtaking", "Pulchritudinous", "Graceful", "Dazzling", "Lovely", "Superb", "Resplendent", "Radiant", "Well-formed", "Great"};
+const std::string Picture::adjectives[] = { "Majestic", "Beautiful", "Vibrant", "Grand", "Impressive", "Sublime", "Striking", "Marvelous", "Gorgeous", "Glamorous", "Divine", "Exquisite", "Stunning", "Breathtaking", "Graceful", "Dazzling", "Lovely", "Superb", "Radiant", "Great"};
 
-Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.data) {
+Picture::Picture(PictureInfo &stats, glm::vec3& player_pos) : dimensions(stats.dimensions), data(stats.data) {
     if (stats.frag_counts.empty()) {
         title = "Pure Emptiness";
         score_elements.emplace_back("Relatable", (uint32_t)500);
@@ -89,7 +89,7 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
 
             //trigger on_picture behaviors of subject (could be all creatures in frame)
             if(glm::length(subject_info.player_to_creature) < std::max(10.f, 8 * subject_info.creature->radius)) {
-                subject_info.creature->on_picture();
+                subject_info.creature->on_picture(player_pos);
             }
         }
 
