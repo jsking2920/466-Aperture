@@ -1366,7 +1366,7 @@ void PlayMode::night_update(float elapsed) {
 			active_camera = player->camera;
 
             for(auto &pair : Creature::creature_map) {
-                pair.second.transform->position = pair.second.transform->position;
+                pair.second.transform->position = pair.second.original_pos;
             }
 
 			cur_state = playing;

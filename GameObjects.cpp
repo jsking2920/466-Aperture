@@ -216,28 +216,38 @@ void Creature::update(float elapsed, float time_of_day) { //movements not synced
         case 1: { //MEEPER
             //move towards home, unless
             //random chance to move towards home
-//            if(animation_player->anim.name == "Idle") {
-//                if(!bool_flag && fmod(time_of_day * (float)number, 1.0f) < 0.5f) {
-//                    if(rand() % 5 == 0) {
-//                        //move towards home
-//                        if(transform->position != original_pos) {
-//                            transform->rotation = AimAtPoint(transform->position, original_pos);
-//                        }
-//                        play_animation("Action1", false);
-//                    }
-//                    bool_flag = true;
-//                } else if (bool_flag && fmod(time_of_day, 1.0f) > 0.5f) {
-//                    bool_flag = false;
-//                }
-//            } else { //moving
-//                //check for animation finished
-//                if(animation_player->done()) {
-//                    play_animation("Idle", true);
-//                }
-//                //move
-//                const float speed = 1.f;
-//                transform->position += speed * glm::vec3(1.0f, 0.0f, 0.0f) * elapsed;
-//            }
+            if(animation_player->anim.name == "Idle") {
+                if(!bool_flag && fmod(time_of_day * (float)number, 1.0f) < 0.5f) {
+                    if(rand() % 3 == 0) {
+                        //move towards home
+                        if(transform->position != original_pos) {
+                            glm::vec3 randomness = 0.4f * glm::normalize(glm::vec3((float)rand() / (float)RAND_MAX - 0.5f, (float)rand() / (float)RAND_MAX - 0.5f, ((float)rand() / (float)RAND_MAX) - 0.5f) * 0.1f);
+                            glm::vec3 diff = glm::normalize(original_pos - transform->position) + randomness;
+                            glm::vec3 clampedDiff = glm::vec3(diff.x, diff.y, glm::clamp(diff.z, -0.2f, 0.2f));
+                            glm::vec3 endPoint = transform->position + clampedDiff;
+                            glm::quat direction = AimAtPoint(transform->position, endPoint);
+                            transform->rotation = direction;
+                        }
+                        //randomness
+                        play_animation("Action1", false);
+                    }
+                    bool_flag = true;
+                } else if (bool_flag && fmod(time_of_day, 1.0f) > 0.5f) {
+                    bool_flag = false;
+                }
+            } else { //moving
+                //check for animation finished
+                if(animation_player->done()) {
+                    play_animation("Idle", true);
+                } else {
+                    //move
+                    float speed = (0.5f + ((float)rand() / (float)RAND_MAX)) * (float)(1 - cos(2 * M_PI * animation_player->position));
+                    glm::vec3 direction = glm::rotate(transform->rotation, (glm::vec3(1.0f, 0.0f, 0.0f)));
+                    transform->position +=
+                            speed * direction *
+                            elapsed;
+                }
+            }
             break;
         }
         case 2: { //TAN
