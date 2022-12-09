@@ -30,4 +30,4 @@ Developed by Joyce Zheng, Scott King, and Will Ozeas for 15-466 at CMU.
 
 Built with [NEST](NEST.md) and based on https://github.com/15-466/15-466-f22-base5 and https://github.com/15-466/15-466-f19-base6 by Jim McCann and 15-466's course staff
 
-Original source code for Aperture by Joyce Zheng, Scott King, and Will Ozeas provided with the MIT licenses; code taken from other sources may be licensed differently.
+Original source code for Aperture by Joyce Zhang, Scott King, and Will Ozeas provided with the MIT licenses; code taken from other sources may be licensed differently.
