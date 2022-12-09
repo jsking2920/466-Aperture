@@ -1182,22 +1182,24 @@ void PlayMode::playing_draw_ui(glm::uvec2 const& drawable_size) {
 		float t = (player->player_camera->cur_focus - player->player_camera->min_focus) / (player->player_camera->max_focus - player->player_camera->min_focus);
 		float denom = 1.0f + (t * (30.0f - 1.0f));
 		uint8_t denom_rounded = (uint8_t)denom;
-		display_text->draw("f/" + std::to_string(denom_rounded), 0.95f * float(drawable_size.x), 0.95f * float(drawable_size.y), 0.25f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		display_text->draw("f/" + std::to_string(denom_rounded), 0.9f * float(drawable_size.x), 0.9f * float(drawable_size.y), 0.5f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 
 		// Battery readout
 		float battery = (float)player->player_camera->cur_battery / (float)player->player_camera->max_battery;
-		display_text->draw("Battery: " + TextRenderer::format_percentage(battery), 0.025f * float(drawable_size.x), 0.025f * float(drawable_size.y), 0.25f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		display_text->draw("Battery: " + TextRenderer::format_percentage(battery), 0.05f * float(drawable_size.x), 0.025f * float(drawable_size.y), 0.4f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 		
 		// Creature in frame text
 		// TODO: implement this feature (need to check for creatures each frame)
-		barcode_text->draw("FLOATER", (1.0f / 3.0f) * float(drawable_size.x), ((1.0f / 3.0f) - 0.05f) * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		barcode_text->draw("APERTURE", (1.0f / 3.0f) * float(drawable_size.x), ((1.0f / 3.0f) - 0.05f) * float(drawable_size.y), 1.0f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 		
 		// Some assorted DSLR type viewport readouts
-		// TODO: replace these with other functional things
 		// AUTO in palce of any Exposure/ISO settings
-		display_text->draw("Focal Length: " + std::to_string(player->player_camera->cur_focus).substr(0, 3), 0.45f * float(drawable_size.x), 0.025f * float(drawable_size.y), 0.25f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+
 		// Just some numbers for the vibes, could be a date, time, shutter speed, etc.
-		display_text->draw("[2.9.020]", 0.9f * float(drawable_size.x), 0.025f * float(drawable_size.y), 0.25f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
+		uint16_t time_to_display = (uint16_t)abs(time_of_day - 10.0f);
+		uint8_t day_to_display = (9 + day) % 30;
+		uint8_t month_to_display = 2; // TODO: implement months
+		display_text->draw("[" + std::to_string(month_to_display) + "." + std::to_string(day_to_display) + "." + std::to_string(time_to_display) + "]", 0.85f * float(drawable_size.x), 0.025f * float(drawable_size.y), 0.4f, glm::vec3(1.0f, 1.0f, 1.0f), float(drawable_size.x), float(drawable_size.y));
 	}
 	else {
 		// Draw clock
@@ -1311,6 +1313,7 @@ void PlayMode::night_update(float elapsed) {
 
 			time_of_day = start_day_time;
 			time_scale = TIME_SCALE_DEFAULT;
+			day++;
 
 			active_camera = player->camera;
 
