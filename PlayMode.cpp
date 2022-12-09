@@ -1033,6 +1033,7 @@ void PlayMode::playing_update(float elapsed) {
 	// Handle State (return early if state changes)
 	{
 		// open journal on tab, swap to journal state
+		/*
 		if (tab.downs > 0) {
             Sound::play(Sound::sample_map->at("Page_Turn"));
             if(music_l && music_r) {
@@ -1049,6 +1050,7 @@ void PlayMode::playing_update(float elapsed) {
 			cur_state = journal;
 			return;
 		}
+		*/
 
 		// swap to night state at end of day
 		if (time_of_day >= end_day_time && time_of_day < start_day_time) {
@@ -1254,7 +1256,6 @@ void PlayMode::journal_draw_ui(glm::uvec2 const& drawable_size) {
 	// Draw every picture saved by the player
 	float offset = 0.8f / (player->pictures.size() + 1.0f);
 	int i = 1;
-	/*
 	for (auto p = saved_pictures.begin(); p != saved_pictures.end(); ++p) {
 		
 		
@@ -1266,13 +1267,14 @@ void PlayMode::journal_draw_ui(glm::uvec2 const& drawable_size) {
 		pic.draw(glm::vec2(0.5f * float(drawable_size.x), (0.8f - (offset * i)) * float(drawable_size.y)), 0.1f);
 		i++;
 	}
-	*/
 
+	/*
 	for (auto c = Creature::creature_stats_map.begin(); c != Creature::creature_stats_map.end(); ++c) {
 		// Creature name
 		handwriting_text->draw((*c).second.name, 0.15f * float(drawable_size.x), (0.8f - (offset * i)) * float(drawable_size.y), 1.0f, journal_text_color, float(drawable_size.x), float(drawable_size.y));
 		i++;
 	}
+	*/
 }
 
 // -------- Nightime functions -----------
