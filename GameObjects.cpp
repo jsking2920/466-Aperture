@@ -361,20 +361,20 @@ void Creature::on_picture(glm::vec3 player_to_creature) {
         case 3: { //TRI
             float random = ((float) rand() / (RAND_MAX));
             Sound::play_3D(Sound::sample_map->at("TRI_Idle"), 1.0f, glm::vec3(transform->make_local_to_world()[3]), random / 4.0f + 0.875f, 8.0f);
-//            glm::vec3 player_pos = transform->make_local_to_world()[3] + (-player_to_creature);
-            transform->rotation = AimAtPoint(glm::vec3(glm::vec2(transform->make_local_to_world()[3]), 0), glm::vec3(player_pos.x, player_pos.y, 0.f));
+            glm::vec3 player_pos = transform->make_local_to_world()[3] + (-player_to_creature);
+            // currently making them disappear
+            // transform->rotation = AimAtPoint(glm::vec3(glm::vec2(transform->make_local_to_world()[3]), 0), glm::vec3(player_pos.x, player_pos.y, 0.f));
             if(animation_player->anim.name == "Idle" || animation_player->done()) { //manual loop to ensure smooth transitions
                 play_animation("Action1", false);
             }
         }
         case 5: { //PEN
-//            glm::vec3 player_pos = transform->make_local_to_world()[3] + (-player_to_creature);
+            glm::vec3 player_pos = transform->make_local_to_world()[3] + (-player_to_creature);
             transform->rotation = AimAtPoint(glm::vec3(glm::vec2(transform->make_local_to_world()[3]), 0), glm::vec3(player_pos.x, player_pos.y, 0.f));
             if(animation_player->anim.name == "Idle" || animation_player->done()) { //manual loop to ensure smooth transitions
                 play_animation("Action1", false);
             }
         }
-
     }
 }
 
