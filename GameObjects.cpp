@@ -304,7 +304,20 @@ void Creature::update(float elapsed, float time_of_day, glm::vec3 &player_pos) {
         }
         case 5: { //PEN
             if (!animation_player) { break; }
-
+            //bool_flag is 0 if out of distance, 1 if in distance
+            const float angry_distance = 5.0f;
+            bool_flag = glm::length(player_pos - transform->make_local_to_world()[3]) < angry_distance;
+            if(bool_flag) {
+                //Todo: make smooth
+                transform->rotation = AimAtPoint(glm::vec3(glm::vec2(transform->make_local_to_world()[3]), 0), glm::vec3(player_pos.x, player_pos.y, 0.f));
+                if(animation_player->anim.name == "Idle" || animation_player->done()) { //manual loop to ensure smooth transitions
+                    play_animation("Action1", false);
+                }
+            } else if(!bool_flag) {
+                if(animation_player->done()) {
+                    play_animation("Idle");
+                }
+            }
             break;
         }
 
@@ -320,10 +333,15 @@ void Creature::on_picture() {
     switch(switch_index) {
         case 0: { //FLOATER
             play_animation("Action1");
+            break;
         }
-        default: {
-            play_animation("Action1");
+        case 5: { //PEN
+            transform->rotation = AimAtPoint(glm::vec3(glm::vec2(transform->make_local_to_world()[3]), 0), glm::vec3(player_pos.x, player_pos.y, 0.f));
+            if(animation_player->anim.name == "Idle" || animation_player->done()) { //manual loop to ensure smooth transitions
+                play_animation("Action1", false);
+            }
         }
+
     }
 }
 
@@ -334,7 +352,7 @@ void Creature::play_animation(std::string const &anim_name, bool loop, float spe
     sfx_count = 0;
     sfx_loop_played = false;
     // If current animation is equal to the one currently playing, set speed only
-    if (animation_player && anim_name == animation_player->anim.name) {
+    if (animation_player && anim_name == animation_player->anim.name && !animation_player->done()) {
         animation_player->set_speed(speed);
         return;
     }

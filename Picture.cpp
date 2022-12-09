@@ -217,6 +217,8 @@ std::list<ScoreElement> Picture::score_creature(PictureCreatureInfo &creature_in
             result.emplace_back("ROAR!", 2000);
         } else if(creature_info.creature->code == "SNA" &&  creature_info.creature->animation_player->anim.name == "Idle") {
             result.emplace_back("Shy no more!", 3000);
+        } else if(creature_info.creature->code == "PEN" &&  creature_info.creature->animation_player->anim.name == "Action1") {
+            result.emplace_back("Flirtatious!", 1500);
         }
     }
 
