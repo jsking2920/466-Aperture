@@ -1,5 +1,5 @@
 # Aperture
-Developed by Joyce Zheng, Scott King, and Will Ozeas for 15-466 at CMU. 
+Developed by Joyce Zhang, Scott King, and Will Ozeas for 15-466 at CMU. 
 
 ![Screen Shot](screenshot.png)
 
