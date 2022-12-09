@@ -83,122 +83,64 @@ Load< MeshBuffer > main_meshes(LoadTagDefault, []() -> MeshBuffer const * {
 	return ret;
 });
 
+GLuint FLO_banims_for_bone_lit_color_texture_program = 0;
+GLuint FLO_banims_for_bone_shadow_program = 0;
 Load< BoneAnimation > FLO_banims(LoadTagDefault, []() -> BoneAnimation const * {
     auto ret = new BoneAnimation(data_path("assets/animations/anim_FLO.banims"));
     BoneAnimation::animation_map.emplace(std::make_pair("FLO", ret));
+    FLO_banims_for_bone_lit_color_texture_program = ret->make_vao_for_program(bone_lit_color_texture_program->program);
+    FLO_banims_for_bone_shadow_program = ret->make_vao_for_program(bone_shadow_program->program);
     return ret;
 });
 
+GLuint MEP_banims_for_bone_lit_color_texture_program = 0;
+GLuint MEP_banims_for_bone_shadow_program = 0;
 Load< BoneAnimation > MEP_banims(LoadTagDefault, []() -> BoneAnimation const * {
     auto ret = new BoneAnimation(data_path("assets/animations/anim_MEP.banims"));
     BoneAnimation::animation_map.emplace(std::make_pair("MEP", ret));
+    MEP_banims_for_bone_lit_color_texture_program = ret->make_vao_for_program(bone_lit_color_texture_program->program);
+    MEP_banims_for_bone_shadow_program =  ret->make_vao_for_program(bone_shadow_program->program);
     return ret;
 });
 
+GLuint TAN_banims_for_bone_lit_color_texture_program = 0;
+GLuint TAN_banims_for_bone_shadow_program = 0;
 Load< BoneAnimation > TAN_banims(LoadTagDefault, []() -> BoneAnimation const * {
     auto ret = new BoneAnimation(data_path("assets/animations/anim_TAN.banims"));
     BoneAnimation::animation_map.emplace(std::make_pair("TAN", ret));
+    TAN_banims_for_bone_lit_color_texture_program = ret->make_vao_for_program(bone_lit_color_texture_program->program);
+    TAN_banims_for_bone_shadow_program =  ret->make_vao_for_program(bone_shadow_program->program);
     return ret;
 });
 
+GLuint TRI_banims_for_bone_lit_color_texture_program = 0;
+GLuint TRI_banims_for_bone_shadow_program = 0;
 Load< BoneAnimation > TRI_banims(LoadTagDefault, []() -> BoneAnimation const * {
     auto ret = new BoneAnimation(data_path("assets/animations/anim_TRI.banims"));
     BoneAnimation::animation_map.emplace(std::make_pair("TRI", ret));
+    TRI_banims_for_bone_lit_color_texture_program = ret->make_vao_for_program(bone_lit_color_texture_program->program);
+    TRI_banims_for_bone_shadow_program =  ret->make_vao_for_program(bone_shadow_program->program);
     return ret;
 });
 
+GLuint SNA_banims_for_bone_lit_color_texture_program = 0;
+GLuint SNA_banims_for_bone_shadow_program = 0;
 Load< BoneAnimation > SNA_banims(LoadTagDefault, []() -> BoneAnimation const * {
     auto ret = new BoneAnimation(data_path("assets/animations/anim_SNA.banims"));
     BoneAnimation::animation_map.emplace(std::make_pair("SNA", ret));
+    SNA_banims_for_bone_lit_color_texture_program = ret->make_vao_for_program(bone_lit_color_texture_program->program);
+    SNA_banims_for_bone_shadow_program =  ret->make_vao_for_program(bone_shadow_program->program);
     return ret;
 });
 
+GLuint PEN_banims_for_bone_lit_color_texture_program = 0;
+GLuint PEN_banims_for_bone_shadow_program = 0;
 Load< BoneAnimation > PEN_banims(LoadTagDefault, []() -> BoneAnimation const * {
     auto ret = new BoneAnimation(data_path("assets/animations/anim_PEN.banims"));
     BoneAnimation::animation_map.emplace(std::make_pair("PEN", ret));
+    PEN_banims_for_bone_lit_color_texture_program = ret->make_vao_for_program(bone_lit_color_texture_program->program);
+    PEN_banims_for_bone_shadow_program =  ret->make_vao_for_program(bone_shadow_program->program);
     return ret;
-});
-
-// could be improved by just resturning BoneAnimation::animation_map and just using that
-//Load< std::vector< std::shared_ptr<BoneAnimation> > > floater_banims(LoadTagDefault, []() -> std::vector< std::shared_ptr<BoneAnimation> > const * {
-//    auto ret = new std::vector< std::shared_ptr<BoneAnimation> >;
-//    ret->emplace_back(std::make_shared<BoneAnimation>(data_path("assets/animations/anim_FLO.banims")));
-////    std::cout << ret->back()->animations.size() << std::endl;
-//	BoneAnimation::animation_map.emplace(std::make_pair("FLO", ret->back()));
-//
-//    ret->emplace_back(std::make_shared<BoneAnimation>(data_path("assets/animations/anim_MEP.banims")));
-//    BoneAnimation::animation_map.emplace(std::make_pair("MEP", ret->back()));
-//
-//    ret->emplace_back(std::make_shared<BoneAnimation>(data_path("assets/animations/anim_TAN.banims")));
-//    BoneAnimation::animation_map.emplace(std::make_pair("TAN", ret->back()));
-//
-//    ret->emplace_back(std::make_shared<BoneAnimation>(data_path("assets/animations/anim_TRI.banims")));
-//    BoneAnimation::animation_map.emplace(std::make_pair("TRI", ret->back()));
-//
-//    ret->emplace_back(std::make_shared<BoneAnimation>(data_path("assets/animations/anim_SNA.banims")));
-//    BoneAnimation::animation_map.emplace(std::make_pair("SNA", ret->back()));
-//
-//    ret->emplace_back(std::make_shared<BoneAnimation>(data_path("assets/animations/anim_PEN.banims")));
-//    BoneAnimation::animation_map.emplace(std::make_pair("PEN", ret->back()));
-//    BoneAnimation::animation_map.
-//	return ret;
-//});
-
-//Load< std::vector< GLuint > > banims_for_bone_lit_color_texture_program(LoadTagDefault, []() -> std::vector< GLuint > const * {
-//	auto ret = new std::vector< GLuint >(floater_banims->size());
-//    for(int i = 0; i < floater_banims->size(); i++) {
-//        ret->emplace_back(floater_banims->at(i)->make_vao_for_program(bone_lit_color_texture_program->program));
-//    }
-//    return ret;
-//});
-//Load< std::vector< GLuint > > banims_for_bone_shadow_program(LoadTagDefault, []() -> std::vector< GLuint > const * {
-//    auto ret = new std::vector< GLuint >(floater_banims->size());
-//    for(int i = 0; i < floater_banims->size(); i++) {
-//        ret->emplace_back(floater_banims->at(i)->make_vao_for_program(bone_shadow_program->program));
-//    }
-//    return ret;
-//});
-
-Load< GLuint > FLO_banims_for_bone_lit_color_texture_program(LoadTagDefault, []() {
-    return new GLuint(FLO_banims->make_vao_for_program(bone_lit_color_texture_program->program));
-});
-Load< GLuint > FLO_banims_for_bone_shadow_program(LoadTagDefault, []() {
-    return new GLuint(FLO_banims->make_vao_for_program(bone_shadow_program->program));
-});
-
-Load< GLuint > MEP_banims_for_bone_lit_color_texture_program(LoadTagDefault, []() {
-    return new GLuint(MEP_banims->make_vao_for_program(bone_lit_color_texture_program->program));
-});
-Load< GLuint > MEP_banims_for_bone_shadow_program(LoadTagDefault, []() {
-    return new GLuint(MEP_banims->make_vao_for_program(bone_shadow_program->program));
-});
-
-Load< GLuint > TAN_banims_for_bone_lit_color_texture_program(LoadTagDefault, []() {
-    return new GLuint(TAN_banims->make_vao_for_program(bone_lit_color_texture_program->program));
-});
-Load< GLuint > TAN_banims_for_bone_shadow_program(LoadTagDefault, []() {
-    return new GLuint(TAN_banims->make_vao_for_program(bone_shadow_program->program));
-});
-
-Load< GLuint > TRI_banims_for_bone_lit_color_texture_program(LoadTagDefault, []() {
-    return new GLuint(TRI_banims->make_vao_for_program(bone_lit_color_texture_program->program));
-});
-Load< GLuint > TRI_banims_for_bone_shadow_program(LoadTagDefault, []() {
-    return new GLuint(TRI_banims->make_vao_for_program(bone_shadow_program->program));
-});
-
-Load< GLuint > SNA_banims_for_bone_lit_color_texture_program(LoadTagDefault, []() {
-    return new GLuint(SNA_banims->make_vao_for_program(bone_lit_color_texture_program->program));
-});
-Load< GLuint > SNA_banims_for_bone_shadow_program(LoadTagDefault, []() {
-    return new GLuint(SNA_banims->make_vao_for_program(bone_shadow_program->program));
-});
-
-Load< GLuint > PEN_banims_for_bone_lit_color_texture_program(LoadTagDefault, []() {
-    return new GLuint(PEN_banims->make_vao_for_program(bone_lit_color_texture_program->program));
-});
-Load< GLuint > PEN_banims_for_bone_shadow_program(LoadTagDefault, []() {
-    return new GLuint(PEN_banims->make_vao_for_program(bone_shadow_program->program));
 });
 
 Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
@@ -237,55 +179,55 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 
             switch(creature_index) {
                 case 0: {
-                    drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = *FLO_banims_for_bone_lit_color_texture_program;
                     drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = FLO_banims->mesh.start;
                     drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = FLO_banims->mesh.count;
-                    drawable.pipeline[Scene::Drawable::ProgramTypeShadow].vao = *FLO_banims_for_bone_shadow_program;
+                    drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = FLO_banims_for_bone_lit_color_texture_program;
                     drawable.pipeline[Scene::Drawable::ProgramTypeShadow].start = FLO_banims->mesh.start;
                     drawable.pipeline[Scene::Drawable::ProgramTypeShadow].count = FLO_banims->mesh.count;
+                    drawable.pipeline[Scene::Drawable::ProgramTypeShadow].vao = FLO_banims_for_bone_shadow_program;
                     break;
                 }
                 case 1: {
-                    drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = *MEP_banims_for_bone_lit_color_texture_program;
+                    drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = MEP_banims_for_bone_lit_color_texture_program;
                     drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = MEP_banims->mesh.start;
                     drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = MEP_banims->mesh.count;
-                    drawable.pipeline[Scene::Drawable::ProgramTypeShadow].vao = *MEP_banims_for_bone_shadow_program;
+                    drawable.pipeline[Scene::Drawable::ProgramTypeShadow].vao = MEP_banims_for_bone_shadow_program;
                     drawable.pipeline[Scene::Drawable::ProgramTypeShadow].start = MEP_banims->mesh.start;
                     drawable.pipeline[Scene::Drawable::ProgramTypeShadow].count = MEP_banims->mesh.count;
                     break;
                 }
                 case 2: {
-                    drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = *TAN_banims_for_bone_lit_color_texture_program;
+                    drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = TAN_banims_for_bone_lit_color_texture_program;
                     drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = TAN_banims->mesh.start;
                     drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = TAN_banims->mesh.count;
-                    drawable.pipeline[Scene::Drawable::ProgramTypeShadow].vao = *TAN_banims_for_bone_shadow_program;
+                    drawable.pipeline[Scene::Drawable::ProgramTypeShadow].vao = TAN_banims_for_bone_shadow_program;
                     drawable.pipeline[Scene::Drawable::ProgramTypeShadow].start = TAN_banims->mesh.start;
                     drawable.pipeline[Scene::Drawable::ProgramTypeShadow].count = TAN_banims->mesh.count;
                     break;
                 }
                 case 3: {
-                    drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = *TRI_banims_for_bone_lit_color_texture_program;
+                    drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = TRI_banims_for_bone_lit_color_texture_program;
                     drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = TRI_banims->mesh.start;
                     drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = TRI_banims->mesh.count;
-                    drawable.pipeline[Scene::Drawable::ProgramTypeShadow].vao = *TRI_banims_for_bone_shadow_program;
+                    drawable.pipeline[Scene::Drawable::ProgramTypeShadow].vao = TRI_banims_for_bone_shadow_program;
                     drawable.pipeline[Scene::Drawable::ProgramTypeShadow].start = TRI_banims->mesh.start;
                     drawable.pipeline[Scene::Drawable::ProgramTypeShadow].count = TRI_banims->mesh.count;
                     break;
                 }
                 case 4: {
-                    drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = *SNA_banims_for_bone_lit_color_texture_program;
+                    drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = SNA_banims_for_bone_lit_color_texture_program;
                     drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = SNA_banims->mesh.start;
                     drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = SNA_banims->mesh.count;
-                    drawable.pipeline[Scene::Drawable::ProgramTypeShadow].vao = *SNA_banims_for_bone_shadow_program;
+                    drawable.pipeline[Scene::Drawable::ProgramTypeShadow].vao = SNA_banims_for_bone_shadow_program;
                     drawable.pipeline[Scene::Drawable::ProgramTypeShadow].start = SNA_banims->mesh.start;
                     drawable.pipeline[Scene::Drawable::ProgramTypeShadow].count = SNA_banims->mesh.count;
                     break;
                 }
                 case 5: {
-                    drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = *PEN_banims_for_bone_lit_color_texture_program;
+                    drawable.pipeline[Scene::Drawable::ProgramTypeDefault].vao = PEN_banims_for_bone_lit_color_texture_program;
                     drawable.pipeline[Scene::Drawable::ProgramTypeDefault].start = PEN_banims->mesh.start;
                     drawable.pipeline[Scene::Drawable::ProgramTypeDefault].count = PEN_banims->mesh.count;
-                    drawable.pipeline[Scene::Drawable::ProgramTypeShadow].vao = *PEN_banims_for_bone_shadow_program;
+                    drawable.pipeline[Scene::Drawable::ProgramTypeShadow].vao = PEN_banims_for_bone_shadow_program;
                     drawable.pipeline[Scene::Drawable::ProgramTypeShadow].start = PEN_banims->mesh.start;
                     drawable.pipeline[Scene::Drawable::ProgramTypeShadow].count = PEN_banims->mesh.count;
                     break;
@@ -482,6 +424,7 @@ PlayMode::PlayMode() : scene(*main_scene) {
 		for (auto &creature_pair : Creature::creature_map) {
 			Creature &critter = creature_pair.second;
             critter.play_animation("Idle", true, 1.0f);
+            critter.animation_player->position = (float)rand() / (float)RAND_MAX;
 		}
 	}
 
@@ -1191,7 +1134,7 @@ void PlayMode::playing_update(float elapsed) {
     //creature movement updates
     std::for_each(Creature::creature_map.begin(), Creature::creature_map.end(), [&](std::pair< const std::string, Creature > &pair) {
         Creature &creature = pair.second;
-        creature.update(elapsed, time_of_day);
+        creature.update(elapsed, time_of_day, player->transform->make_local_to_world()[3]);
     });
 }
 
@@ -1258,7 +1201,6 @@ void PlayMode::playing_draw_ui(glm::uvec2 const& drawable_size) {
 
 // -------- Journal functions -----------
 void PlayMode::journal_update(float elapsed) {
-
 	// swap to night state at end of day, even if in journal
 	if (time_of_day >= end_day_time && time_of_day < start_day_time) {
 		time_scale = 0.0f; // pause at night to review pics

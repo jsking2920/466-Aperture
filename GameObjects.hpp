@@ -79,7 +79,7 @@ struct Creature {
     //scoring parameters
     int score = 3000;
 
-    void update(float elapsed, float time_of_day);
+    void update(float elapsed, float time_of_day, glm::vec3 &player_pos);
     void on_picture();
     void play_animation(std::string const &anim_name, bool loop = true, float speed = 1.0f);
 

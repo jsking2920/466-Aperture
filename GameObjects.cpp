@@ -162,7 +162,7 @@ glm::vec3 Creature::tan_calculate_pos_at(float time_of_day) {
 }
 
 
-void Creature::update(float elapsed, float time_of_day) { //movements not synced to animations
+void Creature::update(float elapsed, float time_of_day, glm::vec3 &player_pos) { //movements not synced to animations
     if(animation_player != nullptr) {
         animation_player->update(elapsed);
     }
@@ -214,6 +214,7 @@ void Creature::update(float elapsed, float time_of_day) { //movements not synced
             break;
         }
         case 1: { //MEEPER
+            if (!animation_player) { break; }
             //move towards home, unless
             //random chance to move towards home
             if(animation_player->anim.name == "Idle") {
@@ -251,6 +252,7 @@ void Creature::update(float elapsed, float time_of_day) { //movements not synced
             break;
         }
         case 2: { //TAN
+            if (!animation_player) { break; }
             const float smooth = 2.f;
             glm::vec3 new_pos = tan_calculate_pos_at(time_of_day - elapsed + smooth);
             transform->rotation = AimAtPoint(transform->position, new_pos);
@@ -274,8 +276,40 @@ void Creature::update(float elapsed, float time_of_day) { //movements not synced
             }
             break;
         }
+        case 3: { //TRI
+            if (!animation_player) { break; }
+
+            break;
+        }
+        case 4: { //SNA
+            if (!animation_player) { break; }
+            //bool_flag is 0 if out of distance, 1 if in distance
+            const float scared_distance = 22.0f;
+            bool_flag = glm::length(player_pos - transform->make_local_to_world()[3]) < scared_distance;
+            if (bool_flag && animation_player->anim.name == "Idle") {
+                play_animation("Action1", false);
+            } else if(bool_flag && animation_player->anim.name == "Action1") {
+                if(animation_player->position > 0.5f) {
+                    animation_player->set_speed(0.0f);
+                }
+            } else if (!bool_flag && animation_player->anim.name == "Action1") {
+                if(animation_player->position <= 0.0f) {
+                    //coming out animation over
+                    play_animation("Idle");
+                } else {
+                    animation_player->set_speed(-1.0f);
+                }
+            }
+            break;
+        }
+        case 5: { //PEN
+            if (!animation_player) { break; }
+
+            break;
+        }
+
         default: {
-//            std::cout << name << "fell through animation update" << std::endl;
+            std::cout << name << " fell through animation update" << std::endl;
             break;
         }
     }
@@ -299,8 +333,11 @@ void Creature::play_animation(std::string const &anim_name, bool loop, float spe
     //reset sfx variables
     sfx_count = 0;
     sfx_loop_played = false;
-    // If current animation is equal to the one currently playing, do nothing
-    if (animation_player && anim_name == animation_player->anim.name) return;
+    // If current animation is equal to the one currently playing, set speed only
+    if (animation_player && anim_name == animation_player->anim.name) {
+        animation_player->set_speed(speed);
+        return;
+    }
 
     // Try to retrieve creature animation data based on code
     auto animation_set_iter = BoneAnimation::animation_map.find(code);
