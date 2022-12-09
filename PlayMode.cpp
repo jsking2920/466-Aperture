@@ -323,6 +323,13 @@ Load< std::unordered_map<std::string, Sound::Sample> > audio_samples(LoadTagDefa
             "Page_Turn",
             "Strange_New_World.L",
             "Strange_New_World.R",
+            "TRI_Idle",
+            "TAN_Roar",
+            "SNA_Hide",
+            "PEN_Idle",
+            "PEN_Idle_2",
+            "PEN_Angry",
+            "MEP_Idle"
     };
     for(std::string name : names) {
         sample_map->emplace(std::piecewise_construct, std::make_tuple(name), std::make_tuple(data_path("assets/audio/" + name + ".opus")));
@@ -1309,6 +1316,10 @@ void PlayMode::night_update(float elapsed) {
 
             for(auto &pair : Creature::creature_map) {
                 pair.second.transform->position = pair.second.original_pos;
+            }
+
+            for(auto &pair : Creature::creature_map) {
+                pair.second.reset();
             }
 
 			cur_state = playing;

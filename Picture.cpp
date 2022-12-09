@@ -89,7 +89,7 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
 
             //trigger on_picture behaviors of subject (could be all creatures in frame)
             if(glm::length(subject_info.player_to_creature) < std::max(10.f, 8 * subject_info.creature->radius)) {
-                subject_info.creature->on_picture();
+                subject_info.creature->on_picture(glm::vec3());
             }
         }
 
