@@ -137,6 +137,7 @@ glm::vec3 Creature::tan_calculate_pos_at(float time_of_day) {
         ret = start_pos;
     } else if (time_of_day < finished_rising_time) {
         //TODO: ROAR SFX
+        Sound::play_3D(Sound::sample_map->at("TAN_Roar"), 1.0f, transform->make_local_to_world()[3], 1.0f, 100.f);
         if(animation_player->anim.name == "Idle") {
             play_animation("Action1", false);
         }
@@ -201,8 +202,8 @@ void Creature::update(float elapsed, float time_of_day, glm::vec3 &player_pos) {
                 //SFX
                 if(!sfx_loop_played && animation_player->position > 0.4f) {
                     if(sfx_count < 20) {
-                        Sound::play_3D(Sound::sample_map->at("FLO_Bounce"), 1.0f, glm::vec3(
-                                               transform->make_local_to_world() * glm::vec4(transform->position, 1.0f)),
+                        Sound::play_3D(Sound::sample_map->at("FLO_Bounce"), 1.0f,
+                                               transform->make_local_to_world()[3],
                                        1.0f + 0.2f * sfx_count, 8.0f);
                         sfx_count++;
                     }
@@ -231,6 +232,11 @@ void Creature::update(float elapsed, float time_of_day, glm::vec3 &player_pos) {
                         }
                         //randomness
                         play_animation("Action1", false);
+                    }
+                    //sfx
+                    if(rand() % 4 == 0) {
+                        float random = ((float) rand() / (RAND_MAX));
+                        Sound::play_3D(Sound::sample_map->at("MEP_Idle"), 1.0f, transform->make_local_to_world()[3], random / 2.0f + 0.875f, 8.f);
                     }
                     bool_flag = true;
                 } else if (bool_flag && fmod(time_of_day, 1.0f) > 0.5f) {
@@ -262,7 +268,7 @@ void Creature::update(float elapsed, float time_of_day, glm::vec3 &player_pos) {
                 if(!bool_flag && fmod(time_of_day, 1.0f) < 0.5f) {
                     if(rand() % 8 == 0) {
                         play_animation("Action1", false);
-                        //TODO: ROAR
+                        Sound::play_3D(Sound::sample_map->at("TAN_Roar"), 1.0f, transform->make_local_to_world()[3], 1.0f, 500.f);
                     }
                     bool_flag = true;
                 } else if (bool_flag && fmod(time_of_day, 1.0f) > 0.5f) {
@@ -278,7 +284,6 @@ void Creature::update(float elapsed, float time_of_day, glm::vec3 &player_pos) {
         }
         case 3: { //TRI
             if (!animation_player) { break; }
-
             break;
         }
         case 4: { //SNA
@@ -288,6 +293,9 @@ void Creature::update(float elapsed, float time_of_day, glm::vec3 &player_pos) {
             bool_flag = glm::length(player_pos - transform->make_local_to_world()[3]) < scared_distance;
             if (bool_flag && animation_player->anim.name == "Idle") {
                 play_animation("Action1", false);
+                float random = ((float) rand() / (RAND_MAX));
+                Sound::play_3D(Sound::sample_map->at("SNA_Hide"), 1.0f, glm::vec3(transform->make_local_to_world()[3]), random / 4.0f + 0.875f, 22.0f);
+
             } else if(bool_flag && animation_player->anim.name == "Action1") {
                 if(animation_player->position > 0.5f) {
                     animation_player->set_speed(0.0f);
@@ -312,15 +320,31 @@ void Creature::update(float elapsed, float time_of_day, glm::vec3 &player_pos) {
                 transform->rotation = AimAtPoint(glm::vec3(glm::vec2(transform->make_local_to_world()[3]), 0), glm::vec3(player_pos.x, player_pos.y, 0.f));
                 if(animation_player->anim.name == "Idle" || animation_player->done()) { //manual loop to ensure smooth transitions
                     play_animation("Action1", false);
+                    float random = ((float) rand() / (RAND_MAX));
+                    Sound::play_3D(Sound::sample_map->at("PEN_Angry"), 1.0f, glm::vec3(transform->make_local_to_world()[3]), random / 4.0f + 0.875f, 8.0f);
                 }
             } else if(!bool_flag) {
                 if(animation_player->done()) {
                     play_animation("Idle");
                 }
+
+                if(!sfx_loop_played && animation_player->position > 0.4f) {
+                    float random_chooser = ((float) rand() / (RAND_MAX));
+                    if(random_chooser > 0.5f) {
+                        float random = ((float) rand() / (RAND_MAX));
+                        Sound::play_3D(Sound::sample_map->at("PEN_Idle"), 1.0f, glm::vec3(transform->make_local_to_world()[3]), random / 4.0f + 0.875f, 12.0f);
+                    } else {
+                        float random = ((float) rand() / (RAND_MAX));
+                        Sound::play_3D(Sound::sample_map->at("PEN_Idle_2"), 1.0f, glm::vec3(transform->make_local_to_world()[3]), random / 4.0f + 0.875f, 12.0f);
+                    }
+                    sfx_loop_played = true;
+                } else if(sfx_loop_played && animation_player->position < 0.4f) {
+                    sfx_loop_played = false;
+                }
+
             }
             break;
         }
-
         default: {
             std::cout << name << " fell through animation update" << std::endl;
             break;
@@ -335,7 +359,17 @@ void Creature::on_picture(glm::vec3& player_pos) {
             play_animation("Action1");
             break;
         }
+        case 3: { //TRI
+            float random = ((float) rand() / (RAND_MAX));
+            Sound::play_3D(Sound::sample_map->at("TRI_Idle"), 1.0f, glm::vec3(transform->make_local_to_world()[3]), random / 4.0f + 0.875f, 8.0f);
+            glm::vec3 player_pos = transform->make_local_to_world()[3] + (-player_to_creature);
+            transform->rotation = AimAtPoint(glm::vec3(glm::vec2(transform->make_local_to_world()[3]), 0), glm::vec3(player_pos.x, player_pos.y, 0.f));
+            if(animation_player->anim.name == "Idle" || animation_player->done()) { //manual loop to ensure smooth transitions
+                play_animation("Action1", false);
+            }
+        }
         case 5: { //PEN
+            glm::vec3 player_pos = transform->make_local_to_world()[3] + (-player_to_creature);
             transform->rotation = AimAtPoint(glm::vec3(glm::vec2(transform->make_local_to_world()[3]), 0), glm::vec3(player_pos.x, player_pos.y, 0.f));
             if(animation_player->anim.name == "Idle" || animation_player->done()) { //manual loop to ensure smooth transitions
                 play_animation("Action1", false);
@@ -403,4 +437,14 @@ std::string Creature::get_code_and_number(std::string code, int number) {
         full_code = code + "_" + std::to_string(number);
     }
     return full_code;
+}
+
+void Creature::reset() {
+    original_pos = glm::vec3(0.f);;
+    bool_flag = false;
+    sfx_loop_played = false;
+    sfx_count = 0;
+
+    transform->position = original_pos;
+    play_animation("Idle", true, 1.0f);
 }
