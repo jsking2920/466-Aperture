@@ -1278,7 +1278,7 @@ void PlayMode::journal_draw_ui(glm::uvec2 const& drawable_size) {
 	for (auto c = Creature::creature_stats_map.begin(); c != Creature::creature_stats_map.end(); ++c) {
 		// Creature name
         float x = (0.15f + xoffset * j) * float(drawable_size.x);
-        float y = (0.95f - (offset * i)) * float(drawable_size.y);
+        float y = (0.98f - (offset * i)) * float(drawable_size.y);
         if(c->second.is_discovered()) {
             total_score += c->second.best_picture->get_total_score();
             handwriting_text->draw((*c).second.name, x,
@@ -1293,7 +1293,7 @@ void PlayMode::journal_draw_ui(glm::uvec2 const& drawable_size) {
 
             //draw pic
 		    DrawPicture pic(*c->second.best_picture, drawable_size);
-            pic.draw(glm::vec2(x + 0.234f * float(drawable_size.x), y - (offset / 4) * float(drawable_size.y)), 0.16f);
+            pic.draw(glm::vec2(x + 0.233f * float(drawable_size.x), y - (offset / 4) * float(drawable_size.y)), 0.16f);
 
         } else {
             handwriting_text->draw("?????", x,
