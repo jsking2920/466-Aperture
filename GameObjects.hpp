@@ -79,9 +79,10 @@ struct Creature {
     //scoring parameters
     int score = 3000;
 
-    void update(float elapsed, float time_of_day);
-    void on_picture();
+    void update(float elapsed, float time_of_day, glm::vec3 &player_pos);
+    void on_picture(glm::vec3& player_pos);
     void play_animation(std::string const &anim_name, bool loop = true, float speed = 1.0f);
+    void reset();
 
     glm::vec3 tan_calculate_pos_at(float time_of_day);
 
@@ -96,7 +97,8 @@ struct Creature {
     Scene::Transform *focal_point = nullptr;
 
     //animation
-    glm::vec3 original_pos;
+    glm::vec3 original_pos = glm::vec3(0.f);
+    glm::vec3 anim_vec3;
     bool bool_flag = false;
     bool sfx_loop_played = false;
     uint32_t sfx_count = 0;

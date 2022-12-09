@@ -16,7 +16,7 @@
 #include <map>
 
 #define TIME_SCALE_DEFAULT 1.25f
-#define MUSIC_VOLUME 0.5f
+#define MUSIC_VOLUME 0.4f
 
 struct PlayMode : Mode {
 	PlayMode();
@@ -77,6 +77,7 @@ struct PlayMode : Mode {
 
 	// Day/Night Cycle Stuff
 	float time_of_day = 70.0f; // loops from 0 to day_length, starts at 7 AM (should be equal to start_day_time at initialization)
+	uint8_t day = 0;
 
 	float day_length = 240.0f;// 192s = 1 day, total up time is 144s, 8 seconds = 1 hour
 	float start_day_time = 70.0; // Time player starts every day at (7:00am)

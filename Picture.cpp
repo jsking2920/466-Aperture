@@ -17,9 +17,9 @@
 #include <filesystem>
 #include <math.h>
 
-const std::string Picture::adjectives[] = { "Majestic", "Beautiful", "Vibrant", "Grand", "Impressive", "Awe-inspiring", "Sublime", "Resplendent", "Striking", "Marvelous", "Alluring", "Gorgeous", "Glamorous", "Divine", "Exquisite", "Stunning", "Beauteous", "Breathtaking", "Pulchritudinous", "Graceful", "Dazzling", "Lovely", "Superb", "Resplendent", "Radiant", "Well-formed", "Great"};
+const std::string Picture::adjectives[] = { "Majestic", "Beautiful", "Vibrant", "Grand", "Impressive", "Sublime", "Striking", "Marvelous", "Gorgeous", "Glamorous", "Divine", "Exquisite", "Stunning", "Breathtaking", "Graceful", "Dazzling", "Lovely", "Superb", "Radiant", "Great"};
 
-Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.data) {
+Picture::Picture(PictureInfo &stats, glm::vec3& player_pos) : dimensions(stats.dimensions), data(stats.data) {
     if (stats.frag_counts.empty()) {
         title = "Pure Emptiness";
         score_elements.emplace_back("Relatable", (uint32_t)500);
@@ -88,9 +88,9 @@ Picture::Picture(PictureInfo &stats) : dimensions(stats.dimensions), data(stats.
 
 
             //trigger on_picture behaviors of subject (could be all creatures in frame)
-//            if(glm::length(subject_info.player_to_creature) < std::max(10.f, 8 * subject_info.creature->radius)) {
-//                subject_info.creature->on_picture();
-//            }
+            if(glm::length(subject_info.player_to_creature) < std::max(10.f, 8 * subject_info.creature->radius)) {
+                subject_info.creature->on_picture(player_pos);
+            }
         }
 
     // Create a texture for this picture, to be used for drawing it
@@ -214,7 +214,11 @@ std::list<ScoreElement> Picture::score_creature(PictureCreatureInfo &creature_in
     {
         if(creature_info.creature->code == "TAN" &&  creature_info.creature->animation_player->anim.name == "Action1") {
             //roaring
-            result.emplace_back("ROAR", 2000);
+            result.emplace_back("ROAR!", 2000);
+        } else if(creature_info.creature->code == "SNA" &&  creature_info.creature->animation_player->anim.name == "Idle") {
+            result.emplace_back("Shy no more!", 3000);
+        } else if(creature_info.creature->code == "PEN" &&  creature_info.creature->animation_player->anim.name == "Action1") {
+            result.emplace_back("Flirtatious!", 1500);
         }
     }
 
