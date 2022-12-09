@@ -1254,10 +1254,10 @@ void PlayMode::journal_draw_ui(glm::uvec2 const& drawable_size) {
 	handwriting_text->draw("CREATURES", 0.2f * float(drawable_size.x), 0.85f * float(drawable_size.y), 1.0f, journal_text_color, float(drawable_size.x), float(drawable_size.y));
 
 	// Draw every picture saved by the player
-	float offset = 0.85f / 4 + 0.05;
+	float offset = 0.85f / 4 + 0.04;
 	int i = 1;
     int j = 0;
-    float xoffset = 0.4f;
+    float xoffset = 0.36f;
 
 
 
@@ -1290,6 +1290,11 @@ void PlayMode::journal_draw_ui(glm::uvec2 const& drawable_size) {
             handwriting_text->draw("Best score: " + std::to_string(c->second.best_picture->get_total_score()), x,
                                    y - 0.1 * float(drawable_size.y), 0.5f, journal_text_color,
                                    float(drawable_size.x), float(drawable_size.y));
+
+            //draw pic
+		    DrawPicture pic(*c->second.best_picture, drawable_size);
+            pic.draw(glm::vec2(x + 0.234f * float(drawable_size.x), y - (offset / 4) * float(drawable_size.y)), 0.16f);
+
         } else {
             handwriting_text->draw("?????", x,
                                    y, 1.0f, journal_text_color,
