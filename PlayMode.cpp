@@ -1033,7 +1033,7 @@ void PlayMode::playing_update(float elapsed) {
 	// Handle State (return early if state changes)
 	{
 		// open journal on tab, swap to journal state
-		/*
+		
 		if (tab.downs > 0) {
             Sound::play(Sound::sample_map->at("Page_Turn"));
             if(music_l && music_r) {
@@ -1050,7 +1050,7 @@ void PlayMode::playing_update(float elapsed) {
 			cur_state = journal;
 			return;
 		}
-		*/
+
 
 		// swap to night state at end of day
 		if (time_of_day >= end_day_time && time_of_day < start_day_time) {
@@ -1251,30 +1251,65 @@ void PlayMode::journal_draw_ui(glm::uvec2 const& drawable_size) {
 	draw.flush_sprite_buffer();
 
 	// Page title
-	handwriting_text->draw("JOURNAL", 0.25f * float(drawable_size.x), 0.75f * float(drawable_size.y), 1.0f, journal_text_color, float(drawable_size.x), float(drawable_size.y));
+	handwriting_text->draw("CREATURES", 0.2f * float(drawable_size.x), 0.85f * float(drawable_size.y), 1.0f, journal_text_color, float(drawable_size.x), float(drawable_size.y));
 
 	// Draw every picture saved by the player
-	float offset = 0.8f / (player->pictures.size() + 1.0f);
+	float offset = 0.85f / 4.f + 0.04f;
 	int i = 1;
-	for (auto p = saved_pictures.begin(); p != saved_pictures.end(); ++p) {
-		
-		
-		// title
-		handwriting_text->draw((*p)->title, 0.15f * float(drawable_size.x), (0.8f - (offset * i)) * float(drawable_size.y), 1.0f, journal_text_color, float(drawable_size.x), float(drawable_size.y));
-		// actual picture
-		DrawPicture pic(**p, drawable_size);
-		// scale is relative to entire screen resolution, so 1 means full screen coverage
-		pic.draw(glm::vec2(0.5f * float(drawable_size.x), (0.8f - (offset * i)) * float(drawable_size.y)), 0.1f);
-		i++;
-	}
+    int j = 0;
+    float xoffset = 0.36f;
 
-	/*
+
+
+//	for (auto p = saved_pictures.begin(); p != saved_pictures.end(); ++p) {
+//
+//
+//		// title
+//		handwriting_text->draw((*p)->title, 0.15f * float(drawable_size.x), (0.8f - (offset * i)) * float(drawable_size.y), 1.0f, journal_text_color, float(drawable_size.x), float(drawable_size.y));
+//		// actual picture
+//		DrawPicture pic(**p, drawable_size);
+//		// scale is relative to entire screen resolution, so 1 means full screen coverage
+//		pic.draw(glm::vec2(0.5f * float(drawable_size.x), (0.8f - (offset * i)) * float(drawable_size.y)), 0.1f);
+//		i++;
+//	}
+
+    uint32_t total_score = 0;
+
 	for (auto c = Creature::creature_stats_map.begin(); c != Creature::creature_stats_map.end(); ++c) {
 		// Creature name
-		handwriting_text->draw((*c).second.name, 0.15f * float(drawable_size.x), (0.8f - (offset * i)) * float(drawable_size.y), 1.0f, journal_text_color, float(drawable_size.x), float(drawable_size.y));
-		i++;
+        float x = (0.15f + xoffset * j) * float(drawable_size.x);
+        float y = (0.98f - (offset * i)) * float(drawable_size.y);
+        if(c->second.is_discovered()) {
+            total_score += c->second.best_picture->get_total_score();
+            handwriting_text->draw((*c).second.name, x,
+                                    y, 1.0f, journal_text_color,
+                                   float(drawable_size.x), float(drawable_size.y));
+            handwriting_text->draw("Times Photographed: " + std::to_string(c->second.times_photographed), x,
+                                   y - 0.05f * float(drawable_size.y), 0.5f, journal_text_color,
+                                   float(drawable_size.x), float(drawable_size.y));
+            handwriting_text->draw("Best score: " + std::to_string(c->second.best_picture->get_total_score()), x,
+                                   y - 0.1f * float(drawable_size.y), 0.5f, journal_text_color,
+                                   float(drawable_size.x), float(drawable_size.y));
+
+            //draw pic
+		    DrawPicture pic(*c->second.best_picture, drawable_size);
+            pic.draw(glm::vec2(x + 0.233f * float(drawable_size.x), y - (offset / 4) * float(drawable_size.y)), 0.16f);
+
+        } else {
+            handwriting_text->draw("?????", x,
+                                   y, 1.0f, journal_text_color,
+                                   float(drawable_size.x), float(drawable_size.y));
+        }
+        i++;
+        if(i > 3) {
+            j++;
+            i = 1;
+        }
 	}
-	*/
+
+    handwriting_text->draw("Total score: " + std::to_string(total_score), (0.2f + 0.34f) * float(drawable_size.x), 0.85f * float(drawable_size.y), 1.0f, journal_text_color, float(drawable_size.x), float(drawable_size.y));
+
+
 }
 
 // -------- Nightime functions -----------
