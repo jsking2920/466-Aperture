@@ -144,7 +144,7 @@ Load< BoneAnimation > PEN_banims(LoadTagDefault, []() -> BoneAnimation const * {
 });
 
 Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
-	return new Scene(data_path("assets/proto-world2.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
+	return new Scene(data_path("assets/proto-world2.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const mesh_name, GLuint tex){
         Mesh const &mesh = main_meshes->lookup(mesh_name);
         //lock drawables
         std::unique_lock<std::mutex> lock(scene.drawable_load_mutex);
@@ -267,16 +267,15 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
             drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_LIGHT_mat4x3 = shadow_program_pipeline.OBJECT_TO_LIGHT_mat4x3;
         }
 
-
-        GLuint tex;
-        glGenTextures(1, &tex);
-
         // load texture for object if one exists, supports only 1 texture for now
 		// texture must share name with transform in scene ( "assets/textures/{transform->name}.png" )
         // file existence check from https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exists-using-standard-c-c11-14-17-c
 		std::string identifier = transform->name.substr(0, 6);
         if (std::filesystem::exists(data_path("assets/textures/" + identifier + ".png"))) {
             drawable.uses_vertex_color = false;
+            std::unique_lock<std::mutex> gl_lock(Scene::drawable_gl_mutex);
+            //bind context
+            SDL_GL_MakeCurrent(sdl_window, gl_context);
 
             glBindTexture(GL_TEXTURE_2D, tex);
             glm::uvec2 size;
@@ -300,7 +299,8 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
             drawable.pipeline[Scene::Drawable::ProgramTypeShadow].textures[0].texture = tex;
             drawable.pipeline[Scene::Drawable::ProgramTypeShadow].textures[0].target = GL_TEXTURE_2D;
 
-            GL_ERRORS(); // check for errros
+            GL_ERRORS(); // check for errors
+            gl_lock.unlock();
         } else {
             //no texture found, using vertex colors
             drawable.uses_vertex_color = true;

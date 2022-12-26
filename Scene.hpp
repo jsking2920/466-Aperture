@@ -184,7 +184,7 @@ struct Scene {
 	// the 'on_drawable' callback gives your code a chance to look up mesh data and make Drawables:
 	// throws on file format errors
 	void load(std::string const &filename,
-		std::function< void(Scene &, Transform *, std::string const) > const &on_drawable = nullptr
+		std::function< void(Scene &, Transform *, std::string const, GLuint tex) > const &on_drawable = nullptr
 	);
 
 	//this function is called to read extra chunks from the scene file after the main chunks are read:
@@ -195,7 +195,7 @@ struct Scene {
 	Scene() = default;
 
 	//load a scene:
-	Scene(std::string const &filename, std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable);
+	Scene(std::string const &filename, std::function< void(Scene &, Transform *, std::string const, GLuint tex) > const &on_drawable);
 
 	//copy a scene (with proper pointer fixup):
 	Scene(Scene const &); //...as a constructor
@@ -205,5 +205,6 @@ struct Scene {
 
     //async loading
     static std::mutex drawable_load_mutex;
+    static std::mutex drawable_gl_mutex;
     std::vector<std::future <void> > drawable_load_futures;
 };

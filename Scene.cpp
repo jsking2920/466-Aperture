@@ -15,6 +15,7 @@
 //-------------------------
 
 std::mutex Scene::drawable_load_mutex;
+std::mutex Scene::drawable_gl_mutex;
 
 glm::mat4x3 Scene::Transform::make_local_to_parent() const {
 	//compute:
@@ -331,7 +332,7 @@ void Scene::test_focal_points(const Camera &camera, std::vector< Scene::Drawable
 
 
 void Scene::load(std::string const &filename,
-	std::function< void(Scene &, Transform *, std::string const) > const &on_drawable) {
+	std::function< void(Scene &, Transform *, std::string const, GLuint tex) > const &on_drawable) {
 
 	std::ifstream file(filename, std::ios::binary);
 
@@ -422,8 +423,10 @@ void Scene::load(std::string const &filename,
 		std::string name = std::string(names.begin() + m.name_begin, names.begin() + m.name_end);
 
 		if (on_drawable) {
+            GLuint tex;
+            glGenTextures(1, &tex);
             drawable_load_futures.push_back(
-                    std::async(std::launch::async, [&] { return on_drawable( *this, hierarchy_transforms[m.transform], name); })
+                    std::async(std::launch::async, [&] { return on_drawable( *this, hierarchy_transforms[m.transform], name, tex); })
             );
 		}
 
@@ -478,7 +481,7 @@ void Scene::load(std::string const &filename,
 
 //-------------------------
 
-Scene::Scene(std::string const &filename, std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable) {
+Scene::Scene(std::string const &filename, std::function< void(Scene &, Transform *, std::string const, GLuint tex) > const &on_drawable) {
 	load(filename, on_drawable);
 }
 

@@ -35,25 +35,32 @@ FragCountQueryAsync::FragCountQueryAsync(uint32_t N)
 {
   assert(capacity_ > 0);
   queries = new GLuint[capacity_];
-  glGenQueries(capacity_, queries);
-  GL_ERRORS();
+//  glGenQueries(capacity_, queries);
+// drawable initialization is now threaded so we move this
 }
 
 FragCountQueryAsync::~FragCountQueryAsync()
 {
-  glDeleteQueries(capacity_, queries);
+  if(init) {
+      glDeleteQueries(capacity_, queries);
+  }
   delete[] queries;
 }
 
 
 FragCountQueryAsync::FragCountQueryAsync(const FragCountQueryAsync & original) : start_(original.start_), capacity_(original.capacity_) {
     queries = new GLuint[original.capacity_];
-    glGenQueries(capacity_, queries);
-    GL_ERRORS();
+//    glGenQueries(capacity_, queries);
+//    GL_ERRORS();
 }
 
 void FragCountQueryAsync::StartQuery()
 {
+    if(!init) {
+        glGenQueries(capacity_, queries);
+        GL_ERRORS();
+        init = true;
+    }
   // begin a query if there is at least one inactive
   if (count_ < capacity_)
   {
