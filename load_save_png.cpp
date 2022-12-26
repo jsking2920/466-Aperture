@@ -16,7 +16,7 @@ void save_png(std::ostream &to, unsigned int width, unsigned int height, glm::u8
 
 void load_png(std::string filename, glm::uvec2 *size, std::vector< glm::u8vec4 > *data, OriginLocation origin) {
 	assert(size);
-
+    std::cout << "loading png " << filename <<std::endl;
 	std::ifstream file(filename.c_str(), std::ios::binary);
 	if (!file) {
 		throw std::runtime_error("Failed to open PNG image file '" + filename + "'.");

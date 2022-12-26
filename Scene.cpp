@@ -4,6 +4,8 @@
 #include "gl_check_fb.hpp"
 #include "read_write_chunk.hpp"
 #include "Framebuffers.hpp"
+#include "data_path.hpp"
+#include "load_save_png.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
@@ -15,7 +17,7 @@
 //-------------------------
 
 std::mutex Scene::drawable_load_mutex;
-std::mutex Scene::drawable_gl_mutex;
+std::mutex Scene::drawable_texture_mutex;
 
 glm::mat4x3 Scene::Transform::make_local_to_parent() const {
 	//compute:
@@ -423,11 +425,11 @@ void Scene::load(std::string const &filename,
 		std::string name = std::string(names.begin() + m.name_begin, names.begin() + m.name_end);
 
 		if (on_drawable) {
-            GLuint tex;
-            glGenTextures(1, &tex);
+//            tex_data.emplace_back(hierarchy_transforms[m.transform]->name);
             drawable_load_futures.push_back(
-                    std::async(std::launch::async, [&] { return on_drawable( *this, hierarchy_transforms[m.transform], name, tex); })
+                    std::async(std::launch::async, on_drawable, std::ref<Scene>(*this), hierarchy_transforms[m.transform], name, 0)
             );
+
 		}
 
 	}
@@ -470,6 +472,47 @@ void Scene::load(std::string const &filename,
 		light->spot_fov = l.fov / 180.0f * 3.1415926f; //FOV is stored in degrees; convert to radians.
 	}
 
+    //wait for loads to finish
+    for(auto const &future : drawable_load_futures) {
+        future.wait();
+    }
+
+    //load textures
+    for(auto &drawable : drawables) {
+        if(drawable.uses_vertex_color) {
+            continue;
+        }
+        GLuint tex;
+        glGenTextures(1, &tex);
+
+        std::string identifier = drawable.transform->name.substr(0, 6);
+        auto tex_data = tex_map.at(identifier);
+        glBindTexture(GL_TEXTURE_2D, tex);
+        auto size = tex_data.first;
+        auto tex_data_pix = tex_data.second;
+
+        std::cout<<"loading texture " << identifier << std::endl;
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex_data_pix.data());
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // change this to GL_REPEAT or something else for texture tiling
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // mipmapping for textures far from cam
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); // Bilinear filtering for textures close to cam
+        glBindTexture(GL_TEXTURE_2D, 0);
+        GL_ERRORS(); // check for errors
+
+        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[0].texture = tex;
+        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[0].target = GL_TEXTURE_2D;
+
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].textures[0].texture = tex;
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].textures[0].target = GL_TEXTURE_2D;
+    }
+
+    std::cout<<"finish textures"<<std::endl;
+    tex_map.clear();
 	//load any extra that a subclass wants:
 	load_extra(file, names, hierarchy_transforms);
 

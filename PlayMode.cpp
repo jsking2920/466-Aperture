@@ -164,7 +164,6 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
                 std::find_if(creature_stats_map_load->begin(), creature_stats_map_load->end(), is_creature) != creature_stats_map_load->end()) {
             int creature_index = creature_stats_map_load->at(transform->name.substr(0, 3)).switch_index;
             //animated object pipeline setup
-			std::cout<<"found "<<transform->name<<std::endl;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault] = bone_lit_color_texture_program_pipeline;
             drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
             //set roughnesses, possibly should be from csv??
@@ -273,40 +272,21 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 		std::string identifier = transform->name.substr(0, 6);
         if (std::filesystem::exists(data_path("assets/textures/" + identifier + ".png"))) {
             drawable.uses_vertex_color = false;
-            std::unique_lock<std::mutex> gl_lock(Scene::drawable_gl_mutex);
-            //bind context
-            SDL_GL_MakeCurrent(sdl_window, gl_context);
-
-            glBindTexture(GL_TEXTURE_2D, tex);
-            glm::uvec2 size;
-            std::vector< glm::u8vec4 > tex_data;
-
-            load_png(data_path("assets/textures/" + identifier + ".png"), &size, &tex_data, LowerLeftOrigin);
-
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex_data.data());
-			glGenerateMipmap(GL_TEXTURE_2D);
-
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // change this to GL_REPEAT or something else for texture tiling
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-         
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // mipmapping for textures far from cam
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); // Bilinear filtering for textures close to cam
-            glBindTexture(GL_TEXTURE_2D, 0);
-
-            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[0].texture = tex;
-            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[0].target = GL_TEXTURE_2D;
-
-            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].textures[0].texture = tex;
-            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].textures[0].target = GL_TEXTURE_2D;
-
-            GL_ERRORS(); // check for errors
-            gl_lock.unlock();
+            std::unique_lock<std::mutex> tex_lock(scene.drawable_texture_mutex);
+            //if texture has not been loaded already, load. if not, unlock mutex
+            if(!scene.tex_map.count(identifier)) {
+                scene.tex_map.emplace(std::piecewise_construct, std::make_tuple(identifier), std::make_tuple());
+                tex_lock.unlock();
+                auto &tex_data = scene.tex_map.at(identifier);
+                load_png(data_path("assets/textures/" + identifier + ".png"), &tex_data.first, &tex_data.second, LowerLeftOrigin);
+            } else {
+                tex_lock.unlock();
+            }
         } else {
             //no texture found, using vertex colors
             drawable.uses_vertex_color = true;
         }
-        //drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].texture = framebuffers.shadow_depth_tex;
-        //drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].target = GL_TEXTURE_2D;
+        std::cout<<"finished loading "<<transform->name<<std::endl;
     });
 });
 

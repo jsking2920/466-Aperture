@@ -165,6 +165,9 @@ struct Scene {
 	std::list< Camera > cameras;
 	std::list< Light > lights;
 
+    //textures
+    std::unordered_map < std::string, std::pair< glm::uvec2, std::vector< glm::u8vec4 > > > tex_map;
+
     //Version of draw function for different render modes:
     void draw(Camera const &camera, Drawable::PassType pass_type = Drawable::PassTypeDefault);
 
@@ -205,6 +208,6 @@ struct Scene {
 
     //async loading
     static std::mutex drawable_load_mutex;
-    static std::mutex drawable_gl_mutex;
+    static std::mutex drawable_texture_mutex;
     std::vector<std::future <void> > drawable_load_futures;
 };
