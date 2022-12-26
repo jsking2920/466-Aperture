@@ -146,8 +146,12 @@ Load< BoneAnimation > PEN_banims(LoadTagDefault, []() -> BoneAnimation const * {
 Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 	return new Scene(data_path("assets/proto-world2.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
         Mesh const &mesh = main_meshes->lookup(mesh_name);
+        //lock drawables
+        std::unique_lock<std::mutex> lock(scene.drawable_load_mutex);
         scene.drawables.emplace_back(transform);
         Scene::Drawable &drawable = scene.drawables.back();
+        //unlock drawables
+        lock.unlock();
 
         //to find if creature (has anims)
         auto is_creature = [&](std::pair< std::string, CreatureStats > pair) {
