@@ -166,7 +166,7 @@ struct Scene {
 	std::list< Light > lights;
 
     //textures
-    std::unordered_map < std::string, std::pair< glm::uvec2, std::vector< glm::u8vec4 > > > tex_map;
+    std::unordered_map < std::string, GLuint > tex_map;
 
     //Version of draw function for different render modes:
     void draw(Camera const &camera, Drawable::PassType pass_type = Drawable::PassTypeDefault);

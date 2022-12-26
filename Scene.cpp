@@ -483,26 +483,30 @@ void Scene::load(std::string const &filename,
             continue;
         }
         GLuint tex;
-        glGenTextures(1, &tex);
 
         std::string identifier = drawable.transform->name.substr(0, 6);
-        auto tex_data = tex_map.at(identifier);
-        glBindTexture(GL_TEXTURE_2D, tex);
-        auto size = tex_data.first;
-        auto tex_data_pix = tex_data.second;
+        if(!tex_map.count(identifier)) {
+            glGenTextures(1, &tex);
+            glBindTexture(GL_TEXTURE_2D, tex);
+            glm::uvec2 size;
+            std::vector< glm::u8vec4 > tex_data;
 
-        std::cout<<"loading texture " << identifier << std::endl;
+            load_png(data_path("assets/textures/" + identifier + ".png"), &size, &tex_data, LowerLeftOrigin);
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex_data_pix.data());
-        glGenerateMipmap(GL_TEXTURE_2D);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex_data.data());
+            glGenerateMipmap(GL_TEXTURE_2D);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // change this to GL_REPEAT or something else for texture tiling
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // change this to GL_REPEAT or something else for texture tiling
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // mipmapping for textures far from cam
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); // Bilinear filtering for textures close to cam
-        glBindTexture(GL_TEXTURE_2D, 0);
-        GL_ERRORS(); // check for errors
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // mipmapping for textures far from cam
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); // Bilinear filtering for textures close to cam
+            glBindTexture(GL_TEXTURE_2D, 0);
+            GL_ERRORS(); // check for errors
+            tex_map.emplace(identifier, tex);
+        } else {
+            tex = tex_map.at(identifier);
+        }
 
         drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[0].texture = tex;
         drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[0].target = GL_TEXTURE_2D;

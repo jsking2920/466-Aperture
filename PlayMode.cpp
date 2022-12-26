@@ -272,16 +272,6 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
 		std::string identifier = transform->name.substr(0, 6);
         if (std::filesystem::exists(data_path("assets/textures/" + identifier + ".png"))) {
             drawable.uses_vertex_color = false;
-            std::unique_lock<std::mutex> tex_lock(scene.drawable_texture_mutex);
-            //if texture has not been loaded already, load. if not, unlock mutex
-            if(!scene.tex_map.count(identifier)) {
-                scene.tex_map.emplace(std::piecewise_construct, std::make_tuple(identifier), std::make_tuple());
-                tex_lock.unlock();
-                auto &tex_data = scene.tex_map.at(identifier);
-                load_png(data_path("assets/textures/" + identifier + ".png"), &tex_data.first, &tex_data.second, LowerLeftOrigin);
-            } else {
-                tex_lock.unlock();
-            }
         } else {
             //no texture found, using vertex colors
             drawable.uses_vertex_color = true;
