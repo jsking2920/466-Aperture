@@ -276,7 +276,6 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
             //no texture found, using vertex colors
             drawable.uses_vertex_color = true;
         }
-        std::cout<<"finished loading "<<transform->name<<std::endl;
     });
 });
 
@@ -360,6 +359,7 @@ PlayMode::PlayMode() : scene(*main_scene) {
 	barcode_text = new TextRenderer(data_path("assets/fonts/LibreBarcode128Text-Regular.ttf"), barcode_font_size);
 
     //load audio samples
+    std::cout<<"loading audio..."<<std::endl;
     sample_map = *audio_samples;
     Sound::sample_map = &sample_map; // example access--> Sound::play(Sound::sample_map->at("CameraClick"));
 

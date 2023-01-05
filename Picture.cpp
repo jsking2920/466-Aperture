@@ -260,9 +260,9 @@ void Picture::save_picture_png() {
     //convert pixel data to correct format for png export
     std::vector<uint8_t>png_data(4 * (unsigned long)dimensions.x * (unsigned long)dimensions.y);
     for (uint32_t i = 0; i < dimensions.x * dimensions.y; i++) {
-        png_data[i * 4] = (uint8_t)round((*data)[i * 3] * 255);
-        png_data[i * 4 + 1] = (uint8_t)round((*data)[i * 3 + 1] * 255);
-        png_data[i * 4 + 2] = (uint8_t)round((*data)[i * 3 + 2] * 255);
+        png_data[i * 4] = (uint8_t)round(std::clamp((*data)[i * 3], 0.f, 1.f) * 255);
+        png_data[i * 4 + 1] = (uint8_t)round(std::clamp((*data)[i * 3 + 1], 0.f, 1.f) * 255);
+        png_data[i * 4 + 2] = (uint8_t)round(std::clamp((*data)[i * 3 + 2], 0.f, 1.f) * 255);
         png_data[i * 4 + 3] = 255;
     }
     // create album folder if it doesn't exist

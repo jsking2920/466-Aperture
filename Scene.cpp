@@ -388,6 +388,7 @@ void Scene::load(std::string const &filename,
 	//--------------------------------
 	//Now that file is loaded, create transforms for hierarchy entries:
 
+    std::cout<<"loading meshes..."<<std::endl;
 	std::vector< Transform * > hierarchy_transforms;
 	hierarchy_transforms.reserve(hierarchy.size());
 
@@ -478,6 +479,7 @@ void Scene::load(std::string const &filename,
     }
 
     //load textures
+    std::cout<<"loading textures..."<<std::endl;
     for(auto &drawable : drawables) {
         if(drawable.uses_vertex_color) {
             continue;
@@ -515,7 +517,6 @@ void Scene::load(std::string const &filename,
         drawable.pipeline[Scene::Drawable::ProgramTypeShadow].textures[0].target = GL_TEXTURE_2D;
     }
 
-    std::cout<<"finish textures"<<std::endl;
     tex_map.clear();
 	//load any extra that a subclass wants:
 	load_extra(file, names, hierarchy_transforms);
