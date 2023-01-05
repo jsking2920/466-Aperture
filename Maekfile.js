@@ -287,8 +287,8 @@ function init_maek() {
 		DEFAULT_OPTIONS.CPP = ['cl.exe', '/nologo', '/EHsc', '/Z7', '/std:c++17', '/W4', '/WX', '/MD'];
 		DEFAULT_OPTIONS.LINK = ['link.exe', '/nologo', '/SUBSYSTEM:CONSOLE', '/DEBUG:FASTLINK', '/INCREMENTAL:NO'];
 	} else if (OS === 'linux') {
-		DEFAULT_OPTIONS.CPP = ['g++', '-std=c++17', '-Wall', '-Werror', '-g'];
-		DEFAULT_OPTIONS.LINK = ['g++', '-std=c++17', '-Wall', '-Werror', '-g'];
+		DEFAULT_OPTIONS.CPP = ['g++', '-std=c++17', '-Wall', '-Wno-unused-variable', '-Werror', '-g'];
+		DEFAULT_OPTIONS.LINK = ['g++', '-std=c++17', '-Wall', '-Wno-unused-variable', '-Werror', '-g'];
 	} else if (OS === 'macos') {
 		DEFAULT_OPTIONS.CPP = ['clang++', '-std=c++17', '-Wall', '-Werror', '-Wshadow', '-g'];
 		DEFAULT_OPTIONS.LINK = ['clang++', '-std=c++17', '-Wall', '-Werror', '-Wshadow', '-g'];
