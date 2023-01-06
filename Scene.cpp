@@ -4,14 +4,20 @@
 #include "gl_check_fb.hpp"
 #include "read_write_chunk.hpp"
 #include "Framebuffers.hpp"
+#include "data_path.hpp"
+#include "load_save_png.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
 
 #include <fstream>
 #include <algorithm>
+#include <future>
 
 //-------------------------
+
+std::mutex Scene::drawable_load_mutex;
+std::mutex Scene::drawable_texture_mutex;
 
 glm::mat4x3 Scene::Transform::make_local_to_parent() const {
 	//compute:
@@ -328,7 +334,7 @@ void Scene::test_focal_points(const Camera &camera, std::vector< Scene::Drawable
 
 
 void Scene::load(std::string const &filename,
-	std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable) {
+	std::function< void(Scene &, Transform *, std::string const, GLuint tex) > const &on_drawable) {
 
 	std::ifstream file(filename, std::ios::binary);
 
@@ -382,6 +388,7 @@ void Scene::load(std::string const &filename,
 	//--------------------------------
 	//Now that file is loaded, create transforms for hierarchy entries:
 
+    std::cout<<"loading meshes..."<<std::endl;
 	std::vector< Transform * > hierarchy_transforms;
 	hierarchy_transforms.reserve(hierarchy.size());
 
@@ -419,7 +426,11 @@ void Scene::load(std::string const &filename,
 		std::string name = std::string(names.begin() + m.name_begin, names.begin() + m.name_end);
 
 		if (on_drawable) {
-			on_drawable(*this, hierarchy_transforms[m.transform], name);
+//            tex_data.emplace_back(hierarchy_transforms[m.transform]->name);
+            drawable_load_futures.push_back(
+                    std::async(std::launch::async, on_drawable, std::ref<Scene>(*this), hierarchy_transforms[m.transform], name, 0)
+            );
+
 		}
 
 	}
@@ -462,6 +473,51 @@ void Scene::load(std::string const &filename,
 		light->spot_fov = l.fov / 180.0f * 3.1415926f; //FOV is stored in degrees; convert to radians.
 	}
 
+    //wait for loads to finish
+    for(auto const &future : drawable_load_futures) {
+        future.wait();
+    }
+
+    //load textures
+    std::cout<<"loading textures..."<<std::endl;
+    for(auto &drawable : drawables) {
+        if(drawable.uses_vertex_color) {
+            continue;
+        }
+        GLuint tex;
+
+        std::string identifier = drawable.transform->name.substr(0, 6);
+        if(!tex_map.count(identifier)) {
+            glGenTextures(1, &tex);
+            glBindTexture(GL_TEXTURE_2D, tex);
+            glm::uvec2 size;
+            std::vector< glm::u8vec4 > tex_data;
+
+            load_png(data_path("assets/textures/" + identifier + ".png"), &size, &tex_data, LowerLeftOrigin);
+
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex_data.data());
+            glGenerateMipmap(GL_TEXTURE_2D);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // change this to GL_REPEAT or something else for texture tiling
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // mipmapping for textures far from cam
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); // Bilinear filtering for textures close to cam
+            glBindTexture(GL_TEXTURE_2D, 0);
+            GL_ERRORS(); // check for errors
+            tex_map.emplace(identifier, tex);
+        } else {
+            tex = tex_map.at(identifier);
+        }
+
+        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[0].texture = tex;
+        drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[0].target = GL_TEXTURE_2D;
+
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].textures[0].texture = tex;
+        drawable.pipeline[Scene::Drawable::ProgramTypeShadow].textures[0].target = GL_TEXTURE_2D;
+    }
+
+    tex_map.clear();
 	//load any extra that a subclass wants:
 	load_extra(file, names, hierarchy_transforms);
 
@@ -473,7 +529,7 @@ void Scene::load(std::string const &filename,
 
 //-------------------------
 
-Scene::Scene(std::string const &filename, std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable) {
+Scene::Scene(std::string const &filename, std::function< void(Scene &, Transform *, std::string const, GLuint tex) > const &on_drawable) {
 	load(filename, on_drawable);
 }
 

@@ -5,6 +5,10 @@
 
 #include <memory>
 
+//OpenGL Context & Window, for use in multithreading
+static SDL_GLContext gl_context = 0;
+static SDL_Window *sdl_window = nullptr;
+
 struct Mode : std::enable_shared_from_this< Mode > {
 	virtual ~Mode() { }
 

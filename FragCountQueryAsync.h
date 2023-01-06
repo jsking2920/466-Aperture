@@ -63,4 +63,5 @@ private:
   uint32_t count_{}; // number of timers 'buffered', ie measurement was started by result not read yet
   uint32_t capacity_{};
   GLuint* queries{};
+  bool init = false;
 };

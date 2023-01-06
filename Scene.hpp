@@ -23,6 +23,8 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <mutex>
+#include <future>
 
 struct Scene {
 	struct Transform {
@@ -163,6 +165,9 @@ struct Scene {
 	std::list< Camera > cameras;
 	std::list< Light > lights;
 
+    //textures
+    std::unordered_map < std::string, GLuint > tex_map;
+
     //Version of draw function for different render modes:
     void draw(Camera const &camera, Drawable::PassType pass_type = Drawable::PassTypeDefault);
 
@@ -182,7 +187,7 @@ struct Scene {
 	// the 'on_drawable' callback gives your code a chance to look up mesh data and make Drawables:
 	// throws on file format errors
 	void load(std::string const &filename,
-		std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable = nullptr
+		std::function< void(Scene &, Transform *, std::string const, GLuint tex) > const &on_drawable = nullptr
 	);
 
 	//this function is called to read extra chunks from the scene file after the main chunks are read:
@@ -193,11 +198,16 @@ struct Scene {
 	Scene() = default;
 
 	//load a scene:
-	Scene(std::string const &filename, std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable);
+	Scene(std::string const &filename, std::function< void(Scene &, Transform *, std::string const, GLuint tex) > const &on_drawable);
 
 	//copy a scene (with proper pointer fixup):
 	Scene(Scene const &); //...as a constructor
 	Scene &operator=(Scene const &); //...as scene = scene
 	//... as a set() function that optionally returns the transform->transform mapping:
 	void set(Scene const &, std::unordered_map< Transform const *, Transform * > *transform_map = nullptr);
+
+    //async loading
+    static std::mutex drawable_load_mutex;
+    static std::mutex drawable_texture_mutex;
+    std::vector<std::future <void> > drawable_load_futures;
 };

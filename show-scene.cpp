@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
 	if (scene_file != "") {
 		try {
 			scene = new Scene();
-			scene->load(scene_file, [&buffer,&buffer_vao](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
+			scene->load(scene_file, [&buffer,&buffer_vao](Scene &scene, Scene::Transform *transform, std::string const mesh_name, GLuint tex){
 				if (!buffer_vao) return;
 				Mesh const &mesh = buffer->lookup(mesh_name);
 

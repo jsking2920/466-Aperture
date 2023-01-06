@@ -144,10 +144,14 @@ Load< BoneAnimation > PEN_banims(LoadTagDefault, []() -> BoneAnimation const * {
 });
 
 Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
-	return new Scene(data_path("assets/proto-world2.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
+	return new Scene(data_path("assets/proto-world2.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const mesh_name, GLuint tex){
         Mesh const &mesh = main_meshes->lookup(mesh_name);
+        //lock drawables
+        std::unique_lock<std::mutex> lock(scene.drawable_load_mutex);
         scene.drawables.emplace_back(transform);
         Scene::Drawable &drawable = scene.drawables.back();
+        //unlock drawables
+        lock.unlock();
 
         //to find if creature (has anims)
         auto is_creature = [&](std::pair< std::string, CreatureStats > pair) {
@@ -160,7 +164,6 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
                 std::find_if(creature_stats_map_load->begin(), creature_stats_map_load->end(), is_creature) != creature_stats_map_load->end()) {
             int creature_index = creature_stats_map_load->at(transform->name.substr(0, 3)).switch_index;
             //animated object pipeline setup
-			std::cout<<"found "<<transform->name<<std::endl;
 			drawable.pipeline[Scene::Drawable::ProgramTypeDefault] = bone_lit_color_texture_program_pipeline;
             drawable.pipeline[Scene::Drawable::ProgramTypeDefault].type = mesh.type;
             //set roughnesses, possibly should be from csv??
@@ -263,46 +266,16 @@ Load< Scene > main_scene(LoadTagDefault, []() -> Scene const * {
             drawable.pipeline[Scene::Drawable::ProgramTypeShadow].OBJECT_TO_LIGHT_mat4x3 = shadow_program_pipeline.OBJECT_TO_LIGHT_mat4x3;
         }
 
-
-        GLuint tex;
-        glGenTextures(1, &tex);
-
         // load texture for object if one exists, supports only 1 texture for now
 		// texture must share name with transform in scene ( "assets/textures/{transform->name}.png" )
         // file existence check from https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exists-using-standard-c-c11-14-17-c
 		std::string identifier = transform->name.substr(0, 6);
         if (std::filesystem::exists(data_path("assets/textures/" + identifier + ".png"))) {
             drawable.uses_vertex_color = false;
-
-            glBindTexture(GL_TEXTURE_2D, tex);
-            glm::uvec2 size;
-            std::vector< glm::u8vec4 > tex_data;
-
-            load_png(data_path("assets/textures/" + identifier + ".png"), &size, &tex_data, LowerLeftOrigin);
-
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex_data.data());
-			glGenerateMipmap(GL_TEXTURE_2D);
-
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // change this to GL_REPEAT or something else for texture tiling
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-         
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // mipmapping for textures far from cam
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); // Bilinear filtering for textures close to cam
-            glBindTexture(GL_TEXTURE_2D, 0);
-
-            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[0].texture = tex;
-            drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[0].target = GL_TEXTURE_2D;
-
-            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].textures[0].texture = tex;
-            drawable.pipeline[Scene::Drawable::ProgramTypeShadow].textures[0].target = GL_TEXTURE_2D;
-
-            GL_ERRORS(); // check for errros
         } else {
             //no texture found, using vertex colors
             drawable.uses_vertex_color = true;
         }
-        //drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].texture = framebuffers.shadow_depth_tex;
-        //drawable.pipeline[Scene::Drawable::ProgramTypeDefault].textures[1].target = GL_TEXTURE_2D;
     });
 });
 
@@ -386,6 +359,7 @@ PlayMode::PlayMode() : scene(*main_scene) {
 	barcode_text = new TextRenderer(data_path("assets/fonts/LibreBarcode128Text-Regular.ttf"), barcode_font_size);
 
     //load audio samples
+    std::cout<<"loading audio..."<<std::endl;
     sample_map = *audio_samples;
     Sound::sample_map = &sample_map; // example access--> Sound::play(Sound::sample_map->at("CameraClick"));
 

@@ -35,6 +35,7 @@
 extern "C" { uint32_t GetACP(); }
 #endif
 
+
 int main(int argc, char **argv) {
 #ifdef _WIN32
 	{ //when compiled on windows, check that code page is forced to utf-8 (makes file loading/saving work right):
@@ -70,7 +71,7 @@ int main(int argc, char **argv) {
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 
 	//create window:
-	SDL_Window *window = SDL_CreateWindow(
+	sdl_window = SDL_CreateWindow(
 		"Aperture by Joyce, Scott, and Will",
 		SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 		1280, 720, //TODO: modify window size if you'd like
@@ -81,7 +82,7 @@ int main(int argc, char **argv) {
 	);
 
 	//prevent exceedingly tiny windows when resizing:
-	SDL_SetWindowMinimumSize(window, 640, 360);
+	SDL_SetWindowMinimumSize(sdl_window, 640, 360);
 
 	// set window icon (TODO: not working currently)
 	{
@@ -114,16 +115,16 @@ int main(int argc, char **argv) {
 		*/
 	}
 
-	if (!window) {
+	if (!sdl_window) {
 		std::cerr << "Error creating SDL window: " << SDL_GetError() << std::endl;
 		return 1;
 	}
 
 	//Create OpenGL context:
-	SDL_GLContext context = SDL_GL_CreateContext(window);
+    gl_context = SDL_GL_CreateContext(sdl_window);
 
-	if (!context) {
-		SDL_DestroyWindow(window);
+	if (!gl_context) {
+		SDL_DestroyWindow(sdl_window);
 		std::cerr << "Error creating OpenGL context: " << SDL_GetError() << std::endl;
 		return 1;
 	}
@@ -162,9 +163,9 @@ int main(int argc, char **argv) {
 	//On non-highDPI displays, window_size will always equal drawable_size.
 	auto on_resize = [&](){
 		int w,h;
-		SDL_GetWindowSize(window, &w, &h);
+		SDL_GetWindowSize(sdl_window, &w, &h);
 		window_size = glm::uvec2(w, h);
-		SDL_GL_GetDrawableSize(window, &w, &h);
+		SDL_GL_GetDrawableSize(sdl_window, &w, &h);
 		drawable_size = glm::uvec2(w, h);
 		glViewport(0, 0, drawable_size.x, drawable_size.y);
 	};
@@ -195,7 +196,7 @@ int main(int argc, char **argv) {
 					glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 					glReadBuffer(GL_FRONT);
 					int w,h;
-					SDL_GL_GetDrawableSize(window, &w, &h);
+					SDL_GL_GetDrawableSize(sdl_window, &w, &h);
 					std::vector< glm::u8vec4 > data(w*h);
 					glReadPixels(0,0,w,h, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
 					for (auto &px : data) {
@@ -227,18 +228,18 @@ int main(int argc, char **argv) {
 		}
 
 		//Wait until the recently-drawn frame is shown before doing it all again:
-		SDL_GL_SwapWindow(window);
+		SDL_GL_SwapWindow(sdl_window);
 	}
 
 
 	//------------  teardown ------------
 	Sound::shutdown();
 
-	SDL_GL_DeleteContext(context);
-	context = 0;
+	SDL_GL_DeleteContext(gl_context);
+    gl_context = 0;
 
-	SDL_DestroyWindow(window);
-	window = NULL;
+	SDL_DestroyWindow(sdl_window);
+    sdl_window = NULL;
 
 	return 0;
 
