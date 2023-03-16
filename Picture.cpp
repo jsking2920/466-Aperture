@@ -92,8 +92,7 @@ Picture::Picture(PictureInfo &stats, glm::vec3& player_pos) : dimensions(stats.d
                 subject_info.creature->on_picture(player_pos);
             }
         }
-
-    // Create a texture for this picture, to be used for drawing it
+i    // Create a texture for this picture, to be used for drawing it
     {
         // Upload the texture data to the GPU
 

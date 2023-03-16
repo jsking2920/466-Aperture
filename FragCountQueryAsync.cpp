@@ -5,6 +5,7 @@
  * MIT License
 
     Copyright (c) 2021 Jake Ryan
+    Copyright (c) 2022 William Ozeas
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -28,46 +29,38 @@
 #include "FragCountQueryAsync.h"
 #include "gl_errors.hpp"
 #include <cassert>
-#include <iostream>
 
 FragCountQueryAsync::FragCountQueryAsync(uint32_t N)
-  : capacity_(N)
-{
-  assert(capacity_ > 0);
-  queries = new GLuint[capacity_];
-//  glGenQueries(capacity_, queries);
-// drawable initialization is now threaded so we move this
+        : capacity_(N) {
+    assert(capacity_ > 0);
+    queries = new GLuint[capacity_];
+    // drawable initialization is now multithreaded so we no longer initialize queries in here
 }
 
-FragCountQueryAsync::~FragCountQueryAsync()
-{
-  if(init) {
+FragCountQueryAsync::~FragCountQueryAsync() {
+    if(init) {
       glDeleteQueries(capacity_, queries);
-  }
-  delete[] queries;
+    }
+    delete[] queries;
 }
 
-
-FragCountQueryAsync::FragCountQueryAsync(const FragCountQueryAsync & original) : start_(original.start_), capacity_(original.capacity_) {
+FragCountQueryAsync::FragCountQueryAsync(const FragCountQueryAsync & original)
+        : start_(original.start_), capacity_(original.capacity_) {
     queries = new GLuint[original.capacity_];
-//    glGenQueries(capacity_, queries);
-//    GL_ERRORS();
 }
 
 void FragCountQueryAsync::StartQuery()
 {
     if(!init) {
         glGenQueries(capacity_, queries);
-        GL_ERRORS();
         init = true;
     }
-  // begin a query if there is at least one inactive
-  if (count_ < capacity_)
-  {
+    // begin a query if there is at least one inactive
+    if (count_ < capacity_)
+    {
     glBeginQuery(GL_SAMPLES_PASSED, queries[start_]);
     count_++;
-  }
-    GL_ERRORS();
+    }
 }
 
 void FragCountQueryAsync::EndQuery()
@@ -76,59 +69,43 @@ void FragCountQueryAsync::EndQuery()
         //end same query
         glEndQuery(GL_SAMPLES_PASSED);
         start_ = (start_ + 1) % capacity_; // wrap
-        GL_ERRORS();
     }
 }
 
 std::optional<GLuint> FragCountQueryAsync::most_recent_query()
 {
-  // return nothing if there is no active query
-  if (count_ == 0)
-  {
-    return std::nullopt;
-  }
+    // return nothing if there is no active query
+    if (count_ == 0) {
+        return std::nullopt;
+    }
 
-  // get the index of the oldest query
-  uint32_t index = (start_ + capacity_ - count_) % capacity_;
-  uint32_t check_count = 1;
+    // get the index of the oldest query
+    uint32_t index = (start_ + capacity_ - count_) % capacity_;
+    uint32_t check_count = 1;
 
-  GLint startResultAvailable{};
-  glGetQueryObjectiv(queries[index], GL_QUERY_RESULT_AVAILABLE, &startResultAvailable);
-  if(startResultAvailable) {
-//      std::cout << index << " available\n";
-
-      //at least one is available
-      while(check_count < count_) { //stop if we check all possible ones
-          index = (index + 1) % capacity_;
-          glGetQueryObjectiv(queries[index], GL_QUERY_RESULT_AVAILABLE, &startResultAvailable);
-          if(!startResultAvailable) {
-//              std::cout << index << " unavailable\n";
+    GLint startResultAvailable{};
+    glGetQueryObjectiv(queries[index], GL_QUERY_RESULT_AVAILABLE, &startResultAvailable);
+    if(startResultAvailable) {
+        //at least one is available
+        while(check_count < count_) { //stop if we check all possible queries
+            index = (index + 1) % capacity_;
+            glGetQueryObjectiv(queries[index], GL_QUERY_RESULT_AVAILABLE, &startResultAvailable);
+            if(!startResultAvailable) {
               index = (index - 1) % capacity_; //if not available, go back to the most recent available one
               break;
-          } else {
-//              std::cout << index << " available\n";
-          }
-          check_count++;
-      } //if loop guard breaks, all were ready, and index is the most recent query, which was ready
+            }
+            check_count++;
+        } //if loop guard breaks, all were ready, and index is the most recent query, which was ready
 
-//      if(check_count ==count_) { //DEBUG
-//          std::cout << "all the way finished\n";
-//      } else {
-//          std::cout << "partially finished\n";
-//      }
-  } else {
-//      std::cout << index << " oldest not finished\n"; //DEBUG
-      return std::nullopt; //oldest is not finished
-  }
+    } else {
+        return std::nullopt; //oldest is not finished
+    }
 
-
-  // pop query and retrieve result
-  count_--;
-  GLuint result{};
-//    std::cout << index << " taken\n";
-  glGetQueryObjectuiv(queries[index], GL_QUERY_RESULT, &result);
-    GL_ERRORS();
-  return result;
+    // pop query and retrieve result
+    count_--;
+    GLuint result{};
+    glGetQueryObjectuiv(queries[index], GL_QUERY_RESULT, &result);
+    return result;
 }
 
 GLuint FragCountQueryAsync::wait_for_query() {
@@ -136,7 +113,6 @@ GLuint FragCountQueryAsync::wait_for_query() {
     GLuint result;
     glGetQueryObjectuiv(queries[index], GL_QUERY_RESULT, &result);
     count_ = 0; //all previous queries now useless, newest query popped
-    GL_ERRORS();
     return result;
 }
 
